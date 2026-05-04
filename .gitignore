@@ -49,6 +49,7 @@ GEMINI.md
 ### file ###
 .logs/
 .files/
+api.json
 
 ### generated ###
 src/main/generated/
