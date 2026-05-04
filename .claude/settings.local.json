@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Path \"C:\\\\myWs\\\\_codeit_project\\\\clothesplz\" -Recurse -Force)",
+      "Bash(Select-Object FullName)",
+      "Bash(Sort-Object FullName)",
+      "Bash(rtk find *)",
+      "Bash(rtk ls *)",
+      "Bash(Get-ChildItem -Path \"C:\\\\myWs\\\\_codeit_project\\\\clothesplz\" -Recurse)",
+      "PowerShell(head *)",
+      "Bash(rtk wc *)",
+      "Bash(Test-Path *)",
+      "PowerShell([System.IO.File]::ReadAllText\\(\"C:\\\\myWs\\\\_codeit_project\\\\clothesplz\\\\src\\\\main\\\\java\\\\com\\\\gitggal\\\\clothesplz\\\\entity\\\\user\\\\User.java\"\\))"
+    ]
+  }
+}

@@ -1,0 +1,40 @@
+server:
+  port: 8080
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:${POSTGRES_PORT}/${POSTGRES_DB}
+    driver-class-name: org.postgresql.Driver
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
+
+  # Redis 설정 추가
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: validate
+    # defer-datasource-initialization: true
+    # flyway 기본 설정상 무조건 먼저 실행 되려고 하는데 true로 인해서 대기됨
+    # JPA는 flyway기본 설정때문에 대기됨
+    # → 순환참조 에러
+    show-sql: true
+
+  flyway:
+    baseline-on-migrate: true
+    baseline-version: 0
+    locations:
+      - classpath:db/migration # 스키마 저장 위치 - 관례
+      - classpath:db/seed      # 데이터 저장 위치 - 관례
+
+logging:
+  level:
+    # 실시간으로 콘솔이 올라와서 선택적으로 debug
+    # root: debug
+    root: info
+    org.hibernate.SQL: debug
+    org.hibernate.orm.jdbc.bind: trace
