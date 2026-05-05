@@ -13,11 +13,17 @@ public enum ClothesErrorCode implements ErrorCode {
   private final String message;
 
   @Override
-  public int getCode() { return code; }
+  public int getCode() {
+    return code;
+  }
 
   @Override
-  public HttpStatus getHttpStatus() { return httpStatus; }
+  public HttpStatus getHttpStatus() {
+    return httpStatus;
+  }
 
   @Override
-  public String getMessage() { return message; }
+  public String getMessage() {
+    return message;
+  }
 }
