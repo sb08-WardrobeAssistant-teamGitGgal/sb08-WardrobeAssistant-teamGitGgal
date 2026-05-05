@@ -24,19 +24,4 @@ public record ProfileUpdateRequest(
     Integer temperatureSensitivity
 ) {
 
-  public static ProfileUpdateRequest of(
-      String name,
-      Gender gender,
-      LocalDate birthDate,
-      WeatherAPILocation location,
-      Integer temperatureSensitivity
-  ) {
-    return new ProfileUpdateRequest(
-        name,
-        gender,
-        birthDate,
-        location,
-        temperatureSensitivity
-    );
-  }
 }
