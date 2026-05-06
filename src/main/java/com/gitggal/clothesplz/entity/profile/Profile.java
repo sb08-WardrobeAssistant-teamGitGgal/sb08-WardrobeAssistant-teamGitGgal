@@ -14,6 +14,7 @@ import jakarta.persistence.Table;
 import java.time.LocalDate;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -22,6 +23,7 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
+@Builder
 public class Profile extends BaseUpdatableEntity {
 
   @OneToOne(fetch = FetchType.LAZY, optional = false)
@@ -45,7 +47,8 @@ public class Profile extends BaseUpdatableEntity {
   private Double longitude;
 
   @Column(name = "temp_sensitivity")
-  private Short tempSensitivity;
+  @Builder.Default
+  private Short tempSensitivity = 3;
 
   @Column(name = "grid_x")
   private Integer gridX;
