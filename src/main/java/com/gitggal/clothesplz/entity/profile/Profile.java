@@ -93,9 +93,6 @@ public class Profile extends BaseUpdatableEntity {
     }
 
     if (tempSensitivity != null) {
-      if (tempSensitivity < 1 || tempSensitivity > 5) {
-        throw new IllegalArgumentException("tempSensitivity는 1 이상 5 이하여야 합니다");
-      }
       this.tempSensitivity = tempSensitivity.shortValue();
     }
   }
