@@ -30,6 +30,7 @@ public class ProfileController implements ProfileControllerApi {
   public ResponseEntity<ProfileDto> getProfile(
       @PathVariable UUID userId
   ) {
+    // TODO: Auth작업 끝나면 본인만 조회 or 관리자 조회 체크 해야함
 
     ProfileDto response = profileService.getProfile(userId);
 
@@ -45,6 +46,7 @@ public class ProfileController implements ProfileControllerApi {
       @RequestPart("request") @Valid ProfileUpdateRequest request,
       @RequestPart(value = "image", required = false) MultipartFile image
   ) {
+    // TODO: Auth작업 끝나면 본인수정 or 관리자수정 체크 해야함
 
     ProfileDto response = profileService.updateProfile(userId, request, image);
 

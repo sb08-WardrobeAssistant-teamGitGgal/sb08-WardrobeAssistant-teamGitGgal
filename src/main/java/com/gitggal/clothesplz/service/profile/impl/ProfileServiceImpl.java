@@ -41,14 +41,30 @@ public class ProfileServiceImpl implements ProfileService {
     Profile profile = profileRepository.findByUser(user)
         .orElseThrow(() -> new ProfileNotFoundException(ProfileErrorCode.PROFILE_NOT_FOUND));
 
-    // TODO: Locations Entity랑 Repository 구조 완성되면 repository 사용
-    WeatherAPILocation location = WeatherAPILocation.of(
-        profile.getLatitude(),
-        profile.getLongitude(),
-        profile.getGridX(),
-        profile.getGridY(),
-        List.of()
-    );
+    WeatherAPILocation location;
+
+    if (profile.getGridX() == null || profile.getGridY() == null) {
+      location = WeatherAPILocation.of(null, null, null, null, List.of());
+    } else {
+      location = locationRepository.findByGridXAndGridY(
+              profile.getGridX(),
+              profile.getGridY()
+          )
+          .map(loc -> WeatherAPILocation.of(
+              loc.getLatitude(),
+              loc.getLongitude(),
+              loc.getGridX(),
+              loc.getGridY(),
+              List.of(loc.getLocationNames().split(",")))
+          )
+          .orElse(WeatherAPILocation.of(
+              profile.getLatitude(),
+              profile.getLongitude(),
+              profile.getGridX(),
+              profile.getGridY(),
+              List.of())
+          );
+    }
 
     return profileMapper.toDtoForGetProfile(user, profile, location);
   }
