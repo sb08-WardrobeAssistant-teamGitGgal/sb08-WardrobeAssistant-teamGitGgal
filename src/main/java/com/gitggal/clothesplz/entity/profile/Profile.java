@@ -77,7 +77,7 @@ public class Profile extends BaseUpdatableEntity {
       this.birthDate = birthDate;
     }
 
-    if (gridX != null && gridY != null) {
+    if (gridX != null && gridY != null && latitude != null && longitude != null) {
       this.latitude = latitude;
       this.longitude = longitude;
       this.gridX = gridX;
