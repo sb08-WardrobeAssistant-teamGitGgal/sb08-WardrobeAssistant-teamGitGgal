@@ -1,11 +1,8 @@
 package com.gitggal.clothesplz.service.user;
 
-import static com.gitggal.clothesplz.exception.code.UserErrorCode.DUPLICATE_EMAIL;
-
 import com.gitggal.clothesplz.dto.user.UserCreateRequest;
 import com.gitggal.clothesplz.dto.user.UserDto;
 import com.gitggal.clothesplz.entity.user.User;
-import com.gitggal.clothesplz.exception.BusinessException;
 import com.gitggal.clothesplz.exception.user.DuplicateEmailException;
 import com.gitggal.clothesplz.mapper.user.UserMapper;
 import com.gitggal.clothesplz.repository.user.UserRepository;
