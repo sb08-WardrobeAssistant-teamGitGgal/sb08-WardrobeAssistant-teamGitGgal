@@ -1,0 +1,41 @@
+package com.gitggal.clothesplz.service.user;
+
+import static com.gitggal.clothesplz.exception.code.UserErrorCode.DUPLICATE_EMAIL;
+
+import com.gitggal.clothesplz.dto.user.UserCreateRequest;
+import com.gitggal.clothesplz.dto.user.UserDto;
+import com.gitggal.clothesplz.entity.user.User;
+import com.gitggal.clothesplz.exception.BusinessException;
+import com.gitggal.clothesplz.mapper.user.UserMapper;
+import com.gitggal.clothesplz.repository.user.UserRepository;
+import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class UserServiceImpl implements UserService {
+
+  private final UserRepository userRepository;
+  private final UserMapper userMapper;
+  private final PasswordEncoder passwordEncoder;
+
+  @Override
+  @Transactional
+  public UserDto create(UserCreateRequest request) {
+    String name = request.name();
+    String email = request.email();
+    String password = passwordEncoder.encode(request.password());
+
+    if (userRepository.existsUsersByEmail(email)) {
+      throw new BusinessException(DUPLICATE_EMAIL);
+    }
+
+    User user = new User(name, email, password);
+    userRepository.save(user);
+    return userMapper.toDto(user);
+  }
+}
