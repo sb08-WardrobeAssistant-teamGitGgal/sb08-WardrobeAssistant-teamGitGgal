@@ -25,6 +25,7 @@ public class LocalImageUploader implements ImageUploader {
 
   @Override
   public String upload(MultipartFile image) {
+    log.info("[Service] 이미지 업로드 요청 시작: 요청 파일 명 = {}", image.getOriginalFilename());
     validateImageFile(image);
 
     try {
@@ -37,13 +38,14 @@ public class LocalImageUploader implements ImageUploader {
 
       Files.write(savedPath, imageBytes);
 
+      log.info("[Service] 이미지 업로드 요청 완료: 저장 파일 명 = {}", savedFileName);
       return ServletUriComponentsBuilder
           .fromCurrentContextPath()
           .path("/files/")
           .path(savedFileName)
           .toUriString();
     } catch (IOException e) {
-      log.error("이미지 업로드 실패: {}", e.getMessage(), e);
+      log.error("[Service] 이미지 업로드 요청 실패: {}", e.getMessage(), e);
       throw new BusinessException(ImageErrorCode.IMAGE_UPLOAD_FAILED, e);
     }
   }
@@ -53,32 +55,38 @@ public class LocalImageUploader implements ImageUploader {
     if (imageUrl == null || imageUrl.isBlank()) {
       return;
     }
+    log.info("[Service] 이미지 삭제 요청 시작");
 
     try {
       String fileName = Path.of(URI.create(imageUrl).getPath()).getFileName().toString();
       Path filePath = IMAGE_PATH.resolve(fileName);
       Files.deleteIfExists(filePath);
+      log.info("[Service] 이미지 삭제 요청 완료");
     } catch (Exception e) {
-      log.warn("이미지 삭제 실패: imageUrl={}, reason={}", imageUrl, e.getMessage());
+      log.warn("[Service] 이미지 삭제 요청 실패: imageUrl={}, reason={}", imageUrl, e.getMessage());
     }
   }
 
   private void validateImageFile(MultipartFile image) {
     if (image == null || image.isEmpty()) {
+      log.warn("[Service] 이미지 업로드 요청 실패: 이미지 파일이 없음");
       throw new BusinessException(ImageErrorCode.IMAGE_EMPTY);
     }
 
     String contentType = image.getContentType();
     if (contentType == null || !contentType.startsWith("image/")) {
+      log.warn("[Service] 이미지 업로드 요청 실패: 이미지 파일 타입이 아님");
       throw new BusinessException(ImageErrorCode.INVALID_IMAGE_CONTENT_TYPE);
     }
 
     String originalFilename = image.getOriginalFilename();
     if (originalFilename == null || !originalFilename.contains(".")) {
+      log.warn("[Service] 이미지 업로드 요청 실패: 이미지 파일 확장자가 없음");
       throw new BusinessException(ImageErrorCode.IMAGE_EXTENSION_NOT_FOUND);
     }
 
     if (!ALLOWED_EXTENSIONS.contains(extractExtension(originalFilename))) {
+      log.warn("[Service] 이미지 업로드 요청 실패: 지원하지 않는 이미지 파일 형식");
       throw new BusinessException(ImageErrorCode.UNSUPPORTED_IMAGE_FORMAT);
     }
   }

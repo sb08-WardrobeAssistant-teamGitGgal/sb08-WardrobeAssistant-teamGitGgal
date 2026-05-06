@@ -37,6 +37,7 @@ public class ProfileServiceImpl implements ProfileService {
   @Override
   @Transactional(readOnly = true)
   public ProfileDto getProfile(UUID userId) {
+    log.info("[Service] 프로필 조회 요청 시작: 조회 요청 userId = {}", userId);
 
     User user = findUserOrThrow(userId);
     Profile profile = findProfileOrThrow(user);
@@ -60,12 +61,14 @@ public class ProfileServiceImpl implements ProfileService {
           );
     }
 
+    log.info("[Service] 프로필 조회 요청 완료");
     return profileMapper.toProfileDto(user, profile, location);
   }
 
   @Override
   @Transactional
   public ProfileDto updateProfile(UUID userId, ProfileUpdateRequest request, MultipartFile image) {
+    log.info("[Service] 프로필 수정 요청 시작: 수정 요청 userId = {}, userName = {}", userId, request.name());
 
     User user = findUserOrThrow(userId);
     Profile profile = findProfileOrThrow(user);
@@ -110,8 +113,10 @@ public class ProfileServiceImpl implements ProfileService {
           request.temperatureSensitivity()
       );
 
+      log.info("[Service] 프로필 수정 요청 완료");
       return profileMapper.toProfileDto(user, profile, responseLocation);
     } catch (RuntimeException e) {
+      log.error("[Service] 프로필 수정 요청 실패");
       if (imageUrl != null) {
         imageUploader.delete(imageUrl);
       }
@@ -120,12 +125,14 @@ public class ProfileServiceImpl implements ProfileService {
   }
 
   private User findUserOrThrow(UUID userId) {
+    log.warn("[Service] 사용자 조회 실패: 존재하지 않는 사용자");
     // TODO: UserNotFoundException -> 커스텀 예외 처리 해야함
     return userRepository.findById(userId)
         .orElseThrow(() -> new IllegalArgumentException("User not found"));
   }
 
   private Profile findProfileOrThrow(User user) {
+    log.warn("[Service] 프로필 조회 실패: 존재하지 않는 프로필");
     return profileRepository.findByUser(user)
         .orElseThrow(() -> new BusinessException(ProfileErrorCode.PROFILE_NOT_FOUND));
   }
