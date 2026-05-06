@@ -16,6 +16,7 @@ import java.util.UUID;
  * - level         : 알림 심각도 (INFO / WARNING / ERROR)
  */
 public record NotificationDto(
+    
     UUID id,
 
     Instant createdAt,

@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -21,9 +22,7 @@ public class SseController {
   private final SseEmitterRepository emitterRepository;
 
   @GetMapping(produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-  public SseEmitter subscribe(@AuthenticationPrincipal CustomUserDetails userDetails) {
-
-    UUID userId = userDetails.getUserId();
+  public SseEmitter subscribe(@RequestParam UUID userId) {
 
     // SseEmitter 생성 - 30분 타임아웃 설정 - 타임아웃이 지나면 자동 연결 종료
     SseEmitter emitter = new SseEmitter(30 * 60 * 1000L);
