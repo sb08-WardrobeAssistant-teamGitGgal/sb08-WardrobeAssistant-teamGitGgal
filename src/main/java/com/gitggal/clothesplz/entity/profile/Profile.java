@@ -77,11 +77,19 @@ public class Profile extends BaseUpdatableEntity {
       this.birthDate = birthDate;
     }
 
-    if (gridX != null && gridY != null && latitude != null && longitude != null) {
+    boolean hasAnyLocationValue =
+        gridX != null || gridY != null || latitude != null || longitude != null;
+    boolean hasAllLocationValues =
+        gridX != null && gridY != null && latitude != null && longitude != null;
+
+    if (hasAllLocationValues) {
       this.latitude = latitude;
       this.longitude = longitude;
       this.gridX = gridX;
       this.gridY = gridY;
+    } else if (hasAnyLocationValue) {
+      throw new IllegalArgumentException(
+          "위치 정보는 부분 수정할 수 없습니다. latitude, longitude, gridX, gridY를 모두 함께 전달해야 합니다.");
     }
 
     if (tempSensitivity != null) {
