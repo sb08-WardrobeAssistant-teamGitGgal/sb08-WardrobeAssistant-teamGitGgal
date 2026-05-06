@@ -17,5 +17,5 @@ public interface ProfileMapper {
   @Mapping(target = "location", source = "location")
   @Mapping(target = "temperatureSensitivity", source = "profile.tempSensitivity")
   @Mapping(target = "profileImageUrl", source = "profile.imageUrl")
-  ProfileDto toDtoForGetProfile(User user, Profile profile, WeatherAPILocation location);
+  ProfileDto toDto(User user, Profile profile, WeatherAPILocation location);
 }

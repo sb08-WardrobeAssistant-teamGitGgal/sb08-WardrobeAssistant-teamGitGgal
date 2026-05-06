@@ -11,6 +11,7 @@ import com.gitggal.clothesplz.mapper.profile.ProfileMapper;
 import com.gitggal.clothesplz.repository.profile.ProfileRepository;
 import com.gitggal.clothesplz.repository.user.UserRepository;
 import com.gitggal.clothesplz.repository.weather.LocationRepository;
+import com.gitggal.clothesplz.service.image.ImageUploader;
 import com.gitggal.clothesplz.service.profile.ProfileService;
 import java.util.List;
 import java.util.UUID;
@@ -29,17 +30,14 @@ public class ProfileServiceImpl implements ProfileService {
   private final UserRepository userRepository;
   private final LocationRepository locationRepository;
   private final ProfileMapper profileMapper;
+  private final ImageUploader imageUploader;
 
   @Override
   @Transactional(readOnly = true)
   public ProfileDto getProfile(UUID userId) {
 
-    // TODO: UserNotFoundException -> 커스텀 예외 처리 해야함
-    User user = userRepository.findById(userId)
-        .orElseThrow(() -> new IllegalArgumentException("User not found"));
-
-    Profile profile = profileRepository.findByUser(user)
-        .orElseThrow(() -> new ProfileNotFoundException(ProfileErrorCode.PROFILE_NOT_FOUND));
+    User user = findUserOrThrow(userId);
+    Profile profile = findProfileOrThrow(user);
 
     WeatherAPILocation location;
 
@@ -66,12 +64,47 @@ public class ProfileServiceImpl implements ProfileService {
           );
     }
 
-    return profileMapper.toDtoForGetProfile(user, profile, location);
+    return profileMapper.toDto(user, profile, location);
   }
 
   @Override
   @Transactional
   public ProfileDto updateProfile(UUID userId, ProfileUpdateRequest request, MultipartFile image) {
-    return null;
+
+    User user = findUserOrThrow(userId);
+    Profile profile = findProfileOrThrow(user);
+
+    // TODO: User 이름 변경 정책 확정 후 반영해야 합니다.
+    // e.g.
+    // if (request.name() != null) {
+    //  user.updateName(request.name());
+    // }
+
+    String imageUrl = (image != null && !image.isEmpty())
+        ? imageUploader.upload(image)
+        : null;
+
+    profile.update(
+        request.gender(),
+        imageUrl,
+        request.birthDate(),
+        request.location(),
+        request.temperatureSensitivity()
+    );
+
+    WeatherAPILocation location = null;
+
+    return profileMapper.toDto(user, profile, location);
+  }
+
+  private User findUserOrThrow(UUID userId) {
+    // TODO: UserNotFoundException -> 커스텀 예외 처리 해야함
+    return userRepository.findById(userId)
+        .orElseThrow(() -> new IllegalArgumentException("User not found"));
+  }
+
+  private Profile findProfileOrThrow(User user) {
+    return profileRepository.findByUser(user)
+        .orElseThrow(() -> new ProfileNotFoundException(ProfileErrorCode.PROFILE_NOT_FOUND));
   }
 }
