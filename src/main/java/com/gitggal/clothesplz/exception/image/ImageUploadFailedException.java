@@ -13,4 +13,8 @@ public class ImageUploadFailedException extends BusinessException {
   public ImageUploadFailedException(ErrorCode errorCode) {
     super(errorCode);
   }
+
+  public ImageUploadFailedException(ErrorCode errorCode, Throwable cause) {
+    super(errorCode, cause);
+  }
 }

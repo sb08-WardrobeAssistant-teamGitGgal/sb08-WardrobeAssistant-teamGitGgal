@@ -43,7 +43,8 @@ public class LocalImageUploader implements ImageUploader {
           .path(savedFileName)
           .toUriString();
     } catch (IOException e) {
-      throw new ImageUploadFailedException(ImageErrorCode.IMAGE_UPLOAD_FAILED);
+      log.error("이미지 업로드 실패: {}", e.getMessage(), e);
+      throw new ImageUploadFailedException(ImageErrorCode.IMAGE_UPLOAD_FAILED, e);
     }
   }
 
