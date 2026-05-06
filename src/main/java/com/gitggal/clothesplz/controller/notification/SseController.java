@@ -51,5 +51,4 @@ public class SseController {
     // SseEmitter 반환 -> 스프링이 연결 유지하며 대기
     return emitter;
   }
-
 }

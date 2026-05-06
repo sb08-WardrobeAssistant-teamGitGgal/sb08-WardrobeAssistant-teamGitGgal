@@ -4,10 +4,10 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Repository;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-@Component
+@Repository
 public class SseEmitterRepository {
 
   private final Map<UUID, SseEmitter> emitters = new ConcurrentHashMap<>();
