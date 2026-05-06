@@ -49,6 +49,8 @@ public class NotificationServiceImpl implements NotificationService {
   @Transactional
   public void send(NotificationDto dto) {
 
+    log.info("[Service] 알림 전송 요청 시작: receiverId={}", dto.receiverId());
+
     // User 프록시 생성 (SELECT 없음 — ID만 가진 프록시)
     User receiver = userRepository.getReferenceById(dto.receiverId());
 
@@ -65,6 +67,8 @@ public class NotificationServiceImpl implements NotificationService {
     emitterRepository
         .findByUserId(dto.receiverId())
         .ifPresent(emitter -> sendToEmitter(emitter, notificationMapper.toDto(savedNotification)));
+
+    log.info("[Service] 알림 전송 요청 완료: receiverId={}", dto.receiverId());
   }
 
   /**
@@ -81,6 +85,8 @@ public class NotificationServiceImpl implements NotificationService {
       String cursor,
       UUID idAfter,
       int limit) {
+
+    log.info("[Service] 알림 목록 조회 요청 시작: receiverId={}", receiverId);
 
     Instant cursorInstant = null;
 
@@ -122,6 +128,8 @@ public class NotificationServiceImpl implements NotificationService {
         .map(notificationMapper::toDto)
         .toList();
 
+    log.info("[Service] 알림 목록 조회 요청 완료: receiverId={}, totalCount={}", receiverId, totalCount);
+
     return new NotificationDtoCursorResponse(
         dtoList,
         nextCursor,
@@ -135,6 +143,7 @@ public class NotificationServiceImpl implements NotificationService {
 
   /**
    * 알림 읽음 처리 (삭제)
+   *
    * @param notificationId - 알림 ID
    * @param requesterId    - 요청한 사용자 ID
    */
@@ -142,18 +151,20 @@ public class NotificationServiceImpl implements NotificationService {
   @Transactional
   public void deleteNotification(UUID notificationId, UUID requesterId) {
 
+    log.info("[Service] 알림 읽음 처리 요청 시작: notificationId={}, requesterId={}", notificationId, requesterId);
+
     Notification notification = notificationRepository.findById(notificationId)
         .orElseThrow(() -> new BusinessException(NotificationErrorCode.NOTIFICATION_NOT_FOUND));
 
     // 본인 알림인지 확인
     if (!notification.getReceiver().getId().equals(requesterId)) {
-      log.debug("[알림] 본인 알림이 아닙니다.: requesterId={}", requesterId);
+      log.warn("[Service] 알림 읽음 처리 요청 실패: 권한 없음: notificationId={}, requesterId={}", notificationId, requesterId);
       throw new BusinessException(NotificationErrorCode.UNAUTHORIZED_NOTIFICATION_ACCESS);
     }
 
     notificationRepository.delete(notification);
 
-    log.debug("[알림] 읽음 처리 삭제 완료: id={}, requesterId={}", notificationId, requesterId);
+    log.info("[Service] 알림 읽음 처리 요청 완료: notificationId={}", notificationId);
   }
 
   /**
