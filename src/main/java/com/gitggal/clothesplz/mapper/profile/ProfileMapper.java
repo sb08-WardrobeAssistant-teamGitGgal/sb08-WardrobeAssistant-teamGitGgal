@@ -11,7 +11,7 @@ import org.mapstruct.Mapping;
 public interface ProfileMapper {
 
   @Mapping(target = "userId", source = "user.id")
-  @Mapping(target = "name", source = "user.name")
+//  @Mapping(target = "name", source = "user.name")
   @Mapping(target = "gender", source = "profile.gender")
   @Mapping(target = "birthDate", source = "profile.birthDate")
   @Mapping(target = "location", source = "location")
