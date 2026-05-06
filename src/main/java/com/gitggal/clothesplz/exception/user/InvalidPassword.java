@@ -14,6 +14,6 @@ public class InvalidPassword extends UserException {
 
   public InvalidPassword(String password) {
     super(UserErrorCode.INVALID_PASSWORD);
-    this.details.put("password", password);
+    this.details.put("invalid password", "password");
   }
 }

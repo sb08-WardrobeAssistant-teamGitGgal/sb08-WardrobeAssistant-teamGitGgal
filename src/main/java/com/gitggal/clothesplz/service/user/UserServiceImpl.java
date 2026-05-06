@@ -9,6 +9,7 @@ import com.gitggal.clothesplz.repository.user.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -34,7 +35,12 @@ public class UserServiceImpl implements UserService {
     String password = passwordEncoder.encode(request.password());
 
     User user = new User(name, email, password);
-    userRepository.save(user);
-    return userMapper.toDto(user);
+
+    try {
+      User savedUser = userRepository.save(user);
+      return userMapper.toDto(savedUser);
+    } catch (DataIntegrityViolationException e) {
+      throw new DuplicateEmailException(email);
+    }
   }
 }
