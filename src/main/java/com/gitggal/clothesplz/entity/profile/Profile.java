@@ -2,6 +2,8 @@ package com.gitggal.clothesplz.entity.profile;
 
 import com.gitggal.clothesplz.entity.base.BaseUpdatableEntity;
 import com.gitggal.clothesplz.entity.user.User;
+import com.gitggal.clothesplz.exception.BusinessException;
+import com.gitggal.clothesplz.exception.code.ProfileErrorCode;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -88,8 +90,7 @@ public class Profile extends BaseUpdatableEntity {
       this.gridX = gridX;
       this.gridY = gridY;
     } else if (hasAnyLocationValue) {
-      throw new IllegalArgumentException(
-          "위치 정보는 부분 수정할 수 없습니다. latitude, longitude, gridX, gridY를 모두 함께 전달해야 합니다.");
+      throw new BusinessException(ProfileErrorCode.INCOMPLETE_LOCATION);
     }
 
     if (tempSensitivity != null) {
