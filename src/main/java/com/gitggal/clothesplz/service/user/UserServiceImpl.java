@@ -6,6 +6,7 @@ import com.gitggal.clothesplz.dto.user.UserCreateRequest;
 import com.gitggal.clothesplz.dto.user.UserDto;
 import com.gitggal.clothesplz.entity.user.User;
 import com.gitggal.clothesplz.exception.BusinessException;
+import com.gitggal.clothesplz.exception.user.DuplicateEmailException;
 import com.gitggal.clothesplz.mapper.user.UserMapper;
 import com.gitggal.clothesplz.repository.user.UserRepository;
 import jakarta.transaction.Transactional;
@@ -30,7 +31,7 @@ public class UserServiceImpl implements UserService {
     String email = request.email();
 
     if (userRepository.existsUsersByEmail(email)) {
-      throw new BusinessException(DUPLICATE_EMAIL);
+      throw new DuplicateEmailException(email);
     }
 
     String password = passwordEncoder.encode(request.password());
