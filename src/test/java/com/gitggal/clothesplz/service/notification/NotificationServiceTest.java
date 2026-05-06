@@ -11,6 +11,7 @@ import static org.mockito.Mockito.never;
 
 import com.gitggal.clothesplz.dto.notification.NotificationDto;
 import com.gitggal.clothesplz.dto.notification.NotificationDtoCursorResponse;
+import com.gitggal.clothesplz.dto.notification.NotificationRequest;
 import com.gitggal.clothesplz.entity.notification.Notification;
 import com.gitggal.clothesplz.entity.notification.NotificationLevel;
 import com.gitggal.clothesplz.entity.user.User;
@@ -47,7 +48,11 @@ class NotificationServiceTest extends ServiceTestSupport {
   void send_connectedUser_savesAndSendsViaSSE() throws IOException {
     // given
     UUID receiverId = UUID.randomUUID();
-    NotificationDto dto = new NotificationDto(
+
+    NotificationRequest request = new NotificationRequest(
+        receiverId, "제목", "내용", NotificationLevel.INFO);
+
+    NotificationDto responseDto = new NotificationDto(
         UUID.randomUUID(), Instant.now(), receiverId, "제목", "내용", NotificationLevel.INFO);
 
     User receiver = mock(User.class);
@@ -56,11 +61,11 @@ class NotificationServiceTest extends ServiceTestSupport {
 
     given(userRepository.getReferenceById(receiverId)).willReturn(receiver);
     given(notificationRepository.save(any(Notification.class))).willReturn(saved);
-    given(notificationMapper.toDto(saved)).willReturn(dto);
+    given(notificationMapper.toDto(saved)).willReturn(responseDto);
     given(emitterRepository.findByUserId(receiverId)).willReturn(Optional.of(emitter));
 
     // when
-    notificationService.send(dto);
+    notificationService.send(request);
 
     // then
     then(emitter).should().send(any(SseEmitter.SseEventBuilder.class));
@@ -71,15 +76,15 @@ class NotificationServiceTest extends ServiceTestSupport {
   void send_offlineUser_onlySavesWithoutSSE() {
     // given
     UUID receiverId = UUID.randomUUID();
-    NotificationDto dto = new NotificationDto(
-        UUID.randomUUID(), Instant.now(), receiverId, "제목", "내용", NotificationLevel.INFO);
+    NotificationRequest request = new NotificationRequest(
+        receiverId, "제목", "내용", NotificationLevel.INFO);
 
     given(userRepository.getReferenceById(receiverId)).willReturn(mock(User.class));
     given(notificationRepository.save(any(Notification.class))).willReturn(mock(Notification.class));
     given(emitterRepository.findByUserId(receiverId)).willReturn(Optional.empty());
 
     // when
-    notificationService.send(dto);
+    notificationService.send(request);
 
     // then
     then(notificationRepository).should().save(any(Notification.class));
@@ -91,7 +96,9 @@ class NotificationServiceTest extends ServiceTestSupport {
   void send_sseIOException_removesEmitter() throws IOException {
     // given
     UUID receiverId = UUID.randomUUID();
-    NotificationDto dto = new NotificationDto(
+    NotificationRequest request = new NotificationRequest(
+        receiverId, "제목", "내용", NotificationLevel.INFO);
+    NotificationDto responseDto = new NotificationDto(
         UUID.randomUUID(), Instant.now(), receiverId, "제목", "내용", NotificationLevel.INFO);
 
     Notification saved = mock(Notification.class);
@@ -99,12 +106,12 @@ class NotificationServiceTest extends ServiceTestSupport {
 
     given(userRepository.getReferenceById(receiverId)).willReturn(mock(User.class));
     given(notificationRepository.save(any(Notification.class))).willReturn(saved);
-    given(notificationMapper.toDto(saved)).willReturn(dto);
+    given(notificationMapper.toDto(saved)).willReturn(responseDto);
     given(emitterRepository.findByUserId(receiverId)).willReturn(Optional.of(emitter));
     willThrow(new IOException("연결 끊김")).given(emitter).send(any(SseEmitter.SseEventBuilder.class));
 
     // when
-    notificationService.send(dto);
+    notificationService.send(request);
 
     // then
     then(emitterRepository).should().deleteByUserId(receiverId);

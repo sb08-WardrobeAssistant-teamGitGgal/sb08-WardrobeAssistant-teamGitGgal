@@ -2,6 +2,7 @@ package com.gitggal.clothesplz.service.notification;
 
 import com.gitggal.clothesplz.dto.notification.NotificationDto;
 import com.gitggal.clothesplz.dto.notification.NotificationDtoCursorResponse;
+import com.gitggal.clothesplz.dto.notification.NotificationRequest;
 import java.util.UUID;
 
 /**
@@ -11,9 +12,9 @@ public interface NotificationService {
 
   /**
    * 알림 전송 처리
-   * @param dto - 전송할 알림 데이터
+   * @param request - 전송할 알림 데이터
    */
-  void send(NotificationDto dto);
+  void send(NotificationRequest request);
 
   /**
    * 알림 목록 조회 (커서 기반 페이지네이션)

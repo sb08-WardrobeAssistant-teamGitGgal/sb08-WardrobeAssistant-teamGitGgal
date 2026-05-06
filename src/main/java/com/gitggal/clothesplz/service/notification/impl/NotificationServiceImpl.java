@@ -2,6 +2,7 @@ package com.gitggal.clothesplz.service.notification.impl;
 
 import com.gitggal.clothesplz.dto.notification.NotificationDto;
 import com.gitggal.clothesplz.dto.notification.NotificationDtoCursorResponse;
+import com.gitggal.clothesplz.dto.notification.NotificationRequest;
 import com.gitggal.clothesplz.entity.notification.Notification;
 import com.gitggal.clothesplz.entity.user.User;
 import com.gitggal.clothesplz.exception.BusinessException;
@@ -43,32 +44,32 @@ public class NotificationServiceImpl implements NotificationService {
    * - emitter가 있으면 (현재 SSE 연결 중) -> send
    * - emitter가 없으면 (오프라인)         -> 아무것도 안 함
    *
-   * @param dto - 전송할 알림 데이터
+   * @param request - 전송할 알림 데이터
    */
   @Override
   @Transactional
-  public void send(NotificationDto dto) {
+  public void send(NotificationRequest request) {
 
-    log.info("[Service] 알림 전송 요청 시작: receiverId={}", dto.receiverId());
+    log.info("[Service] 알림 전송 요청 시작: receiverId={}", request.receiverId());
 
     // User 프록시 생성 (SELECT 없음 — ID만 가진 프록시)
-    User receiver = userRepository.getReferenceById(dto.receiverId());
+    User receiver = userRepository.getReferenceById(request.receiverId());
 
     Notification notification = Notification.builder()
         .receiver(receiver)
-        .title(dto.title())
-        .content(dto.content())
-        .level(dto.level())
+        .title(request.title())
+        .content(request.content())
+        .level(request.level())
         .build();
 
     Notification savedNotification = notificationRepository.save(notification);
 
     // SSE 연결 상태면 알림 전송
     emitterRepository
-        .findByUserId(dto.receiverId())
+        .findByUserId(request.receiverId())
         .ifPresent(emitter -> sendToEmitter(emitter, notificationMapper.toDto(savedNotification)));
 
-    log.info("[Service] 알림 전송 요청 완료: receiverId={}", dto.receiverId());
+    log.info("[Service] 알림 전송 요청 완료: receiverId={}", request.receiverId());
   }
 
   /**
@@ -88,19 +89,7 @@ public class NotificationServiceImpl implements NotificationService {
 
     log.info("[Service] 알림 목록 조회 요청 시작: receiverId={}", receiverId);
 
-    Instant cursorInstant = null;
-
-    if ((cursor == null) != (idAfter == null)) {
-      throw new BusinessException(NotificationErrorCode.INVALID_CURSOR_FORMAT);
-    }
-
-    if (cursor != null) {
-      try {
-        cursorInstant = Instant.parse(cursor);
-      } catch (DateTimeParseException e) {
-        throw new BusinessException((NotificationErrorCode.INVALID_CURSOR_FORMAT));
-      }
-    }
+    Instant cursorInstant = parseCursor(cursor, idAfter);
 
     List<Notification> notificationList =
         notificationRepository.findPage(receiverId, cursorInstant, idAfter, limit + 1);
@@ -188,6 +177,26 @@ public class NotificationServiceImpl implements NotificationService {
     } catch (IOException | IllegalStateException e) {
       log.warn("[알림] 전송 실패: (연결 끊김): receiverId={}", dto.receiverId());
       emitterRepository.deleteByUserId(dto.receiverId());
+    }
+  }
+
+  /**
+   * 커서 검증 및 파싱 메서드
+   */
+  private Instant parseCursor(String cursor, UUID idAfter) {
+
+    if ((cursor == null) != (idAfter == null)) {
+      throw new BusinessException(NotificationErrorCode.INVALID_CURSOR_FORMAT);
+    }
+
+    if (cursor == null) {
+      return null;
+    }
+
+    try {
+      return Instant.parse(cursor);
+    } catch (DateTimeParseException e) {
+      throw new BusinessException((NotificationErrorCode.INVALID_CURSOR_FORMAT));
     }
   }
 }
