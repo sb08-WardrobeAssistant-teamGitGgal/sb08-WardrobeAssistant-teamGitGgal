@@ -50,13 +50,7 @@ public class ProfileServiceImpl implements ProfileService {
               profile.getGridX(),
               profile.getGridY()
           )
-          .map(loc -> WeatherAPILocation.of(
-              loc.getLatitude(),
-              loc.getLongitude(),
-              loc.getGridX(),
-              loc.getGridY(),
-              List.of(loc.getLocationNames().split(",")))
-          )
+          .map(profileMapper::toWeatherAPILocation)
           .orElse(WeatherAPILocation.of(
               profile.getLatitude(),
               profile.getLongitude(),
@@ -66,7 +60,7 @@ public class ProfileServiceImpl implements ProfileService {
           );
     }
 
-    return profileMapper.toDto(user, profile, location);
+    return profileMapper.toProfileDto(user, profile, location);
   }
 
   @Override
@@ -110,15 +104,9 @@ public class ProfileServiceImpl implements ProfileService {
             .build())
     );
 
-    WeatherAPILocation responseLocation = WeatherAPILocation.of(
-        location.getLatitude(),
-        location.getLongitude(),
-        location.getGridX(),
-        location.getGridY(),
-        List.of(location.getLocationNames().split(","))
-    );
+    WeatherAPILocation responseLocation = profileMapper.toWeatherAPILocation(location);
 
-    return profileMapper.toDto(user, profile, responseLocation);
+    return profileMapper.toProfileDto(user, profile, responseLocation);
   }
 
   private User findUserOrThrow(UUID userId) {
