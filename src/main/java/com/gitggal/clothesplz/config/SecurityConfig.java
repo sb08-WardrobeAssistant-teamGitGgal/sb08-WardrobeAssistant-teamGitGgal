@@ -28,6 +28,7 @@ public class SecurityConfig {
             .csrfTokenRequestHandler(new SpaCsrfTokenRequestHandler())
         )
         .authorizeHttpRequests(auth -> auth
+            .requestMatchers(HttpMethod.GET,"/api/auth/csrf-token").permitAll() //csrf 토큰 조회 허용
             .requestMatchers(HttpMethod.POST, "/api/users").permitAll() // 회원가입 허용
             .requestMatchers("/api/**").authenticated() // api 인증 필요
             .anyRequest().permitAll()

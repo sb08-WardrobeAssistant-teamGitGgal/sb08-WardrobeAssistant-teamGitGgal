@@ -9,11 +9,11 @@ public class InvalidPassword extends UserException {
   private Map<String, String> details = new HashMap<>();
 
   public InvalidPassword() {
-    super(UserErrorCode.DUPLICATE_EMAIL);
+    super(UserErrorCode.INVALID_PASSWORD);
   }
 
   public InvalidPassword(String password) {
-    super(UserErrorCode.DUPLICATE_EMAIL);
+    super(UserErrorCode.INVALID_PASSWORD);
     this.details.put("password", password);
   }
 }

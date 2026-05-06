@@ -70,7 +70,7 @@ class UserServiceTest {
     void success_createUser() {
       // given
       given(passwordEncoder.encode(request.password())).willReturn(encodedPassword);
-      given(userRepository.existsUsersByEmail(request.email())).willReturn(false);
+      given(userRepository.existsByEmail(request.email())).willReturn(false);
       given(userMapper.toDto(any(User.class))).willReturn(responseDto);
 
       // when
@@ -89,7 +89,7 @@ class UserServiceTest {
     @DisplayName("실패 - 이미 존재하는 이메일이면 예외가 발생한다")
     void fail_duplicateEmail() {
       // given
-      given(userRepository.existsUsersByEmail(request.email())).willReturn(true);
+      given(userRepository.existsByEmail(request.email())).willReturn(true);
 
       // when & then
       assertThatThrownBy(() -> userService.create(request))

@@ -27,7 +27,7 @@ public class UserServiceImpl implements UserService {
     String name = request.name();
     String email = request.email();
 
-    if (userRepository.existsUsersByEmail(email)) {
+    if (userRepository.existsByEmail(email)) {
       throw new DuplicateEmailException(email);
     }
 
