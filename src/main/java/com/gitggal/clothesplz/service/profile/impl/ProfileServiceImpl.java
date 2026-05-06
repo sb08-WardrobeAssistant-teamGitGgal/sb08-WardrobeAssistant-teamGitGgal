@@ -80,36 +80,43 @@ public class ProfileServiceImpl implements ProfileService {
         ? imageUploader.upload(image)
         : null;
 
-    Location location = locationRepository.findByGridXAndGridY(
-        request.location().x(),
-        request.location().y()
-    ).orElseGet(() ->
-        locationRepository.save(Location.builder()
-            .latitude(request.location().latitude())
-            .longitude(request.location().longitude())
-            .gridX(request.location().x())
-            .gridY(request.location().y())
-            .locationNames(request.location().locationNames().stream()
-                .map(String::trim)
-                .collect(Collectors.joining(","))
-            )
-            .build())
-    );
+    try {
+      Location location = locationRepository.findByGridXAndGridY(
+          request.location().x(),
+          request.location().y()
+      ).orElseGet(() ->
+          locationRepository.save(Location.builder()
+              .latitude(request.location().latitude())
+              .longitude(request.location().longitude())
+              .gridX(request.location().x())
+              .gridY(request.location().y())
+              .locationNames(request.location().locationNames().stream()
+                  .map(String::trim)
+                  .collect(Collectors.joining(","))
+              )
+              .build())
+      );
 
-    WeatherAPILocation responseLocation = profileMapper.toWeatherAPILocation(location);
+      WeatherAPILocation responseLocation = profileMapper.toWeatherAPILocation(location);
 
-    profile.update(
-        request.gender(),
-        imageUrl,
-        request.birthDate(),
-        location.getLatitude(),
-        location.getLongitude(),
-        location.getGridX(),
-        location.getGridY(),
-        request.temperatureSensitivity()
-    );
+      profile.update(
+          request.gender(),
+          imageUrl,
+          request.birthDate(),
+          location.getLatitude(),
+          location.getLongitude(),
+          location.getGridX(),
+          location.getGridY(),
+          request.temperatureSensitivity()
+      );
 
-    return profileMapper.toProfileDto(user, profile, responseLocation);
+      return profileMapper.toProfileDto(user, profile, responseLocation);
+    } catch (RuntimeException e) {
+      if (imageUrl != null) {
+        imageUploader.delete(imageUrl);
+      }
+      throw e;
+    }
   }
 
   private User findUserOrThrow(UUID userId) {

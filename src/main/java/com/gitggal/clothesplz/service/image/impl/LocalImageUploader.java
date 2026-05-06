@@ -5,6 +5,7 @@ import com.gitggal.clothesplz.exception.image.ImageInvalidException;
 import com.gitggal.clothesplz.exception.image.ImageUploadFailedException;
 import com.gitggal.clothesplz.service.image.ImageUploader;
 import java.io.IOException;
+import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Set;
@@ -45,6 +46,21 @@ public class LocalImageUploader implements ImageUploader {
     } catch (IOException e) {
       log.error("이미지 업로드 실패: {}", e.getMessage(), e);
       throw new ImageUploadFailedException(ImageErrorCode.IMAGE_UPLOAD_FAILED, e);
+    }
+  }
+
+  @Override
+  public void delete(String imageUrl) {
+    if (imageUrl == null || imageUrl.isBlank()) {
+      return;
+    }
+
+    try {
+      String fileName = Path.of(URI.create(imageUrl).getPath()).getFileName().toString();
+      Path filePath = IMAGE_PATH.resolve(fileName);
+      Files.deleteIfExists(filePath);
+    } catch (Exception e) {
+      log.warn("이미지 삭제 실패: imageUrl={}, reason={}", imageUrl, e.getMessage());
     }
   }
 

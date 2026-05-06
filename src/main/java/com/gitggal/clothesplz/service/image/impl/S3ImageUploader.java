@@ -15,4 +15,9 @@ public class S3ImageUploader implements ImageUploader {
   public String upload(MultipartFile image) {
     throw new ImageUploadFailedException(ImageErrorCode.IMAGE_UPLOAD_FAILED);
   }
+
+  @Override
+  public void delete(String imageUrl) {
+    // TODO: S3 연동 시 실제 삭제 로직 구현
+  }
 }
