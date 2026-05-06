@@ -80,17 +80,6 @@ public class ProfileServiceImpl implements ProfileService {
         ? imageUploader.upload(image)
         : null;
 
-    profile.update(
-        request.gender(),
-        imageUrl,
-        request.birthDate(),
-        request.location().latitude(),
-        request.location().longitude(),
-        request.location().x(),
-        request.location().y(),
-        request.temperatureSensitivity()
-    );
-
     Location location = locationRepository.findByGridXAndGridY(
         request.location().x(),
         request.location().y()
@@ -108,6 +97,17 @@ public class ProfileServiceImpl implements ProfileService {
     );
 
     WeatherAPILocation responseLocation = profileMapper.toWeatherAPILocation(location);
+
+    profile.update(
+        request.gender(),
+        imageUrl,
+        request.birthDate(),
+        location.getLatitude(),
+        location.getLongitude(),
+        location.getGridX(),
+        location.getGridY(),
+        request.temperatureSensitivity()
+    );
 
     return profileMapper.toProfileDto(user, profile, responseLocation);
   }
