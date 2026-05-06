@@ -28,11 +28,12 @@ public class UserServiceImpl implements UserService {
   public UserDto create(UserCreateRequest request) {
     String name = request.name();
     String email = request.email();
-    String password = passwordEncoder.encode(request.password());
 
     if (userRepository.existsUsersByEmail(email)) {
       throw new BusinessException(DUPLICATE_EMAIL);
     }
+
+    String password = passwordEncoder.encode(request.password());
 
     User user = new User(name, email, password);
     userRepository.save(user);
