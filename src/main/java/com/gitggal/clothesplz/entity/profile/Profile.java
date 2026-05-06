@@ -1,6 +1,5 @@
 package com.gitggal.clothesplz.entity.profile;
 
-import com.gitggal.clothesplz.dto.profile.common.WeatherAPILocation;
 import com.gitggal.clothesplz.entity.base.BaseUpdatableEntity;
 import com.gitggal.clothesplz.entity.user.User;
 import jakarta.persistence.Column;
@@ -60,7 +59,10 @@ public class Profile extends BaseUpdatableEntity {
       Gender gender,
       String imageUrl,
       LocalDate birthDate,
-      WeatherAPILocation location,
+      Double latitude,
+      Double longitude,
+      Integer gridX,
+      Integer gridY,
       Integer tempSensitivity
   ) {
     if (gender != null) {
@@ -75,11 +77,11 @@ public class Profile extends BaseUpdatableEntity {
       this.birthDate = birthDate;
     }
 
-    if (location != null) {
-      this.latitude = location.latitude();
-      this.longitude = location.longitude();
-      this.gridX = location.x();
-      this.gridY = location.y();
+    if (gridX != null && gridY != null) {
+      this.latitude = latitude;
+      this.longitude = longitude;
+      this.gridX = gridX;
+      this.gridY = gridY;
     }
 
     if (tempSensitivity != null) {

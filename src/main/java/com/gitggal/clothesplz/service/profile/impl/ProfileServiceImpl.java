@@ -84,7 +84,10 @@ public class ProfileServiceImpl implements ProfileService {
         request.gender(),
         imageUrl,
         request.birthDate(),
-        request.location(),
+        request.location().latitude(),
+        request.location().longitude(),
+        request.location().x(),
+        request.location().y(),
         request.temperatureSensitivity()
     );
 
