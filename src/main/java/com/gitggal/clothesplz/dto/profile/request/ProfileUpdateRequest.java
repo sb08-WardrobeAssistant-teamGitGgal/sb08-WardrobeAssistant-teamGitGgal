@@ -5,6 +5,7 @@ import com.gitggal.clothesplz.entity.profile.Gender;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
 
@@ -16,6 +17,7 @@ public record ProfileUpdateRequest(
 
     LocalDate birthDate,
 
+    @NotNull
     @Valid
     WeatherAPILocation location,
 

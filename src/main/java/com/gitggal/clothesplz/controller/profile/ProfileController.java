@@ -7,6 +7,7 @@ import com.gitggal.clothesplz.service.profile.ProfileService;
 import jakarta.validation.Valid;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -21,6 +22,7 @@ import org.springframework.web.multipart.MultipartFile;
 @RestController
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
+@Slf4j
 public class ProfileController implements ProfileControllerApi {
 
   private final ProfileService profileService;
@@ -30,9 +32,12 @@ public class ProfileController implements ProfileControllerApi {
   public ResponseEntity<ProfileDto> getProfile(
       @PathVariable UUID userId
   ) {
+    log.info("[Controller] 프로필 조회 요청 시작: 조회 요청 userId = {}", userId);
+    // TODO: Auth작업 끝나면 본인만 조회 or 관리자 조회 체크 해야함
 
     ProfileDto response = profileService.getProfile(userId);
 
+    log.info("[Controller] 프로필 조회 요청 완료");
     return ResponseEntity
         .status(HttpStatus.OK)
         .body(response);
@@ -45,9 +50,12 @@ public class ProfileController implements ProfileControllerApi {
       @RequestPart("request") @Valid ProfileUpdateRequest request,
       @RequestPart(value = "image", required = false) MultipartFile image
   ) {
+    log.info("[Controller] 프로필 수정 요청 시작: 수정 요청 userId = {}", userId);
+    // TODO: Auth작업 끝나면 본인수정 or 관리자수정 체크 해야함
 
     ProfileDto response = profileService.updateProfile(userId, request, image);
 
+    log.info("[Controller] 프로필 수정 요청 완료");
     return ResponseEntity
         .status(HttpStatus.OK)
         .body(response);

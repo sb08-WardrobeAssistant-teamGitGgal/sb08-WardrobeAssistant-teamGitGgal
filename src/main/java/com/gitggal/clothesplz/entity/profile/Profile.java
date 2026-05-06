@@ -2,6 +2,8 @@ package com.gitggal.clothesplz.entity.profile;
 
 import com.gitggal.clothesplz.entity.base.BaseUpdatableEntity;
 import com.gitggal.clothesplz.entity.user.User;
+import com.gitggal.clothesplz.exception.BusinessException;
+import com.gitggal.clothesplz.exception.code.ProfileErrorCode;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -13,6 +15,7 @@ import jakarta.persistence.Table;
 import java.time.LocalDate;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -21,6 +24,7 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
+@Builder
 public class Profile extends BaseUpdatableEntity {
 
   @OneToOne(fetch = FetchType.LAZY, optional = false)
@@ -44,11 +48,53 @@ public class Profile extends BaseUpdatableEntity {
   private Double longitude;
 
   @Column(name = "temp_sensitivity")
-  private Short tempSensitivity;
+  @Builder.Default
+  private Short tempSensitivity = 3;
 
   @Column(name = "grid_x")
   private Integer gridX;
 
   @Column(name = "grid_y")
   private Integer gridY;
+
+  public void update(
+      Gender gender,
+      String imageUrl,
+      LocalDate birthDate,
+      Double latitude,
+      Double longitude,
+      Integer gridX,
+      Integer gridY,
+      Integer tempSensitivity
+  ) {
+    if (gender != null) {
+      this.gender = gender;
+    }
+
+    if (imageUrl != null) {
+      this.imageUrl = imageUrl;
+    }
+
+    if (birthDate != null) {
+      this.birthDate = birthDate;
+    }
+
+    boolean hasAnyLocationValue =
+        gridX != null || gridY != null || latitude != null || longitude != null;
+    boolean hasAllLocationValues =
+        gridX != null && gridY != null && latitude != null && longitude != null;
+
+    if (hasAllLocationValues) {
+      this.latitude = latitude;
+      this.longitude = longitude;
+      this.gridX = gridX;
+      this.gridY = gridY;
+    } else if (hasAnyLocationValue) {
+      throw new BusinessException(ProfileErrorCode.INCOMPLETE_LOCATION);
+    }
+
+    if (tempSensitivity != null) {
+      this.tempSensitivity = tempSensitivity.shortValue();
+    }
+  }
 }
