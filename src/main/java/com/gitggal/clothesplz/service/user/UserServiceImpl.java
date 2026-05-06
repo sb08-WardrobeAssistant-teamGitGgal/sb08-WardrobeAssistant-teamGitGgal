@@ -3,7 +3,8 @@ package com.gitggal.clothesplz.service.user;
 import com.gitggal.clothesplz.dto.user.UserCreateRequest;
 import com.gitggal.clothesplz.dto.user.UserDto;
 import com.gitggal.clothesplz.entity.user.User;
-import com.gitggal.clothesplz.exception.user.DuplicateEmailException;
+import com.gitggal.clothesplz.exception.BusinessException;
+import com.gitggal.clothesplz.exception.code.UserErrorCode;
 import com.gitggal.clothesplz.mapper.user.UserMapper;
 import com.gitggal.clothesplz.repository.user.UserRepository;
 import jakarta.transaction.Transactional;
@@ -28,8 +29,10 @@ public class UserServiceImpl implements UserService {
     String name = request.name();
     String email = request.email();
 
+    log.info("[Service] 회원가입 요청 시작 : name = {}, email = {}", name, email);
+
     if (userRepository.existsByEmail(email)) {
-      throw new DuplicateEmailException(email);
+      throw new BusinessException(UserErrorCode.DUPLICATE_EMAIL);
     }
 
     String password = passwordEncoder.encode(request.password());
@@ -38,9 +41,11 @@ public class UserServiceImpl implements UserService {
 
     try {
       User savedUser = userRepository.save(user);
+      log.info("[Service] 회원가입 요청 완료 : userId = {}", user.getId());
       return userMapper.toDto(savedUser);
     } catch (DataIntegrityViolationException e) {
-      throw new DuplicateEmailException(email);
+      log.warn("[Service] 회원가입 요청 실패: {}", e.getMessage());
+      throw new BusinessException(UserErrorCode.DUPLICATE_EMAIL);
     }
   }
 }

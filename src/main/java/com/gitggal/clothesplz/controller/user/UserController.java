@@ -23,7 +23,9 @@ public class UserController {
 
   @PostMapping
   public ResponseEntity<UserDto> create(@Validated @RequestBody UserCreateRequest request) {
+    log.info("[Controller] 회원가입 요청 시작");
     UserDto dto = userService.create(request);
+    log.info("[Controller] 회원가입 요청 완료");
     return ResponseEntity.status(HttpStatus.CREATED).body(dto);
   }
 

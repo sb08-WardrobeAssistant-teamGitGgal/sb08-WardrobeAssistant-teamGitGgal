@@ -12,7 +12,7 @@ import com.gitggal.clothesplz.dto.user.UserCreateRequest;
 import com.gitggal.clothesplz.dto.user.UserDto;
 import com.gitggal.clothesplz.entity.user.User;
 import com.gitggal.clothesplz.entity.user.UserRole;
-import com.gitggal.clothesplz.exception.user.DuplicateEmailException;
+import com.gitggal.clothesplz.exception.BusinessException;
 import com.gitggal.clothesplz.mapper.user.UserMapper;
 import com.gitggal.clothesplz.repository.user.UserRepository;
 import java.time.Instant;
@@ -71,6 +71,8 @@ class UserServiceTest {
       // given
       given(passwordEncoder.encode(request.password())).willReturn(encodedPassword);
       given(userRepository.existsByEmail(request.email())).willReturn(false);
+      given(userRepository.save(any(User.class)))
+          .willAnswer(invocation -> invocation.getArgument(0));
       given(userMapper.toDto(any(User.class))).willReturn(responseDto);
 
       // when
@@ -93,7 +95,7 @@ class UserServiceTest {
 
       // when & then
       assertThatThrownBy(() -> userService.create(request))
-          .isInstanceOf(DuplicateEmailException.class);
+          .isInstanceOf(BusinessException.class);
 
       verify(userRepository, never()).save(any(User.class));
       verify(passwordEncoder, never()).encode(anyString());
