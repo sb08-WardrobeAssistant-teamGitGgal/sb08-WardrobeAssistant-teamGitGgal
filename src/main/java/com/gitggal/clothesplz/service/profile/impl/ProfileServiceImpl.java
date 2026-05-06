@@ -5,6 +5,7 @@ import com.gitggal.clothesplz.dto.profile.request.ProfileUpdateRequest;
 import com.gitggal.clothesplz.dto.profile.response.ProfileDto;
 import com.gitggal.clothesplz.entity.profile.Profile;
 import com.gitggal.clothesplz.entity.user.User;
+import com.gitggal.clothesplz.entity.weather.Location;
 import com.gitggal.clothesplz.exception.code.ProfileErrorCode;
 import com.gitggal.clothesplz.exception.profile.ProfileNotFoundException;
 import com.gitggal.clothesplz.mapper.profile.ProfileMapper;
@@ -15,6 +16,7 @@ import com.gitggal.clothesplz.service.image.ImageUploader;
 import com.gitggal.clothesplz.service.profile.ProfileService;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -92,9 +94,31 @@ public class ProfileServiceImpl implements ProfileService {
         request.temperatureSensitivity()
     );
 
-    WeatherAPILocation location = null;
+    Location location = locationRepository.findByGridXAndGridY(
+        request.location().x(),
+        request.location().y()
+    ).orElseGet(() ->
+        locationRepository.save(Location.builder()
+            .latitude(request.location().latitude())
+            .longitude(request.location().longitude())
+            .gridX(request.location().x())
+            .gridY(request.location().y())
+            .locationNames(request.location().locationNames().stream()
+                .map(String::trim)
+                .collect(Collectors.joining(","))
+            )
+            .build())
+    );
 
-    return profileMapper.toDto(user, profile, location);
+    WeatherAPILocation responseLocation = WeatherAPILocation.of(
+        location.getLatitude(),
+        location.getLongitude(),
+        location.getGridX(),
+        location.getGridY(),
+        List.of(location.getLocationNames().split(","))
+    );
+
+    return profileMapper.toDto(user, profile, responseLocation);
   }
 
   private User findUserOrThrow(UUID userId) {

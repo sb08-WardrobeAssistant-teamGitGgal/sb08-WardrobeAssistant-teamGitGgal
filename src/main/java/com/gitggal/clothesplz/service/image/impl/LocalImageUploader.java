@@ -1,10 +1,12 @@
 package com.gitggal.clothesplz.service.image.impl;
 
+import com.gitggal.clothesplz.exception.code.ImageErrorCode;
+import com.gitggal.clothesplz.exception.image.ImageInvalidException;
+import com.gitggal.clothesplz.exception.image.ImageUploadFailedException;
 import com.gitggal.clothesplz.service.image.ImageUploader;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
@@ -23,13 +25,13 @@ public class LocalImageUploader implements ImageUploader {
 
   @Override
   public String upload(MultipartFile image) {
+    validateImageFile(image);
+
     try {
       Files.createDirectories(IMAGE_PATH);
       byte[] imageBytes = image.getBytes();
 
-      validateImageFile(image);
-
-      String extension = extractExtension(Objects.requireNonNull(image.getOriginalFilename()));
+      String extension = extractExtension(image.getOriginalFilename());
       String savedFileName = UUID.randomUUID() + extension;
       Path savedPath = IMAGE_PATH.resolve(savedFileName);
 
@@ -41,27 +43,27 @@ public class LocalImageUploader implements ImageUploader {
           .path(savedFileName)
           .toUriString();
     } catch (IOException e) {
-      throw new RuntimeException("이미지 저장 실패", e);
+      throw new ImageUploadFailedException(ImageErrorCode.IMAGE_UPLOAD_FAILED);
     }
   }
 
   private void validateImageFile(MultipartFile image) {
     if (image == null || image.isEmpty()) {
-      throw new IllegalArgumentException("이미지 파일이 비어있습니다.");
+      throw new ImageInvalidException(ImageErrorCode.IMAGE_EMPTY);
     }
 
     String contentType = image.getContentType();
     if (contentType == null || !contentType.startsWith("image/")) {
-      throw new IllegalArgumentException("이미지 파일만 업로드할 수 있습니다.");
+      throw new ImageInvalidException(ImageErrorCode.INVALID_IMAGE_CONTENT_TYPE);
     }
 
     String originalFilename = image.getOriginalFilename();
     if (originalFilename == null || !originalFilename.contains(".")) {
-      throw new IllegalArgumentException("이미지 확장자를 확인할 수 없습니다.");
+      throw new ImageInvalidException(ImageErrorCode.IMAGE_EXTENSION_NOT_FOUND);
     }
 
     if (!ALLOWED_EXTENSIONS.contains(extractExtension(originalFilename))) {
-      throw new IllegalArgumentException("지원하지 않는 이미지 형식입니다.");
+      throw new ImageInvalidException(ImageErrorCode.UNSUPPORTED_IMAGE_FORMAT);
     }
   }
 
