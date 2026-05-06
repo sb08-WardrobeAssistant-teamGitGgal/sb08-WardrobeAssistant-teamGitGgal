@@ -29,7 +29,7 @@ public class UserServiceImpl implements UserService {
     String name = request.name();
     String email = request.email();
 
-    log.info("[Service] 회원가입 요청 시작 : name = {}, email = {}", name, email);
+    log.info("[Service] 회원가입 요청 시작 : name = {}", name);
 
     if (userRepository.existsByEmail(email)) {
       throw new BusinessException(UserErrorCode.DUPLICATE_EMAIL);
