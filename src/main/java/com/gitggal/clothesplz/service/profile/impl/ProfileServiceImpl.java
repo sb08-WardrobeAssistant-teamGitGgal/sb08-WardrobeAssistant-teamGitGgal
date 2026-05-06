@@ -6,8 +6,8 @@ import com.gitggal.clothesplz.dto.profile.response.ProfileDto;
 import com.gitggal.clothesplz.entity.profile.Profile;
 import com.gitggal.clothesplz.entity.user.User;
 import com.gitggal.clothesplz.entity.weather.Location;
+import com.gitggal.clothesplz.exception.BusinessException;
 import com.gitggal.clothesplz.exception.code.ProfileErrorCode;
-import com.gitggal.clothesplz.exception.profile.ProfileNotFoundException;
 import com.gitggal.clothesplz.mapper.profile.ProfileMapper;
 import com.gitggal.clothesplz.repository.profile.ProfileRepository;
 import com.gitggal.clothesplz.repository.user.UserRepository;
@@ -127,6 +127,6 @@ public class ProfileServiceImpl implements ProfileService {
 
   private Profile findProfileOrThrow(User user) {
     return profileRepository.findByUser(user)
-        .orElseThrow(() -> new ProfileNotFoundException(ProfileErrorCode.PROFILE_NOT_FOUND));
+        .orElseThrow(() -> new BusinessException(ProfileErrorCode.PROFILE_NOT_FOUND));
   }
 }

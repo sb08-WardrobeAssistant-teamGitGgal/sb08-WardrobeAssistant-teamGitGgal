@@ -1,7 +1,7 @@
 package com.gitggal.clothesplz.service.image.impl;
 
+import com.gitggal.clothesplz.exception.BusinessException;
 import com.gitggal.clothesplz.exception.code.ImageErrorCode;
-import com.gitggal.clothesplz.exception.image.ImageUploadFailedException;
 import com.gitggal.clothesplz.service.image.ImageUploader;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
@@ -13,7 +13,7 @@ public class S3ImageUploader implements ImageUploader {
 
   @Override
   public String upload(MultipartFile image) {
-    throw new ImageUploadFailedException(ImageErrorCode.IMAGE_UPLOAD_FAILED);
+    throw new BusinessException(ImageErrorCode.IMAGE_UPLOAD_FAILED);
   }
 
   @Override

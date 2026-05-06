@@ -1,8 +1,7 @@
 package com.gitggal.clothesplz.service.image.impl;
 
+import com.gitggal.clothesplz.exception.BusinessException;
 import com.gitggal.clothesplz.exception.code.ImageErrorCode;
-import com.gitggal.clothesplz.exception.image.ImageInvalidException;
-import com.gitggal.clothesplz.exception.image.ImageUploadFailedException;
 import com.gitggal.clothesplz.service.image.ImageUploader;
 import java.io.IOException;
 import java.net.URI;
@@ -45,7 +44,7 @@ public class LocalImageUploader implements ImageUploader {
           .toUriString();
     } catch (IOException e) {
       log.error("이미지 업로드 실패: {}", e.getMessage(), e);
-      throw new ImageUploadFailedException(ImageErrorCode.IMAGE_UPLOAD_FAILED, e);
+      throw new BusinessException(ImageErrorCode.IMAGE_UPLOAD_FAILED, e);
     }
   }
 
@@ -66,21 +65,21 @@ public class LocalImageUploader implements ImageUploader {
 
   private void validateImageFile(MultipartFile image) {
     if (image == null || image.isEmpty()) {
-      throw new ImageInvalidException(ImageErrorCode.IMAGE_EMPTY);
+      throw new BusinessException(ImageErrorCode.IMAGE_EMPTY);
     }
 
     String contentType = image.getContentType();
     if (contentType == null || !contentType.startsWith("image/")) {
-      throw new ImageInvalidException(ImageErrorCode.INVALID_IMAGE_CONTENT_TYPE);
+      throw new BusinessException(ImageErrorCode.INVALID_IMAGE_CONTENT_TYPE);
     }
 
     String originalFilename = image.getOriginalFilename();
     if (originalFilename == null || !originalFilename.contains(".")) {
-      throw new ImageInvalidException(ImageErrorCode.IMAGE_EXTENSION_NOT_FOUND);
+      throw new BusinessException(ImageErrorCode.IMAGE_EXTENSION_NOT_FOUND);
     }
 
     if (!ALLOWED_EXTENSIONS.contains(extractExtension(originalFilename))) {
-      throw new ImageInvalidException(ImageErrorCode.UNSUPPORTED_IMAGE_FORMAT);
+      throw new BusinessException(ImageErrorCode.UNSUPPORTED_IMAGE_FORMAT);
     }
   }
 
