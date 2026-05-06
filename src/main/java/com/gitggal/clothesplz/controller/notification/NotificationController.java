@@ -2,10 +2,12 @@ package com.gitggal.clothesplz.controller.notification;
 
 import com.gitggal.clothesplz.dto.notification.NotificationDtoCursorResponse;
 import com.gitggal.clothesplz.service.notification.NotificationService;
+import jakarta.validation.constraints.Positive;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -17,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
  * 알림 관련 Controller
  */
 @Slf4j
+@Validated
 @RestController
 @RequestMapping("/api/notifications")
 @RequiredArgsConstructor
@@ -31,7 +34,7 @@ public class NotificationController {
   public ResponseEntity<NotificationDtoCursorResponse> getNotifications(
       @RequestParam(required = false) String cursor,
       @RequestParam(required = false) UUID idAfter,
-      @RequestParam int limit,
+      @RequestParam @Positive int limit,
       @RequestParam UUID receiverId) {
 
     log.info("[Controller] 알림 목록 조회 요청 시작: receiverId={}, cursor={}, idAfter={}, limit={}", receiverId, cursor, idAfter, limit);
