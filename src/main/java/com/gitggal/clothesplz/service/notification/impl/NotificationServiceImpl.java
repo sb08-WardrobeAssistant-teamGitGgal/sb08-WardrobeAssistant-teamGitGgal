@@ -90,6 +90,10 @@ public class NotificationServiceImpl implements NotificationService {
 
     Instant cursorInstant = null;
 
+    if ((cursor == null) != (idAfter == null)) {
+      throw new BusinessException(NotificationErrorCode.INVALID_CURSOR_FORMAT);
+    }
+
     if (cursor != null) {
       try {
         cursorInstant = Instant.parse(cursor);
@@ -151,14 +155,16 @@ public class NotificationServiceImpl implements NotificationService {
   @Transactional
   public void deleteNotification(UUID notificationId, UUID requesterId) {
 
-    log.info("[Service] 알림 읽음 처리 요청 시작: notificationId={}, requesterId={}", notificationId, requesterId);
+    log.info("[Service] 알림 읽음 처리 요청 시작: notificationId={}, requesterId={}", notificationId,
+        requesterId);
 
     Notification notification = notificationRepository.findById(notificationId)
         .orElseThrow(() -> new BusinessException(NotificationErrorCode.NOTIFICATION_NOT_FOUND));
 
     // 본인 알림인지 확인
     if (!notification.getReceiver().getId().equals(requesterId)) {
-      log.warn("[Service] 알림 읽음 처리 요청 실패: 권한 없음: notificationId={}, requesterId={}", notificationId, requesterId);
+      log.warn("[Service] 알림 읽음 처리 요청 실패: 권한 없음: notificationId={}, requesterId={}", notificationId,
+          requesterId);
       throw new BusinessException(NotificationErrorCode.UNAUTHORIZED_NOTIFICATION_ACCESS);
     }
 
@@ -179,7 +185,7 @@ public class NotificationServiceImpl implements NotificationService {
               .data(dto)
       );
       log.debug("[알림] 전송 성공: receiverId={}, title={}", dto.receiverId(), dto.title());
-    } catch (IOException e) {
+    } catch (IOException | IllegalStateException e) {
       log.warn("[알림] 전송 실패: (연결 끊김): receiverId={}", dto.receiverId());
       emitterRepository.deleteByUserId(dto.receiverId());
     }
