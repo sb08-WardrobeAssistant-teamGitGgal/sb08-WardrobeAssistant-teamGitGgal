@@ -8,6 +8,7 @@ import com.gitggal.clothesplz.entity.user.User;
 import com.gitggal.clothesplz.entity.weather.Location;
 import com.gitggal.clothesplz.exception.BusinessException;
 import com.gitggal.clothesplz.exception.code.ProfileErrorCode;
+import com.gitggal.clothesplz.exception.code.UserErrorCode;
 import com.gitggal.clothesplz.mapper.profile.ProfileMapper;
 import com.gitggal.clothesplz.repository.profile.ProfileRepository;
 import com.gitggal.clothesplz.repository.user.UserRepository;
@@ -21,6 +22,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
 
 @Service
@@ -50,8 +53,7 @@ public class ProfileServiceImpl implements ProfileService {
       location = locationRepository.findByGridXAndGridY(
               profile.getGridX(),
               profile.getGridY()
-          )
-          .map(profileMapper::toWeatherAPILocation)
+          ).map(profileMapper::toWeatherAPILocation)
           .orElse(WeatherAPILocation.of(
               profile.getLatitude(),
               profile.getLongitude(),
@@ -79,39 +81,32 @@ public class ProfileServiceImpl implements ProfileService {
     //  user.updateName(request.name());
     // }
 
-    String imageUrl = (image != null && !image.isEmpty())
-        ? imageUploader.upload(image)
-        : null;
+    String imageUrl = (image != null && !image.isEmpty()) ? imageUploader.upload(image) : null;
 
     try {
       Location location = locationRepository.findByGridXAndGridY(
           request.location().x(),
           request.location().y()
-      ).orElseGet(() ->
-          locationRepository.save(Location.builder()
+      ).orElseGet(() -> locationRepository.save(Location.builder()
               .latitude(request.location().latitude())
               .longitude(request.location().longitude())
               .gridX(request.location().x())
               .gridY(request.location().y())
               .locationNames(request.location().locationNames().stream()
                   .map(String::trim)
-                  .collect(Collectors.joining(","))
-              )
-              .build())
+                  .collect(Collectors.joining(","))).build()
+          )
       );
 
       WeatherAPILocation responseLocation = profileMapper.toWeatherAPILocation(location);
 
-      profile.update(
-          request.gender(),
-          imageUrl,
-          request.birthDate(),
-          location.getLatitude(),
-          location.getLongitude(),
-          location.getGridX(),
-          location.getGridY(),
-          request.temperatureSensitivity()
-      );
+      String oldImageUrl = profile.getImageUrl();
+
+      profile.update(request.gender(), imageUrl, request.birthDate(), location.getLatitude(),
+          location.getLongitude(), location.getGridX(), location.getGridY(),
+          request.temperatureSensitivity());
+
+      deleteOldImageAfterCommit(imageUrl, oldImageUrl);
 
       log.info("[Service] 프로필 수정 요청 완료");
       return profileMapper.toProfileDto(user, profile, responseLocation);
@@ -125,15 +120,35 @@ public class ProfileServiceImpl implements ProfileService {
   }
 
   private User findUserOrThrow(UUID userId) {
-    log.warn("[Service] 사용자 조회 실패: 존재하지 않는 사용자");
-    // TODO: UserNotFoundException -> 커스텀 예외 처리 해야함
-    return userRepository.findById(userId)
-        .orElseThrow(() -> new IllegalArgumentException("User not found"));
+    return userRepository.findById(userId).orElseThrow(() -> {
+      log.warn("[Service] 사용자 조회 실패: 존재하지 않는 사용자 userId={}", userId);
+      return new BusinessException(UserErrorCode.USER_NOT_FOUND);
+    });
   }
 
   private Profile findProfileOrThrow(User user) {
-    log.warn("[Service] 프로필 조회 실패: 존재하지 않는 프로필");
-    return profileRepository.findByUser(user)
-        .orElseThrow(() -> new BusinessException(ProfileErrorCode.PROFILE_NOT_FOUND));
+    return profileRepository.findByUser(user).orElseThrow(() -> {
+      log.warn("[Service] 프로필 조회 실패: 존재하지 않는 프로필");
+      return new BusinessException(ProfileErrorCode.PROFILE_NOT_FOUND);
+    });
+  }
+
+  private void deleteOldImageAfterCommit(String imageUrl, String oldImageUrl) {
+    if (imageUrl == null || oldImageUrl == null || oldImageUrl.equals(imageUrl)) {
+      return;
+    }
+
+    // 커밋이 완전히 끝나고, 기존 이미지 제거를 위함
+    TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+      @Override
+      public void afterCommit() {
+        try {
+          imageUploader.delete(oldImageUrl);
+        } catch (RuntimeException e) {
+          log.error("[Service] 기존 프로필 이미지 삭제 실패: imageUrl={}", oldImageUrl, e);
+        }
+      }
+    });
+
   }
 }
