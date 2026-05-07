@@ -50,10 +50,17 @@ public class ProfileServiceImpl implements ProfileService {
     if (profile.getGridX() == null || profile.getGridY() == null) {
       location = WeatherAPILocation.of(null, null, null, null, List.of());
     } else {
-      location = locationRepository.findByGridXAndGridY(profile.getGridX(), profile.getGridY())
-          .map(profileMapper::toWeatherAPILocation).orElse(
-              WeatherAPILocation.of(profile.getLatitude(), profile.getLongitude(),
-                  profile.getGridX(), profile.getGridY(), List.of()));
+      location = locationRepository.findByGridXAndGridY(
+              profile.getGridX(),
+              profile.getGridY()
+          ).map(profileMapper::toWeatherAPILocation)
+          .orElse(WeatherAPILocation.of(
+              profile.getLatitude(),
+              profile.getLongitude(),
+              profile.getGridX(),
+              profile.getGridY(),
+              List.of())
+          );
     }
 
     log.info("[Service] 프로필 조회 요청 완료");
@@ -77,13 +84,19 @@ public class ProfileServiceImpl implements ProfileService {
     String imageUrl = (image != null && !image.isEmpty()) ? imageUploader.upload(image) : null;
 
     try {
-      Location location = locationRepository.findByGridXAndGridY(request.location().x(),
-          request.location().y()).orElseGet(() -> locationRepository.save(
-          Location.builder().latitude(request.location().latitude())
-              .longitude(request.location().longitude()).gridX(request.location().x())
-              .gridY(request.location().y()).locationNames(
-                  request.location().locationNames().stream().map(String::trim)
-                      .collect(Collectors.joining(","))).build()));
+      Location location = locationRepository.findByGridXAndGridY(
+          request.location().x(),
+          request.location().y()
+      ).orElseGet(() -> locationRepository.save(Location.builder()
+              .latitude(request.location().latitude())
+              .longitude(request.location().longitude())
+              .gridX(request.location().x())
+              .gridY(request.location().y())
+              .locationNames(request.location().locationNames().stream()
+                  .map(String::trim)
+                  .collect(Collectors.joining(","))).build()
+          )
+      );
 
       WeatherAPILocation responseLocation = profileMapper.toWeatherAPILocation(location);
 
