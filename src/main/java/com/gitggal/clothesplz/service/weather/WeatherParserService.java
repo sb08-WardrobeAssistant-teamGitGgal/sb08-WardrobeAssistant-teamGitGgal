@@ -36,6 +36,7 @@ public class WeatherParserService {
 
         // 1. 날짜(fcstDate)별로 아이템들을 그룹화 (오늘, 내일, 모레...)
         Map<String, List<WeatherItem>> groupedByDate = items.stream()
+                .filter(item -> item.getFcstDate() != null && item.getFcstDate().matches("\\d{8}")) // 날짜 형식 검증
                 .collect(Collectors.groupingBy(WeatherItem::getFcstDate));
 
         List<DailyWeatherForecastDto> dailyForecasts = new ArrayList<>();
@@ -71,7 +72,13 @@ public class WeatherParserService {
             if (tempCount == 0) continue;
 
             // 수정 포인트: 정의한 DATE_FORMATTER를 사용하여 String -> LocalDate 변환
-            LocalDate localDate = LocalDate.parse(date, DATE_FORMATTER);
+            LocalDate localDate;
+            try{
+                localDate = LocalDate.parse(date, DATE_FORMATTER);
+            } catch (Exception e) {
+                log.warn("[Service] fcstDate 파싱 실패, 해당 날짜 스킵: {}", date);
+                continue;
+            }
 
             log.debug("[Service] 날짜별 가공 중: date={}, avgTemp={}", localDate, (double) sumTemp / tempCount);
 
