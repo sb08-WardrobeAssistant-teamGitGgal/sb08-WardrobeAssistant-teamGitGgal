@@ -1,9 +1,16 @@
 package com.gitggal.clothesplz.repository.notification;
 
 import com.gitggal.clothesplz.entity.notification.Notification;
+import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import java.util.UUID;
+/**
+ * 알림 Repository 인터페이스
+ */
+public interface NotificationRepository extends JpaRepository<Notification, UUID>, NotificationRepositoryCustom {
 
-public interface NotificationRepository extends JpaRepository<Notification, UUID> {
+  /**
+   * 사용자 전체 알림 수
+   */
+  long countByReceiver_Id(UUID receiverId);
 }

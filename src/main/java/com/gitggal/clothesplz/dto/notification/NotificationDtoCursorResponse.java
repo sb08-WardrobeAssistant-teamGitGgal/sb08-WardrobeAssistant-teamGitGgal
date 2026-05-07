@@ -16,6 +16,7 @@ import java.util.UUID;
  * - sortDirection      : 정렬 방향 (기본값은 DESCENDING)
  */
 public record NotificationDtoCursorResponse(
+
     List<NotificationDto> data,
 
     String nextCursor,
@@ -30,5 +31,4 @@ public record NotificationDtoCursorResponse(
 
     String sortDirection
 ) {
-
 }
