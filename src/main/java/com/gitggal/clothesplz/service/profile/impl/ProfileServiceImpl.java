@@ -7,6 +7,7 @@ import com.gitggal.clothesplz.entity.profile.Profile;
 import com.gitggal.clothesplz.entity.user.User;
 import com.gitggal.clothesplz.entity.weather.Location;
 import com.gitggal.clothesplz.exception.BusinessException;
+import com.gitggal.clothesplz.exception.code.ImageErrorCode;
 import com.gitggal.clothesplz.exception.code.ProfileErrorCode;
 import com.gitggal.clothesplz.exception.code.UserErrorCode;
 import com.gitggal.clothesplz.mapper.profile.ProfileMapper;
@@ -148,12 +149,17 @@ public class ProfileServiceImpl implements ProfileService {
       return;
     }
 
-    // 커밋이 완전히 끝나고, 기존 이미지 제거를 위함
-    TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-      @Override
-      public void afterCommit() {
-        imageUploader.delete(oldImageUrl);
-      }
-    });
+    try {
+      // 커밋이 완전히 끝나고, 기존 이미지 제거를 위함
+      TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+        @Override
+        public void afterCommit() {
+          imageUploader.delete(oldImageUrl);
+        }
+      });
+    } catch (RuntimeException e) {
+      log.error("[Service] 기존 프로필 이미지 삭제 실패: imageUrl={}", oldImageUrl, e);
+      throw new BusinessException(ImageErrorCode.DELETE_IMAGE_FAILED);
+    }
   }
 }
