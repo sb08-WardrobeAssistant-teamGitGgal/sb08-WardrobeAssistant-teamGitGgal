@@ -8,6 +8,7 @@ import com.gitggal.clothesplz.entity.user.User;
 import com.gitggal.clothesplz.entity.weather.Location;
 import com.gitggal.clothesplz.exception.BusinessException;
 import com.gitggal.clothesplz.exception.code.ProfileErrorCode;
+import com.gitggal.clothesplz.exception.code.UserErrorCode;
 import com.gitggal.clothesplz.mapper.profile.ProfileMapper;
 import com.gitggal.clothesplz.repository.profile.ProfileRepository;
 import com.gitggal.clothesplz.repository.user.UserRepository;
@@ -126,9 +127,8 @@ public class ProfileServiceImpl implements ProfileService {
 
   private User findUserOrThrow(UUID userId) {
     log.warn("[Service] 사용자 조회 실패: 존재하지 않는 사용자");
-    // TODO: UserNotFoundException -> 커스텀 예외 처리 해야함
     return userRepository.findById(userId)
-        .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        .orElseThrow(() -> new BusinessException(UserErrorCode.USER_NOT_FOUND));
   }
 
   private Profile findProfileOrThrow(User user) {
