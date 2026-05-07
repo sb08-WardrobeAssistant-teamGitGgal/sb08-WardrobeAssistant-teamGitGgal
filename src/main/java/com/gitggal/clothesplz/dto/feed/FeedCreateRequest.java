@@ -14,7 +14,7 @@ public record FeedCreateRequest(
     @NotNull(message = "날씨가 비어있을 수 없습니다.")
     UUID weatherId,
 
-    @NotNull @NotEmpty(message = "추천 의상 목록이 비어있을 수 없습니다.")
+    @NotEmpty(message = "추천 의상 목록이 비어있을 수 없습니다.")
     List<@NotNull UUID> clothesIds,
 
     @NotBlank(message = "피드 내용이 비어있을 수 없습니다.")
