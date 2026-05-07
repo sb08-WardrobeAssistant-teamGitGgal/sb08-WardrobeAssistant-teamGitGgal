@@ -22,6 +22,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
 
 @Service
@@ -103,6 +105,8 @@ public class ProfileServiceImpl implements ProfileService {
 
       WeatherAPILocation responseLocation = profileMapper.toWeatherAPILocation(location);
 
+      String oldImageUrl = profile.getImageUrl();
+
       profile.update(
           request.gender(),
           imageUrl,
@@ -113,6 +117,8 @@ public class ProfileServiceImpl implements ProfileService {
           location.getGridY(),
           request.temperatureSensitivity()
       );
+
+      deleteOldImageAfterCommit(imageUrl, oldImageUrl);
 
       log.info("[Service] 프로필 수정 요청 완료");
       return profileMapper.toProfileDto(user, profile, responseLocation);
@@ -135,5 +141,19 @@ public class ProfileServiceImpl implements ProfileService {
     log.warn("[Service] 프로필 조회 실패: 존재하지 않는 프로필");
     return profileRepository.findByUser(user)
         .orElseThrow(() -> new BusinessException(ProfileErrorCode.PROFILE_NOT_FOUND));
+  }
+
+  private void deleteOldImageAfterCommit(String imageUrl, String oldImageUrl) {
+    if (imageUrl == null || oldImageUrl == null || oldImageUrl.equals(imageUrl)) {
+      return;
+    }
+
+    // 커밋이 완전히 끝나고, 기존 이미지 제거를 위함
+    TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+      @Override
+      public void afterCommit() {
+        imageUploader.delete(oldImageUrl);
+      }
+    });
   }
 }

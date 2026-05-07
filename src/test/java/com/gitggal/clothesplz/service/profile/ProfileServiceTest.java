@@ -3,6 +3,8 @@ package com.gitggal.clothesplz.service.profile;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
 import com.gitggal.clothesplz.dto.profile.common.WeatherAPILocation;
 import com.gitggal.clothesplz.dto.profile.request.ProfileUpdateRequest;
@@ -38,6 +40,19 @@ class ProfileServiceTest extends ServiceTestSupport {
   private Profile profile(User user) {
     return Profile.builder()
         .user(user)
+        .gender(Gender.MALE)
+        .birthDate(LocalDate.of(1995, 1, 1))
+        .latitude(37.5665)
+        .longitude(126.9780)
+        .gridX(60)
+        .gridY(127)
+        .build();
+  }
+
+  private Profile profileWithImage(User user, String imageUrl) {
+    return Profile.builder()
+        .user(user)
+        .imageUrl(imageUrl)
         .gender(Gender.MALE)
         .birthDate(LocalDate.of(1995, 1, 1))
         .latitude(37.5665)
@@ -119,6 +134,58 @@ class ProfileServiceTest extends ServiceTestSupport {
     assertThat(result.birthDate()).isEqualTo(LocalDate.of(1998, 2, 3));
     assertThat(result.temperatureSensitivity()).isEqualTo(5);
     assertThat(result.profileImageUrl()).isEqualTo("http://localhost:8080/files/uuid.png");
+  }
+
+  @Test
+  @DisplayName("새 이미지로 프로필 수정 시 커밋 후 기존 이미지가 삭제된다")
+  void updateProfile_withNewImage_deletesOldImageAfterCommit() {
+    // given
+    UUID userId = UUID.randomUUID();
+    User user = new User("홍길동", "hong@test.com", "hong_password");
+    String oldImageUrl = "http://localhost:8080/files/old.png";
+    Profile profile = profileWithImage(user, oldImageUrl);
+    ProfileUpdateRequest request = request();
+    Location location = location();
+    MockMultipartFile image = new MockMultipartFile(
+        "image",
+        "profile.jpg",
+        "image/jpeg",
+        "img".getBytes()
+    );
+    String newImageUrl = "http://localhost:8080/files/new.png";
+
+    given(userRepository.findById(userId)).willReturn(Optional.of(user));
+    given(profileRepository.findByUser(user)).willReturn(Optional.of(profile));
+    given(imageUploader.upload(image)).willReturn(newImageUrl);
+    given(locationRepository.findByGridXAndGridY(60, 127)).willReturn(Optional.of(location));
+
+    // when
+    profileService.updateProfile(userId, request, image);
+
+    // then
+    verify(imageUploader).delete(oldImageUrl);
+  }
+
+  @Test
+  @DisplayName("새 이미지 없이 프로필 수정 시 기존 이미지는 삭제되지 않는다")
+  void updateProfile_withoutNewImage_doesNotDeleteOldImage() {
+    // given
+    UUID userId = UUID.randomUUID();
+    User user = new User("홍길동", "hong@test.com", "hong_password");
+    String oldImageUrl = "http://localhost:8080/files/old.png";
+    Profile profile = profileWithImage(user, oldImageUrl);
+    ProfileUpdateRequest request = request();
+    Location location = location();
+
+    given(userRepository.findById(userId)).willReturn(Optional.of(user));
+    given(profileRepository.findByUser(user)).willReturn(Optional.of(profile));
+    given(locationRepository.findByGridXAndGridY(60, 127)).willReturn(Optional.of(location));
+
+    // when
+    profileService.updateProfile(userId, request, null);
+
+    // then
+    verify(imageUploader, never()).delete(oldImageUrl);
   }
 
   @Test

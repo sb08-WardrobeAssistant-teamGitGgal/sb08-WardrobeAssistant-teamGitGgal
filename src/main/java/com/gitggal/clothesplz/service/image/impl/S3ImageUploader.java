@@ -86,6 +86,7 @@ public class S3ImageUploader implements ImageUploader {
       return;
     }
 
+    log.info("[Service] S3 이미지 삭제 요청 시작: 이미지 URL = {}", imageUrl);
     String objectKey = extractObjectKey(imageUrl);
     if (!StringUtils.hasText(objectKey)) {
       return;
