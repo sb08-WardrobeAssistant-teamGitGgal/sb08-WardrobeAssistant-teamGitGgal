@@ -7,10 +7,11 @@ import com.gitggal.clothesplz.entity.weather.SkyStatus;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate; // 추가
-import java.time.format.DateTimeFormatter; // 추가
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.time.format.DateTimeParseException;
 
 @Slf4j
 @Service
@@ -75,7 +76,7 @@ public class WeatherParserService {
             LocalDate localDate;
             try{
                 localDate = LocalDate.parse(date, DATE_FORMATTER);
-            } catch (Exception e) {
+            } catch (DateTimeParseException e) {
                 log.warn("[Service] fcstDate 파싱 실패, 해당 날짜 스킵: {}", date);
                 continue;
             }
