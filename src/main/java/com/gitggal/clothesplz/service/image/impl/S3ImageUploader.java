@@ -2,11 +2,11 @@ package com.gitggal.clothesplz.service.image.impl;
 
 import com.gitggal.clothesplz.exception.BusinessException;
 import com.gitggal.clothesplz.exception.code.ImageErrorCode;
-import com.gitggal.clothesplz.service.image.ImageFileValidator;
+import com.gitggal.clothesplz.service.image.ImageSanitizer;
 import com.gitggal.clothesplz.service.image.ImageUploader;
 import com.gitggal.clothesplz.service.image.S3Properties;
+import com.gitggal.clothesplz.service.image.ValidatedImage;
 import java.net.URI;
-import java.util.Objects;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Profile;
@@ -33,9 +33,9 @@ public class S3ImageUploader implements ImageUploader {
   private final S3Client s3Client;
   private final String bucket;
   private final String cloudfrontDomain;
-  private final ImageFileValidator imageFileValidator;
+  private final ImageSanitizer imageFileValidator;
 
-  public S3ImageUploader(S3Properties properties, ImageFileValidator imageFileValidator) {
+  public S3ImageUploader(S3Properties properties, ImageSanitizer imageFileValidator) {
     this.bucket = properties.bucket();
     this.cloudfrontDomain = properties.cloudfront();
     this.imageFileValidator = imageFileValidator;
@@ -58,20 +58,17 @@ public class S3ImageUploader implements ImageUploader {
   @Override
   public String upload(MultipartFile image) {
     log.info("[Service] S3 이미지 업로드 요청 시작: 요청 파일 명 = {}", image.getOriginalFilename());
-    imageFileValidator.validate(image);
-
-    String extension = imageFileValidator.extractExtension(
-        Objects.requireNonNull(image.getOriginalFilename()));
-    String objectKey = FILE_PREFIX + UUID.randomUUID() + extension;
+    ValidatedImage validatedImage = imageFileValidator.sanitize(image);
+    String objectKey = FILE_PREFIX + UUID.randomUUID() + validatedImage.extension();
 
     try {
       PutObjectRequest request = PutObjectRequest.builder()
           .bucket(bucket)
           .key(objectKey)
-          .contentType(resolveContentType(image))
+          .contentType(resolveContentType(validatedImage.contentType(), objectKey))
           .build();
 
-      s3Client.putObject(request, RequestBody.fromBytes(image.getBytes()));
+      s3Client.putObject(request, RequestBody.fromBytes(validatedImage.bytes()));
       log.info("[Service] S3 이미지 업로드 요청 완료: 저장 파일 명 = {}", objectKey);
       return buildCloudfrontUrl(objectKey);
     } catch (Exception e) {
@@ -123,20 +120,18 @@ public class S3ImageUploader implements ImageUploader {
     }
   }
 
-  private String resolveContentType(MultipartFile image) {
-    if (StringUtils.hasText(image.getContentType())) {
-      return image.getContentType();
+  private String resolveContentType(String contentType, String fileName) {
+    if (StringUtils.hasText(contentType)) {
+      return contentType;
     }
 
-    String originalFilename = image.getOriginalFilename();
-    if (!StringUtils.hasText(originalFilename) || !originalFilename.contains(".")) {
+    if (!StringUtils.hasText(fileName) || !fileName.contains(".")) {
       return "image/jpeg";
     }
 
-    String extension = originalFilename.substring(originalFilename.lastIndexOf('.')).toLowerCase();
+    String extension = fileName.substring(fileName.lastIndexOf('.')).toLowerCase();
     return switch (extension) {
       case ".png" -> "image/png";
-      case ".webp" -> "image/webp";
       default -> "image/jpeg";
     };
   }

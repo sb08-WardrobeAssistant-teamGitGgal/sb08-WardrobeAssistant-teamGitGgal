@@ -2,13 +2,13 @@ package com.gitggal.clothesplz.service.image.impl;
 
 import com.gitggal.clothesplz.exception.BusinessException;
 import com.gitggal.clothesplz.exception.code.ImageErrorCode;
-import com.gitggal.clothesplz.service.image.ImageFileValidator;
+import com.gitggal.clothesplz.service.image.ImageSanitizer;
 import com.gitggal.clothesplz.service.image.ImageUploader;
+import com.gitggal.clothesplz.service.image.ValidatedImage;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Objects;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,23 +24,19 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 public class LocalImageUploader implements ImageUploader {
 
   private static final Path IMAGE_PATH = Path.of(".files/");
-  private final ImageFileValidator imageFileValidator;
+  private final ImageSanitizer imageFileValidator;
 
   @Override
   public String upload(MultipartFile image) {
     log.info("[Service] 이미지 업로드 요청 시작: 요청 파일 명 = {}", image.getOriginalFilename());
-    imageFileValidator.validate(image);
+    ValidatedImage validatedImage = imageFileValidator.sanitize(image);
 
     try {
       Files.createDirectories(IMAGE_PATH);
-      byte[] imageBytes = image.getBytes();
-
-      String extension = imageFileValidator.extractExtension(
-          Objects.requireNonNull(image.getOriginalFilename()));
-      String savedFileName = UUID.randomUUID() + extension;
+      String savedFileName = UUID.randomUUID() + validatedImage.extension();
       Path savedPath = IMAGE_PATH.resolve(savedFileName);
 
-      Files.write(savedPath, imageBytes);
+      Files.write(savedPath, validatedImage.bytes());
 
       log.info("[Service] 이미지 업로드 요청 완료: 저장 파일 명 = {}", savedFileName);
       return ServletUriComponentsBuilder
