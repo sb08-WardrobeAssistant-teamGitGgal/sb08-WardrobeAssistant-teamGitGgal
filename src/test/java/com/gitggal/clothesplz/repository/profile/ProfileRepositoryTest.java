@@ -7,6 +7,7 @@ import com.gitggal.clothesplz.entity.profile.Gender;
 import com.gitggal.clothesplz.entity.profile.Profile;
 import com.gitggal.clothesplz.entity.user.User;
 import com.gitggal.clothesplz.repository.RepositoryTestSupport;
+import jakarta.persistence.PersistenceUnitUtil;
 import java.time.LocalDate;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -96,7 +97,9 @@ class ProfileRepositoryTest extends RepositoryTestSupport {
 
     // then - LazyInitializationException 없이 User 접근 가능
     assertThat(result).isPresent();
-    assertThat(result.get().getUser().getEmail()).isEqualTo("hong@test.com");
+    Profile profile = result.get();
+    PersistenceUnitUtil util = em.getEntityManager().getEntityManagerFactory().getPersistenceUnitUtil();
+    assertThat(util.isLoaded(profile, "user")).isTrue();
+    assertThat(profile.getUser().getEmail()).isEqualTo("hong@test.com");
   }
 }
-
