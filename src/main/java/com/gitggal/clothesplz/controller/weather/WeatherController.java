@@ -29,7 +29,7 @@ public class WeatherController {
             @RequestParam(name = "nx", defaultValue = "55") Integer nx,
             @RequestParam(name = "ny", defaultValue = "127") Integer ny) {
 
-        log.info("[Controller] 날씨 조회 요청 시작 - nx: {}, ny: {}", nx, ny);;
+        log.info("[Controller] 날씨 조회 요청 시작 - nx: {}, ny: {}", nx, ny);
 
         return weatherService.getWeatherForecast(nx, ny)
                 .doOnSuccess(res -> log.info("[Controller] 날씨 조회 성공: 데이터 개수={}", res.size()))
