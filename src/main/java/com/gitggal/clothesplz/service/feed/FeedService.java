@@ -12,4 +12,7 @@ public interface FeedService {
 
   // 피드 수정
   FeedDto updateFeed(UUID feedId, FeedUpdateRequest feedUpdateRequest);
+
+  // 피드 삭제
+  void deleteFeed(UUID feedId);
 }

@@ -79,4 +79,17 @@ public class FeedServiceImpl implements FeedService {
 
     return feedMapper.toDto(feed);
   }
+
+  // TODO: 관리자나 피드 작성자만 피드 삭제하도록 권한 위임 예정
+  @Override
+  @Transactional
+  public void deleteFeed(UUID feedId) {
+    log.info("[Service] 피드 삭제 요청 시작 - feedId: {}", feedId);
+
+    Feed feed = feedRepository.findWithDetailsById(feedId)
+        .orElseThrow(() -> new BusinessException(FeedErrorCode.FEED_NOT_FOUND));
+
+    feedRepository.delete(feed);
+    log.info("[Service] 피드 삭제 요청 완료 - feedId: {}", feedId);
+  }
 }
