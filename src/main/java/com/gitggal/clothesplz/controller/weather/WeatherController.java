@@ -1,6 +1,8 @@
 package com.gitggal.clothesplz.controller.weather;
 
 import com.gitggal.clothesplz.dto.weather.DailyWeatherForecastDto;
+import com.gitggal.clothesplz.exception.BusinessException;
+import com.gitggal.clothesplz.exception.code.WeatherErrorCode;
 import com.gitggal.clothesplz.service.weather.WeatherService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,7 +34,13 @@ public class WeatherController {
         log.info("[Controller] 날씨 조회 요청 시작 - nx: {}, ny: {}", nx, ny);
 
         return weatherService.getWeatherForecast(nx, ny)
-                .doOnSuccess(res -> log.info("[Controller] 날씨 조회 성공: 데이터 개수={}", res.size()))
-                .doOnError(e -> log.error("[Controller] 날씨 조회 실패: message={}", e.getMessage()));
+                .doOnSuccess(res -> log.info("[Controller] 날씨 예보 조회 요청 완료: 데이터 개수={}", res.size()))
+                .doOnError(e -> log.error("[Controller] 날씨 조회 중 에러 발생: message={}", e.getMessage()))
+                // 핵심: 에러 발생 시 우리 팀의 WeatherErrorCode로 변환하여 던짐
+                .onErrorMap(e -> {
+                    log.error("[Controller] 에러 변환 처리 중: {}", e.getClass().getSimpleName());
+                    // 기상청 API 호출 실패 등은 8003번으로 응답
+                    return new BusinessException(WeatherErrorCode.WEATHER_API_ERROR);
+                });
     }
 }
