@@ -49,6 +49,7 @@ public class FeedServiceImpl implements FeedService {
         .orElseThrow(() -> new BusinessException(UserErrorCode.USER_NOT_FOUND));
 
     // TODO: clothesService 구현 후 교체
+    // 현재 clothesIds는 수신되지만 ootds에 반영되지 않음 (의상 추천 기능 미구현 상태)
     List<OotdDto> ootds = List.of();
 
     Feed feed = new Feed(weather, author, ootds, content);

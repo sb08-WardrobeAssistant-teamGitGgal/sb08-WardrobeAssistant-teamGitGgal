@@ -28,7 +28,7 @@ public class FeedController {
     log.info("[Controller] 피드 생성 요청 시작");
     FeedDto feedDto = feedService.createFeed(feedCreateRequest);
 
-    log.info("[Controller] 피드 생성 요청 시작");
+    log.info("[Controller] 피드 생성 요청 완료");
     return ResponseEntity
         .status(HttpStatus.CREATED)
         .body(feedDto);

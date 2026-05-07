@@ -60,7 +60,7 @@ public class FeedServiceTest extends ServiceTestSupport {
 
   @Nested
   @DisplayName("피드 생성 관련 테스트")
-  class createFeedTests {
+  class CreateFeedTests {
 
     @Test
     @DisplayName("피드 생성 성공인 경우")
