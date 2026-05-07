@@ -3,10 +3,12 @@ package com.gitggal.clothesplz.service.feed.impl;
 import com.gitggal.clothesplz.dto.clothes.OotdDto;
 import com.gitggal.clothesplz.dto.feed.FeedCreateRequest;
 import com.gitggal.clothesplz.dto.feed.FeedDto;
+import com.gitggal.clothesplz.dto.feed.FeedUpdateRequest;
 import com.gitggal.clothesplz.entity.feed.Feed;
 import com.gitggal.clothesplz.entity.user.User;
 import com.gitggal.clothesplz.entity.weather.Weather;
 import com.gitggal.clothesplz.exception.BusinessException;
+import com.gitggal.clothesplz.exception.code.FeedErrorCode;
 import com.gitggal.clothesplz.exception.code.UserErrorCode;
 import com.gitggal.clothesplz.exception.code.WeatherErrorCode;
 import com.gitggal.clothesplz.mapper.feed.FeedMapper;
@@ -59,5 +61,35 @@ public class FeedServiceImpl implements FeedService {
     log.info("[Service] 피드 생성 요청 완료 - feedId: {}", savedFeed.getId());
 
     return feedMapper.toDto(savedFeed);
+  }
+
+  // TODO: 관리자나 피드 작성자만 피드 수정하도록 권한 위임 예정
+  @Override
+  @Transactional
+  public FeedDto updateFeed(UUID feedId, FeedUpdateRequest feedUpdateRequest) {
+    log.info("[Service] 피드 수정 요청 시작 - feedId: {}", feedId);
+    String newContent = feedUpdateRequest.content();
+
+    Feed feed = feedRepository.findWithDetailsById(feedId)
+        .orElseThrow(() -> new BusinessException(FeedErrorCode.FEED_NOT_FOUND));
+
+    feed.update(newContent);
+
+    log.info("[Service] 피드 수정 요청 완료 - feedId: {}", feedId);
+
+    return feedMapper.toDto(feed);
+  }
+
+  // TODO: 관리자나 피드 작성자만 피드 삭제하도록 권한 위임 예정
+  @Override
+  @Transactional
+  public void deleteFeed(UUID feedId) {
+    log.info("[Service] 피드 삭제 요청 시작 - feedId: {}", feedId);
+
+    Feed feed = feedRepository.findWithDetailsById(feedId)
+        .orElseThrow(() -> new BusinessException(FeedErrorCode.FEED_NOT_FOUND));
+
+    feedRepository.delete(feed);
+    log.info("[Service] 피드 삭제 요청 완료 - feedId: {}", feedId);
   }
 }

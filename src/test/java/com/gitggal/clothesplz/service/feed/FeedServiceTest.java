@@ -10,6 +10,7 @@ import static org.mockito.Mockito.mock;
 
 import com.gitggal.clothesplz.dto.feed.FeedCreateRequest;
 import com.gitggal.clothesplz.dto.feed.FeedDto;
+import com.gitggal.clothesplz.dto.feed.FeedUpdateRequest;
 import com.gitggal.clothesplz.entity.feed.Feed;
 import com.gitggal.clothesplz.entity.user.User;
 import com.gitggal.clothesplz.entity.weather.Weather;
@@ -40,21 +41,29 @@ public class FeedServiceTest extends ServiceTestSupport {
 
   private UUID weatherId;
   private UUID authorId;
+  private UUID feedId;
   private Weather mockWeather;
   private User mockAuthor;
+  private Feed mockFeed;
   private FeedCreateRequest feedCreateRequest;
+  private FeedUpdateRequest feedUpdateRequest;
 
   @BeforeEach
   void setUp() {
     weatherId = UUID.randomUUID();
     authorId = UUID.randomUUID();
+    feedId = UUID.randomUUID();
     mockWeather = mock(Weather.class);
     mockAuthor = mock(User.class);
+    mockFeed = mock(Feed.class);
     feedCreateRequest = new FeedCreateRequest(
         authorId,
         weatherId,
         List.of(UUID.randomUUID()),
         "피드 생성"
+    );
+    feedUpdateRequest = new FeedUpdateRequest(
+        "피드 수정"
     );
   }
 
@@ -102,6 +111,67 @@ public class FeedServiceTest extends ServiceTestSupport {
 
       // when & then
       assertThatThrownBy(() -> feedService.createFeed(feedCreateRequest))
+          .isInstanceOf(BusinessException.class);
+    }
+  }
+
+  @Nested
+  @DisplayName("피드 수정 관련 테스트")
+  class UpdateFeedTests {
+
+    @Test
+    @DisplayName("피드 수정 성공인 경우")
+    void updateFeed_success() {
+      // given
+      given(feedRepository.findWithDetailsById(eq(feedId))).willReturn(Optional.of(mockFeed));
+
+      FeedDto expectedDto = mock(FeedDto.class);
+      given(feedMapper.toDto(any(Feed.class))).willReturn(expectedDto);
+
+      // when
+      FeedDto result = feedService.updateFeed(feedId, feedUpdateRequest);
+
+      // then
+      assertThat(result).isEqualTo(expectedDto);
+    }
+
+    @Test
+    @DisplayName("피드 정보를 찾을 수 없는 경우 예외 발생")
+    void updateFeed_feedNotFound_ThrowsException() {
+      // given
+      given(feedRepository.findWithDetailsById(eq(feedId))).willReturn(Optional.empty());
+
+      // when & then
+      assertThatThrownBy(() -> feedService.updateFeed(feedId, feedUpdateRequest))
+          .isInstanceOf(BusinessException.class);
+    }
+  }
+
+  @Nested
+  @DisplayName("피드 삭제 관련 테스트")
+  class deleteFeedTests {
+
+    @Test
+    @DisplayName("피드 삭제 성공인 경우")
+    void deleteFeed_success() {
+      // given
+      given(feedRepository.findWithDetailsById(eq(feedId))).willReturn(Optional.of(mockFeed));
+
+      // when
+      feedService.deleteFeed(feedId);
+
+      // then
+      then(feedRepository).should().delete(any(Feed.class));
+    }
+
+    @Test
+    @DisplayName("피드 정보를 찾을 수 없는 경우 예외 발생")
+    void deleteFeed_feedNotFound_ThrowsException() {
+      // given
+      given(feedRepository.findWithDetailsById(eq(feedId))).willReturn(Optional.empty());
+
+      // when & then
+      assertThatThrownBy(() -> feedService.deleteFeed(feedId))
           .isInstanceOf(BusinessException.class);
     }
   }

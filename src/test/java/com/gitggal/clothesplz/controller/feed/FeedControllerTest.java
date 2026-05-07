@@ -1,7 +1,11 @@
 package com.gitggal.clothesplz.controller.feed;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willDoNothing;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -9,6 +13,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gitggal.clothesplz.dto.feed.FeedCreateRequest;
 import com.gitggal.clothesplz.dto.feed.FeedDto;
+import com.gitggal.clothesplz.dto.feed.FeedUpdateRequest;
 import com.gitggal.clothesplz.dto.user.AuthorDto;
 import com.gitggal.clothesplz.dto.weather.PrecipitationDto;
 import com.gitggal.clothesplz.dto.weather.TemperatureDto;
@@ -46,12 +51,14 @@ public class FeedControllerTest {
 
   private UUID weatherId;
   private UUID authorId;
+  private UUID feedId;
   private FeedDto feedDto;
 
   @BeforeEach
   void setUp() {
     authorId = UUID.randomUUID();
     weatherId = UUID.randomUUID();
+    feedId = UUID.randomUUID();
     feedDto = new FeedDto(
         UUID.randomUUID(), Instant.now(), Instant.now(),
         new AuthorDto(authorId, "피드 작성자", "profileUrl"),
@@ -128,6 +135,48 @@ public class FeedControllerTest {
               .contentType(MediaType.APPLICATION_JSON)
               .content(objectMapper.writeValueAsString(request)))
           .andExpect(status().isBadRequest());
+    }
+  }
+
+  @Nested
+  @DisplayName("피드 수정 관련 테스트")
+  class UpdateFeedTests {
+
+    @Test
+    @DisplayName("성공 - 200 반환")
+    void updateFeed_success() throws Exception {
+      FeedUpdateRequest request = new FeedUpdateRequest("피드 수정");
+      given(feedService.updateFeed(eq(feedId), any())).willReturn(feedDto);
+
+      mockMvc.perform(patch("/api/feeds/{feedId}", feedId)
+              .contentType(MediaType.APPLICATION_JSON)
+              .content(objectMapper.writeValueAsString(request)))
+          .andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("실패 - content 비어있으면 400 반환")
+    void updateFeed_blankContent_returns400() throws Exception {
+      FeedUpdateRequest request = new FeedUpdateRequest("");
+
+      mockMvc.perform(patch("/api/feeds/{feedId}", feedId)
+              .contentType(MediaType.APPLICATION_JSON)
+              .content(objectMapper.writeValueAsString(request)))
+          .andExpect(status().isBadRequest());
+    }
+  }
+
+  @Nested
+  @DisplayName("피드 삭제 관련 테스트")
+  class DeleteFeedTests {
+
+    @Test
+    @DisplayName("성공 - 204 반환")
+    void deleteFeed_success() throws Exception {
+      willDoNothing().given(feedService).deleteFeed(feedId);
+
+      mockMvc.perform(delete("/api/feeds/{feedId}", feedId))
+          .andExpect(status().isNoContent());
     }
   }
 }
