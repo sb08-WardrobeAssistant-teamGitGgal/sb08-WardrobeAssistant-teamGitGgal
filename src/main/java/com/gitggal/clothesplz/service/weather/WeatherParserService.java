@@ -24,8 +24,11 @@ public class WeatherParserService {
     public List<DailyWeatherForecastDto> parseDailyForecast(WeatherApiResponseDto response) {
         log.info("[Service] 기상청 응답 데이터 파싱 시작");
 
-        if (response == null || response.getResponse().getBody() == null) {
-            log.error("[Service] 기상청 응답 데이터가 비어있어 파싱 중단.");
+        if (response == null ||
+                response.getResponse() == null ||
+                response.getResponse().getBody() == null ||
+                response.getResponse().getBody().getItems() == null) {
+            log.error("[Service] 기상청 응답 데이터가 비어있거나 올바르지 않습니다.");
             return Collections.emptyList();
         }
 
@@ -41,27 +44,27 @@ public class WeatherParserService {
         for (String date : new TreeSet<>(groupedByDate.keySet())) {
             List<WeatherItem> dayItems = groupedByDate.get(date);
 
-            int maxTemp = -99;
-            int minTemp = 99;
+            Integer maxTemp = null;
+            Integer minTemp = null;
             int sumTemp = 0;
             int tempCount = 0;
             String representativeSky = "1";
 
             for (WeatherItem item : dayItems) {
-                // 기온 데이터(TMP) 처리
-                if (item.getCategory().equals("TMP")) {
+                if ("TMP".equals(item.getCategory())) {
                     int val = Integer.parseInt(item.getFcstValue());
-                    maxTemp = Math.max(maxTemp, val);
-                    minTemp = Math.min(minTemp, val);
+                    maxTemp = (maxTemp == null) ? val : Math.max(maxTemp, val);
+                    minTemp = (minTemp == null) ? val : Math.min(minTemp, val);
                     sumTemp += val;
                     tempCount++;
                 }
-
-                // 오후 2시(1400)의 하늘 상태를 그 날의 낮 기상 대표값으로 사용
-                if (item.getCategory().equals("SKY") && item.getFcstTime().equals("1400")) {
+                // 오후 2시 대표 기상
+                if ("SKY".equals(item.getCategory()) && "1400".equals(item.getFcstTime())) {
                     representativeSky = item.getFcstValue();
                 }
             }
+            // 데이터가 없는 날은 리스트에 추가하지 않음 (NaN 방지)
+            if (tempCount == 0) continue;
 
             // 수정 포인트: 정의한 DATE_FORMATTER를 사용하여 String -> LocalDate 변환
             LocalDate localDate = LocalDate.parse(date, DATE_FORMATTER);
@@ -83,15 +86,17 @@ public class WeatherParserService {
     }
 
     /**
-     * 기상청 SKY 코드를 요청하신 3가지 상태로 변환
-     * 기상청 기준: 1(맑음), 2(구름많음), 3(흐림)
+     * 기상청 최신 SKY 명세 (2019.06.04 개정) 반영
+     * 1: 맑음 (기상청이  구름 조금(2)와 1이 별 차이가 없어 2를 건너뜀)
+     * 3: 구름많음
+     * 4: 흐림
      */
     private SkyStatus convertSkyStatus(String skyCode) {
         return switch (skyCode) {
-            case "1" -> SkyStatus.CLEAR;
-            case "2" -> SkyStatus.MOSTLY_CLOUDY;
-            case "3" -> SkyStatus.CLOUDY;
-            default -> SkyStatus.CLEAR;
+            case "1" -> SkyStatus.CLEAR;         // 맑음
+            case "3" -> SkyStatus.MOSTLY_CLOUDY;  // 구름많음
+            case "4" -> SkyStatus.CLOUDY;         // 흐림
+            default -> SkyStatus.CLEAR;           // 예외 상황 발생 시 기본값 맑음
         };
     }
 }
