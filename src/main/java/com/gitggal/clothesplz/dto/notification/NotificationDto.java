@@ -16,6 +16,7 @@ import java.util.UUID;
  * - level         : 알림 심각도 (INFO / WARNING / ERROR)
  */
 public record NotificationDto(
+    
     UUID id,
 
     Instant createdAt,
@@ -28,35 +29,4 @@ public record NotificationDto(
 
     NotificationLevel level
 ) {
-
-  /**
-   * 편의 메서드: 자주 쓰는 INFO 레벨 알림 생성
-   *
-   * 사용 예시: NotificationDto.of(receiverId, "새로운 의상 속성이 추가되었어요.", "내 의상에 [핏] 속성을 추가해보세요.")
-   */
-  public static NotificationDto of(UUID receiverId, String title, String content) {
-    return new NotificationDto(
-        UUID.randomUUID(),
-        Instant.now(),
-        receiverId,
-        title,
-        content,
-        NotificationLevel.INFO  // 기본 레벨은 INFO
-    );
-  }
-
-  /**
-   * 편의 메서드: WARNING/ERROR 레벨 알림 생성
-   */
-  public static NotificationDto of(UUID receiverId, String title, String content, NotificationLevel level) {
-    return new NotificationDto(
-        UUID.randomUUID(),
-        Instant.now(),
-        receiverId,
-        title,
-        content,
-        level
-    );
-  }
-
 }
