@@ -52,11 +52,15 @@ public class WeatherParserService {
 
             for (WeatherItem item : dayItems) {
                 if ("TMP".equals(item.getCategory())) {
-                    int val = Integer.parseInt(item.getFcstValue());
-                    maxTemp = (maxTemp == null) ? val : Math.max(maxTemp, val);
-                    minTemp = (minTemp == null) ? val : Math.min(minTemp, val);
-                    sumTemp += val;
-                    tempCount++;
+                    try{
+                        int val = Integer.parseInt(item.getFcstValue());
+                        maxTemp = (maxTemp == null) ? val : Math.max(maxTemp, val);
+                        minTemp = (minTemp == null) ? val : Math.min(minTemp, val);
+                        sumTemp += val;
+                        tempCount++;
+                    } catch (NumberFormatException e) {
+                        log.warn("[Service] TMP 값 파싱 실패: {}", item.getFcstValue());
+                    }
                 }
                 // 오후 2시 대표 기상
                 if ("SKY".equals(item.getCategory()) && "1400".equals(item.getFcstTime())) {
