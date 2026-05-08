@@ -1,16 +1,12 @@
 package com.gitggal.clothesplz.dto.weather;
 
 import com.gitggal.clothesplz.entity.weather.PrecipitationType;
-import lombok.*;
+import lombok.Builder;
 
-@Getter
 @Builder
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor
-public class PrecipitationDto {
+public record PrecipitationDto(
+        PrecipitationType type,
+        Double amount,
+        Double probability
+) {}
 
-    private PrecipitationType type; // Enum 사용
-    private Double amount;          // 강수량
-    private Double probability;     // 강수 확률
-
-}
