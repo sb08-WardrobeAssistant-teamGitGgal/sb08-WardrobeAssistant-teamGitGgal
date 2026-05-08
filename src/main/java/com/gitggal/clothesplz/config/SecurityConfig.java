@@ -73,6 +73,8 @@ public class SecurityConfig {
           .mapToObj(idx -> String.format("\t[%s/%s] %s", idx + 1, filterSize,
               filterChain.getFilters().get(idx).getClass()))
           .toList();
+
+      filterNames.forEach(log::info);
     };
   }
 }
