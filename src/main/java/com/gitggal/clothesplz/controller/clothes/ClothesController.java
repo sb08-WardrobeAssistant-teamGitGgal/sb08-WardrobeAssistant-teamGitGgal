@@ -41,6 +41,7 @@ public class ClothesController implements ClothesControllerApi {
       @RequestParam(required = false) ClothesType typeEqual,
       @RequestParam UUID ownerId
   ) {
+    log.info("[Controller] 의상 조회 요청 시작");
 
     ClothesDtoCursorResponse response = clothesService.getClothes(
         cursor,
@@ -50,6 +51,7 @@ public class ClothesController implements ClothesControllerApi {
         ownerId
     );
 
+    log.info("[Controller] 의상 조회 요청 완료");
     return ResponseEntity
         .status(HttpStatus.OK)
         .body(response);
@@ -61,9 +63,11 @@ public class ClothesController implements ClothesControllerApi {
       @RequestPart @Valid ClothesCreateRequest request,
       @RequestPart(required = false) MultipartFile image
   ) {
+    log.info("[Controller] 의상 생성 요청 시작");
 
     ClothesDto response = clothesService.createClothes(request, image);
 
+    log.info("[Controller] 의상 생성 요청 완료");
     return ResponseEntity
         .status(HttpStatus.CREATED)
         .body(response);
@@ -74,9 +78,11 @@ public class ClothesController implements ClothesControllerApi {
   public ResponseEntity<Void> deleteClothes(
       @PathVariable UUID clothesId
   ) {
+    log.info("[Controller] 의상 삭제 요청 시작: clothesId = {}", clothesId);
 
     clothesService.deleteClothes(clothesId);
 
+    log.info("[Controller] 의상 삭제 요청 완료: clothesId = {}", clothesId);
     return ResponseEntity
         .status(HttpStatus.OK)
         .build();
@@ -89,6 +95,7 @@ public class ClothesController implements ClothesControllerApi {
       @RequestPart @Valid ClothesUpdateRequest request,
       @RequestPart(required = false) MultipartFile image
   ) {
+    log.info("[Controller] 의상 수정 요청 시작: clothesId = {}", clothesId);
 
     ClothesDto response = clothesService.updateClothes(
         clothesId,
@@ -96,6 +103,7 @@ public class ClothesController implements ClothesControllerApi {
         image
     );
 
+    log.info("[Controller] 의상 수정 요청 완료: clothesId = {}", clothesId);
     return ResponseEntity
         .status(HttpStatus.OK)
         .body(response);
@@ -106,8 +114,11 @@ public class ClothesController implements ClothesControllerApi {
   public ResponseEntity<ClothesDto> extractByUrl(
       @RequestParam String url
   ) {
+    log.info("[Controller] 의상 URL로 의상 조회 시작: url = {}", url);
+
     ClothesDto response = clothesService.extractByUrl(url);
 
+    log.info("[Controller] 의상 URL로 의상 조회 완료: url = {}", url);
     return ResponseEntity
         .status(HttpStatus.OK)
         .body(response);
