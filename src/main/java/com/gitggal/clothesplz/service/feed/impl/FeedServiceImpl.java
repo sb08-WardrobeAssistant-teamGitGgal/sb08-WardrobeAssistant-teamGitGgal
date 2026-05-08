@@ -5,6 +5,7 @@ import com.gitggal.clothesplz.dto.feed.FeedCreateRequest;
 import com.gitggal.clothesplz.dto.feed.FeedDto;
 import com.gitggal.clothesplz.dto.feed.FeedUpdateRequest;
 import com.gitggal.clothesplz.entity.feed.Feed;
+import com.gitggal.clothesplz.entity.feed.FeedLike;
 import com.gitggal.clothesplz.entity.user.User;
 import com.gitggal.clothesplz.entity.weather.Weather;
 import com.gitggal.clothesplz.exception.BusinessException;
@@ -12,6 +13,7 @@ import com.gitggal.clothesplz.exception.code.FeedErrorCode;
 import com.gitggal.clothesplz.exception.code.UserErrorCode;
 import com.gitggal.clothesplz.exception.code.WeatherErrorCode;
 import com.gitggal.clothesplz.mapper.feed.FeedMapper;
+import com.gitggal.clothesplz.repository.feed.FeedLikeRepository;
 import com.gitggal.clothesplz.repository.feed.FeedRepository;
 import com.gitggal.clothesplz.repository.user.UserRepository;
 import com.gitggal.clothesplz.repository.weather.WeatherRepository;
@@ -32,6 +34,7 @@ public class FeedServiceImpl implements FeedService {
   private final UserRepository userRepository;
   private final WeatherRepository weatherRepository;
   private final FeedRepository feedRepository;
+  private final FeedLikeRepository feedLikeRepository;
   private final FeedMapper feedMapper;
 
   @Override
@@ -91,5 +94,49 @@ public class FeedServiceImpl implements FeedService {
 
     feedRepository.delete(feed);
     log.info("[Service] 피드 삭제 요청 완료 - feedId: {}", feedId);
+  }
+
+  @Override
+  @Transactional
+  public void increaseLikeCount(UUID feedId, UUID userId) {
+    log.info("[Service] 피드 좋아요 요청 시작 - feedId: {}, userId: {}", feedId, userId);
+
+    Feed feed = feedRepository.findWithLockById(feedId)
+        .orElseThrow(() -> new BusinessException(FeedErrorCode.FEED_NOT_FOUND));
+
+    User user = userRepository.findById(userId)
+        .orElseThrow(() -> new BusinessException(UserErrorCode.USER_NOT_FOUND));
+
+    // 사용자가 피드의 좋아요를 이미 눌렀는지 검증
+    if (feedLikeRepository.existsByFeedIdAndUserId(feedId, userId)) {
+      throw new BusinessException(FeedErrorCode.FEED_LIKE_ALREADY_EXISTS);
+    }
+
+    FeedLike feedLike = new FeedLike(feed, user);
+
+    feedLikeRepository.save(feedLike);
+    feed.increaseLikeCount();
+
+    log.info("[Service] 피드 좋아요 요청 완료 - feedLikeId: {}", feedLike.getId());
+  }
+
+  @Override
+  @Transactional
+  public void decreaseLikeCount(UUID feedId, UUID userId) {
+    log.info("[Service] 피드 좋아요 취소 요청 시작 - feedId: {}, userId: {}", feedId, userId);
+
+    Feed feed = feedRepository.findWithLockById(feedId)
+        .orElseThrow(() -> new BusinessException(FeedErrorCode.FEED_NOT_FOUND));
+
+    User user = userRepository.findById(userId)
+        .orElseThrow(() -> new BusinessException(UserErrorCode.USER_NOT_FOUND));
+
+    FeedLike feedLike = feedLikeRepository.findByFeedIdAndUserId(feedId, userId)
+        .orElseThrow(() -> new BusinessException(FeedErrorCode.FEED_LIKE_NOT_FOUND));
+
+    feedLikeRepository.delete(feedLike);
+    feed.decreaseLikeCount();
+
+    log.info("[Service] 피드 좋아요 취소 요청 완료 - feedLikeId: {}", feedLike.getId());
   }
 }
