@@ -22,8 +22,8 @@ public class Weather extends BaseUpdatableEntity {
     @Column(name = "forecast_at", nullable = false)
     private OffsetDateTime forecastAt;
 
-    // 위치 ID (FK) - Location 엔티티가 구현되어 있다고 가정
-    @ManyToOne(fetch = FetchType.LAZY)
+    // 위치 ID (FK)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "location_id", nullable = false)
     private Location location;
 

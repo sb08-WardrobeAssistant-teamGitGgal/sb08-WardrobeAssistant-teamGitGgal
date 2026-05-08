@@ -61,3 +61,9 @@ clothesplz:
     access-token-exp: ${ACCESS_TOKEN_EXP}
     refresh-token-secret: ${REFRESH_TOKEN_SECRET}
     refresh-token-exp: ${REFRESH_TOKEN_EXP}
+
+weather:
+  api:
+    uri: ${WEATHER_API_URI}
+    key: ${WEATHER_API_SERVICE_KEY}
+
