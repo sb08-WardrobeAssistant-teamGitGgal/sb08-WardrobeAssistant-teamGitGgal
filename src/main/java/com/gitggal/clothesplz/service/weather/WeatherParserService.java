@@ -119,7 +119,7 @@ public class WeatherParserService {
 
             log.debug("[Service] 날짜별 가공 중: date={}, avgTemp={}", localDate, (double) sumTemp / tempCount);
 
-            double avgTemp = tempCount > 0 ? (double) Math.round((double) sumTemp / tempCount) : 0.0;
+            double avgTemp = tempCount > 0 ? Math.round((double) sumTemp / tempCount) : 0.0;
             double humidityCurrent = averageOrZero(humidities);
             double tempDiff = previousAvgTemp == null ? 0.0 : avgTemp - previousAvgTemp;
             double humidityDiff = previousHumidity == null ? 0.0 : humidityCurrent - previousHumidity;
