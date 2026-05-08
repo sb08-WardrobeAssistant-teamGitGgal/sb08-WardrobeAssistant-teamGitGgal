@@ -32,6 +32,8 @@ public class FollowServiceImpl implements FollowService {
   private final FollowRepository followRepository;
   private final FollowMapper followMapper;
 
+  enum FollowListType { FOLLOWINGS, FOLLOWERS }
+
   /**
    * 팔로잉(우) 목록 - 내가 팔로우 하는 목록
    *
@@ -56,7 +58,7 @@ public class FollowServiceImpl implements FollowService {
     List<Follow> followings =
         followRepository.findFollowings(followerId, nameLike, cursorInstant, idAfter, limit + 1);
 
-    return getFollowListResponse(followerId, null, nameLike, limit, followings);
+    return getFollowListResponse(FollowListType.FOLLOWINGS, followerId, nameLike, limit, followings);
   }
 
   /**
@@ -83,7 +85,7 @@ public class FollowServiceImpl implements FollowService {
     List<Follow> followers =
         followRepository.findFollowers(followeeId, nameLike, cursorInstant, idAfter, limit + 1);
 
-    return getFollowListResponse(null, followeeId, nameLike, limit, followers);
+    return getFollowListResponse(FollowListType.FOLLOWERS, followeeId, nameLike, limit, followers);
   }
 
   /**
@@ -129,8 +131,8 @@ public class FollowServiceImpl implements FollowService {
    * 공통 팔로우 리스트 메서드 (다음 페이지 여부 및 카운트 확인)
    */
   private @NonNull FollowListResponse getFollowListResponse(
-      UUID followerId,
-      UUID followeeId,
+      FollowListType type,
+      UUID targetId,
       String nameLike,
       int limit,
       List<Follow> followList) {
@@ -155,18 +157,18 @@ public class FollowServiceImpl implements FollowService {
       nextIdAfter = last.getId();
     }
 
-    long totalCount = (followerId == null)
-        ? followRepository.countFollowers(followeeId, nameLike)
-        : followRepository.countFollowings(followerId, nameLike);
+    long totalCount = (type == FollowListType.FOLLOWERS)
+        ? followRepository.countFollowers(targetId, nameLike)
+        : followRepository.countFollowings(targetId, nameLike);
 
     List<FollowDto> dtoList = pageData.stream()
         .map(followMapper::toDto)
         .toList();
 
-    if (followerId == null) {
-      log.info("[Service] 팔로워 목록 조회 요청 완료: followeeId={}", followeeId);
+    if (type == FollowListType.FOLLOWERS) {
+      log.info("[Service] 팔로워 목록 조회 요청 완료: followeeId={}", targetId);
     } else {
-      log.info("[Service] 팔로잉(우) 목록 조회 요청 완료: followerId={}", followerId);
+      log.info("[Service] 팔로잉(우) 목록 조회 요청 완료: followerId={}", targetId);
     }
 
     return new FollowListResponse(
@@ -196,7 +198,7 @@ public class FollowServiceImpl implements FollowService {
     try {
       return Instant.parse(cursor);
     } catch (DateTimeParseException e) {
-      throw new BusinessException((FollowErrorCode.INVALID_CURSOR_FORMAT));
+      throw new BusinessException(FollowErrorCode.INVALID_CURSOR_FORMAT);
     }
   }
 }

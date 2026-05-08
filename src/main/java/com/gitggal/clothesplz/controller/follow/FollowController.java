@@ -65,7 +65,7 @@ public class FollowController {
   @GetMapping("/summary")
   public ResponseEntity<FollowSummaryDto> getFollowSummary(
       @RequestParam UUID userId,
-      @RequestParam UUID requesterId) {   // 현재 로그인 사용자
+      @RequestParam(required = false) UUID requesterId) {   // 현재 로그인 사용자
 
     log.info("[Controller] 팔로우 요약 조회 요청 시작: userId={}", userId);
 
