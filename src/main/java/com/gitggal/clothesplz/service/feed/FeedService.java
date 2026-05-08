@@ -1,5 +1,7 @@
 package com.gitggal.clothesplz.service.feed;
 
+import com.gitggal.clothesplz.dto.feed.CommentCreateRequest;
+import com.gitggal.clothesplz.dto.feed.CommentDto;
 import com.gitggal.clothesplz.dto.feed.FeedCreateRequest;
 import com.gitggal.clothesplz.dto.feed.FeedDto;
 import com.gitggal.clothesplz.dto.feed.FeedUpdateRequest;
@@ -21,4 +23,11 @@ public interface FeedService {
 
   // 피드 좋아요 취소
   void decreaseLikeCount(UUID feedId, UUID userId);
+
+  // 댓글 등록
+  CommentDto createComment(CommentCreateRequest commentCreateRequest);
+
+  // 댓글 목록 조회
+
+  // 피드 목록 조회
 }

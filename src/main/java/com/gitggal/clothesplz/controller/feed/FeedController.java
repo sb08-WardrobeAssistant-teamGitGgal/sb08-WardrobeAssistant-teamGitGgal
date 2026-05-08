@@ -1,5 +1,7 @@
 package com.gitggal.clothesplz.controller.feed;
 
+import com.gitggal.clothesplz.dto.feed.CommentCreateRequest;
+import com.gitggal.clothesplz.dto.feed.CommentDto;
 import com.gitggal.clothesplz.dto.feed.FeedCreateRequest;
 import com.gitggal.clothesplz.dto.feed.FeedDto;
 import com.gitggal.clothesplz.dto.feed.FeedUpdateRequest;
@@ -91,5 +93,16 @@ public class FeedController {
     return ResponseEntity
         .status(HttpStatus.NO_CONTENT)
         .build();
+  }
+
+  @PostMapping("/{feedId}/comments")
+  public ResponseEntity<CommentDto> comment(
+      @Valid @RequestBody CommentCreateRequest commentCreateRequest
+  ) {
+    CommentDto commentDto = feedService.createComment(commentCreateRequest);
+
+    return ResponseEntity
+        .status(HttpStatus.CREATED)
+        .body(commentDto);
   }
 }
