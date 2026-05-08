@@ -97,9 +97,10 @@ public class FeedController {
 
   @PostMapping("/{feedId}/comments")
   public ResponseEntity<CommentDto> comment(
+      @PathVariable UUID feedId,
       @Valid @RequestBody CommentCreateRequest commentCreateRequest
   ) {
-    CommentDto commentDto = feedService.createComment(commentCreateRequest);
+    CommentDto commentDto = feedService.createComment(feedId, commentCreateRequest);
 
     return ResponseEntity
         .status(HttpStatus.CREATED)

@@ -25,7 +25,7 @@ public interface FeedService {
   void decreaseLikeCount(UUID feedId, UUID userId);
 
   // 댓글 등록
-  CommentDto createComment(CommentCreateRequest commentCreateRequest);
+  CommentDto createComment(UUID feedId ,CommentCreateRequest commentCreateRequest);
 
   // 댓글 목록 조회
 

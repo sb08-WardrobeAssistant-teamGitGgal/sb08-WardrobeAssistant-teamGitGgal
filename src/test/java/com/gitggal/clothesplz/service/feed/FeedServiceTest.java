@@ -330,7 +330,7 @@ public class FeedServiceTest extends ServiceTestSupport {
       given(commentMapper.toDto(any(FeedComment.class))).willReturn(expectedDto);
 
       // when
-      CommentDto result = feedService.createComment(commentCreateRequest);
+      CommentDto result = feedService.createComment(feedId, commentCreateRequest);
 
       // then
       assertThat(result).isEqualTo(expectedDto);
@@ -345,7 +345,7 @@ public class FeedServiceTest extends ServiceTestSupport {
       given(feedRepository.findWithLockById(eq(feedId))).willReturn(Optional.empty());
 
       // when & then
-      assertThatThrownBy(() -> feedService.createComment(commentCreateRequest))
+      assertThatThrownBy(() -> feedService.createComment(feedId, commentCreateRequest))
           .isInstanceOf(BusinessException.class);
     }
 
@@ -357,7 +357,7 @@ public class FeedServiceTest extends ServiceTestSupport {
       given(userRepository.findById(eq(authorId))).willReturn(Optional.empty());
 
       // when & then
-      assertThatThrownBy(() -> feedService.createComment(commentCreateRequest))
+      assertThatThrownBy(() -> feedService.createComment(feedId, commentCreateRequest))
           .isInstanceOf(BusinessException.class);
     }
   }

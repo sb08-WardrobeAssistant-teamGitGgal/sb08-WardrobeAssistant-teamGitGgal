@@ -242,7 +242,7 @@ public class FeedControllerTest {
           UUID.randomUUID(), Instant.now(), feedId,
           new AuthorDto(authorId, "댓글 작성자", "profileUrl"),
           "댓글 내용 테스트");
-      given(feedService.createComment(any())).willReturn(commentDto);
+      given(feedService.createComment(eq(feedId), any())).willReturn(commentDto);
 
       mockMvc.perform(post("/api/feeds/{feedId}/comments", feedId)
               .contentType(MediaType.APPLICATION_JSON)

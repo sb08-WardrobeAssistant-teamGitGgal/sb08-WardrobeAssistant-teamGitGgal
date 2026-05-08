@@ -149,11 +149,10 @@ public class FeedServiceImpl implements FeedService {
 
   @Override
   @Transactional
-  public CommentDto createComment(CommentCreateRequest commentCreateRequest) {
+  public CommentDto createComment(UUID feedId, CommentCreateRequest commentCreateRequest) {
     log.info("[Service] 피드 댓글 생성 요청 시작 - feedId: {}, authorId: {}",
-        commentCreateRequest.feedId(), commentCreateRequest.authorId());
+        feedId, commentCreateRequest.authorId());
 
-    UUID feedId = commentCreateRequest.feedId();
     UUID authorId = commentCreateRequest.authorId();
     String content = commentCreateRequest.content();
 
