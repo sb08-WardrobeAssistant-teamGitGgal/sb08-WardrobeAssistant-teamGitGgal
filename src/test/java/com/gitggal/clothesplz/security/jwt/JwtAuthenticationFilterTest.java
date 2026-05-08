@@ -107,6 +107,8 @@ class JwtAuthenticationFilterTest {
     assertThat(response.getStatus()).isEqualTo(401);
     assertThat(response.getContentAsString()).contains("JWT_TOKEN_INVALID");
     assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
+    assertThat(filterChain.getRequest()).isNull();
+    verify(tokenProvider, never()).getUserId(any());
   }
 
   @Test
@@ -125,6 +127,8 @@ class JwtAuthenticationFilterTest {
     assertThat(response.getStatus()).isEqualTo(401);
     assertThat(response.getContentAsString()).contains("JWT_TOKEN_INVALID");
     assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
+    assertThat(filterChain.getRequest()).isNull();
+    verify(userDetailsService, never()).loadUserById(any(UUID.class));
   }
 
   private ClothesUserDetails userDetails(UUID userId) {

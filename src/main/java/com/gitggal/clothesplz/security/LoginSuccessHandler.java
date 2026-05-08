@@ -45,7 +45,6 @@ public class LoginSuccessHandler implements AuthenticationSuccessHandler {
         UserDto userDto = userDetails.getUserDto();
 
         JwtInformation jwtInformation = new JwtInformation(userDto, accessToken, refreshToken, accessExpiry, refreshExpiry);
-        jwtRegistry.invalidateJwtInformationByUserId(userDetails.getUserDto().id());
         jwtRegistry.registerJwtInformation(jwtInformation);
         tokenProvider.addRefreshCookie(response, refreshToken);
 

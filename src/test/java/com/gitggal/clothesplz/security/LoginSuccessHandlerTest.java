@@ -96,7 +96,6 @@ class LoginSuccessHandlerTest {
         authentication
     );
 
-    verify(jwtRegistry).invalidateJwtInformationByUserId(userDetails.getUserDto().id());
     verify(jwtRegistry).registerJwtInformation(any());
     verify(tokenProvider).addRefreshCookie(any(), any());
     verify(response).setStatus(HttpServletResponse.SC_OK);
