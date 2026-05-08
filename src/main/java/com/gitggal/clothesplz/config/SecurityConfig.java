@@ -1,8 +1,8 @@
 package com.gitggal.clothesplz.config;
 
 import com.gitggal.clothesplz.security.LoginFailureHandler;
-import com.gitggal.clothesplz.security.SpaCsrfTokenRequestHandler;
 import com.gitggal.clothesplz.security.LoginSuccessHandler;
+import com.gitggal.clothesplz.security.SpaCsrfTokenRequestHandler;
 import com.gitggal.clothesplz.security.jwt.JwtAuthenticationFilter;
 import java.util.List;
 import java.util.stream.IntStream;
@@ -41,20 +41,22 @@ public class SecurityConfig {
             .csrfTokenRequestHandler(new SpaCsrfTokenRequestHandler()))
         .sessionManagement(session -> session
             .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-        .formLogin(login->login
+        .formLogin(login -> login
             .loginProcessingUrl("/api/auth/sign-in")
-            .usernameParameter("email")
+            .usernameParameter("username")
             .passwordParameter("password")
             .successHandler(loginSuccessHandler)
             .failureHandler(loginFailureHandler))
         .authorizeHttpRequests(auth -> auth
-            .requestMatchers(HttpMethod.GET,"/api/auth/csrf-token").permitAll() //csrf 토큰 조회 허용
+            .requestMatchers(HttpMethod.GET, "/api/auth/csrf-token").permitAll() //csrf 토큰 조회 허용
             .requestMatchers(HttpMethod.POST, "/api/users").permitAll() // 회원가입 허용
-            .requestMatchers(HttpMethod.POST,"/api/auth/sign-in").permitAll() // 로그인 허용
+            .requestMatchers(HttpMethod.POST, "/api/auth/sign-in").permitAll() // 로그인 허용
+            .requestMatchers(HttpMethod.POST, "/api/auth/refresh").permitAll()
             .requestMatchers("/api/**").authenticated() // api 인증 필요
             .anyRequest().permitAll()
         )
-        .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);;
+        .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+    ;
     return http.build();
 
   }
