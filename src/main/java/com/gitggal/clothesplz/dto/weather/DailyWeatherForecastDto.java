@@ -1,6 +1,7 @@
 package com.gitggal.clothesplz.dto.weather;
 
 import com.gitggal.clothesplz.entity.weather.SkyStatus;
+import com.gitggal.clothesplz.entity.weather.PrecipitationType;
 import lombok.*;
 import java.time.LocalDate;
 
@@ -19,5 +20,19 @@ public class DailyWeatherForecastDto {
     private Double minTemp;        // 최저: 14°
 
     private Double maxTemp;        // 최고: 24°
+
+    private Double humidityCurrent;
+
+    private Double humidityComparedToDayBefore;
+
+    private PrecipitationType precipitationType;
+
+    private Double precipitationAmount;
+
+    private Double precipitationProbability;
+
+    private Double windSpeed;
+
+    private Double temperatureComparedToDayBefore;
 
 }

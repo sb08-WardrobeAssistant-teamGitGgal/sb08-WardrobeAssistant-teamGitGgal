@@ -3,6 +3,7 @@ package com.gitggal.clothesplz.service.weather;
 import com.gitggal.clothesplz.dto.weather.WeatherApiResponseDto;
 import com.gitggal.clothesplz.dto.weather.WeatherApiResponseDto.WeatherItem;
 import com.gitggal.clothesplz.dto.weather.DailyWeatherForecastDto;
+import com.gitggal.clothesplz.entity.weather.PrecipitationType;
 import com.gitggal.clothesplz.entity.weather.SkyStatus;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -21,6 +22,7 @@ public class WeatherParserService {
      * 기상청 응답 데이터를 분석하여 날짜별 요약 예보 리스트로 변환
      */
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd");
+    private static final String REPRESENTATIVE_TIME = "1400";
 
     public List<DailyWeatherForecastDto> parseDailyForecast(WeatherApiResponseDto response) {
         log.info("[Service] 기상청 응답 데이터 파싱 시작");
@@ -42,6 +44,9 @@ public class WeatherParserService {
 
         List<DailyWeatherForecastDto> dailyForecasts = new ArrayList<>();
 
+        Double previousAvgTemp = null;
+        Double previousHumidity = null;
+
         // 2. 날짜순으로 정렬하여 처리 (TreeSet 사용)
         for (String date : new TreeSet<>(groupedByDate.keySet())) {
             List<WeatherItem> dayItems = groupedByDate.get(date);
@@ -51,6 +56,13 @@ public class WeatherParserService {
             int sumTemp = 0;
             int tempCount = 0;
             String representativeSky = "1";
+            List<Double> humidities = new ArrayList<>();
+            List<Double> pops = new ArrayList<>();
+            List<Double> winds = new ArrayList<>();
+            double precipitationAmountSum = 0.0;
+            boolean hasPrecipitationAmount = false;
+            int precipitationPriority = -1;
+            PrecipitationType precipitationType = PrecipitationType.NONE;
 
             for (WeatherItem item : dayItems) {
                 if ("TMP".equals(item.getCategory())) {
@@ -64,8 +76,31 @@ public class WeatherParserService {
                         log.warn("[Service] TMP 값 파싱 실패: {}", item.getFcstValue());
                     }
                 }
+                if ("REH".equals(item.getCategory())) {
+                    parseDouble(item.getFcstValue()).ifPresent(humidities::add);
+                }
+                if ("POP".equals(item.getCategory())) {
+                    parseDouble(item.getFcstValue()).ifPresent(pops::add);
+                }
+                if ("WSD".equals(item.getCategory())) {
+                    parseDouble(item.getFcstValue()).ifPresent(winds::add);
+                }
+                if ("PCP".equals(item.getCategory())) {
+                    Optional<Double> pcp = parsePrecipitationAmount(item.getFcstValue());
+                    if (pcp.isPresent()) {
+                        precipitationAmountSum += pcp.get();
+                        hasPrecipitationAmount = true;
+                    }
+                }
+                if ("PTY".equals(item.getCategory())) {
+                    int nextPriority = parsePtyPriority(item.getFcstValue(), item.getFcstTime());
+                    if (nextPriority > precipitationPriority) {
+                        precipitationPriority = nextPriority;
+                        precipitationType = convertPrecipitationType(item.getFcstValue());
+                    }
+                }
                 // 오후 2시 대표 기상
-                if ("SKY".equals(item.getCategory()) && "1400".equals(item.getFcstTime())) {
+                if ("SKY".equals(item.getCategory()) && REPRESENTATIVE_TIME.equals(item.getFcstTime())) {
                     representativeSky = item.getFcstValue();
                 }
             }
@@ -83,14 +118,29 @@ public class WeatherParserService {
 
             log.debug("[Service] 날짜별 가공 중: date={}, avgTemp={}", localDate, (double) sumTemp / tempCount);
 
+            double avgTemp = tempCount > 0 ? (double) Math.round((double) sumTemp / tempCount) : 0.0;
+            double humidityCurrent = averageOrZero(humidities);
+            double tempDiff = previousAvgTemp == null ? 0.0 : avgTemp - previousAvgTemp;
+            double humidityDiff = previousHumidity == null ? 0.0 : humidityCurrent - previousHumidity;
+
             // DTO 생성 및 리스트 추가
             dailyForecasts.add(DailyWeatherForecastDto.builder()
                     .date(localDate)
-                    .avgTemp(tempCount > 0 ? (double) Math.round((double) sumTemp / tempCount) : 0.0)
+                    .avgTemp(avgTemp)
                     .maxTemp((double) maxTemp)
                     .minTemp((double) minTemp)
                     .skyStatus(convertSkyStatus(representativeSky))
+                    .humidityCurrent(humidityCurrent)
+                    .humidityComparedToDayBefore(humidityDiff)
+                    .precipitationType(precipitationType)
+                    .precipitationAmount(hasPrecipitationAmount ? precipitationAmountSum : 0.0)
+                    .precipitationProbability(maxOrZero(pops))
+                    .windSpeed(averageOrZero(winds))
+                    .temperatureComparedToDayBefore(tempDiff)
                     .build());
+
+            previousAvgTemp = avgTemp;
+            previousHumidity = humidityCurrent;
         }
 
         log.info("[Service] 기상청 응답 데이터 파싱 완료: 총 {}일치 데이터 생성", dailyForecasts.size());
@@ -109,6 +159,68 @@ public class WeatherParserService {
             case "3" -> SkyStatus.MOSTLY_CLOUDY;  // 구름많음
             case "4" -> SkyStatus.CLOUDY;         // 흐림
             default -> SkyStatus.CLEAR;           // 예외 상황 발생 시 기본값 맑음
+        };
+    }
+
+    private double averageOrZero(List<Double> values) {
+        if (values.isEmpty()) {
+            return 0.0;
+        }
+        return values.stream().mapToDouble(Double::doubleValue).average().orElse(0.0);
+    }
+
+    private double maxOrZero(List<Double> values) {
+        if (values.isEmpty()) {
+            return 0.0;
+        }
+        return values.stream().mapToDouble(Double::doubleValue).max().orElse(0.0);
+    }
+
+    private Optional<Double> parseDouble(String value) {
+        try {
+            return Optional.of(Double.parseDouble(value));
+        } catch (Exception ignored) {
+            return Optional.empty();
+        }
+    }
+
+    private Optional<Double> parsePrecipitationAmount(String value) {
+        if (value == null || value.isBlank() || value.contains("강수없음")) {
+            return Optional.of(0.0);
+        }
+        String cleaned = value.replace("mm", "").replace(" ", "");
+        if (cleaned.contains("미만")) {
+            String numeric = cleaned.replace("미만", "");
+            return parseDouble(numeric).map(v -> Math.max(0.0, v - 0.1));
+        }
+        if (cleaned.contains("이상")) {
+            String numeric = cleaned.replace("이상", "");
+            return parseDouble(numeric);
+        }
+        return parseDouble(cleaned);
+    }
+
+    private int parsePtyPriority(String pty, String fcstTime) {
+        if (pty == null || "0".equals(pty)) {
+            return -1;
+        }
+        int timePriority = REPRESENTATIVE_TIME.equals(fcstTime) ? 100 : 0;
+        return timePriority + switch (pty) {
+            case "4" -> 4;
+            case "3" -> 3;
+            case "2" -> 2;
+            case "1" -> 1;
+            default -> 0;
+        };
+    }
+
+    private PrecipitationType convertPrecipitationType(String pty) {
+        return switch (pty) {
+            case "1" -> PrecipitationType.RAIN;
+            case "2" -> PrecipitationType.RAIN_SNOW;
+            case "3" -> PrecipitationType.SNOW;
+            case "4" -> PrecipitationType.SHOWER;
+            default -> PrecipitationType.NONE;
         };
     }
 }
