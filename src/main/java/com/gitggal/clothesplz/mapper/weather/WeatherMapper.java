@@ -13,6 +13,7 @@ import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.UUID;
 
@@ -20,6 +21,7 @@ import java.util.UUID;
 public class WeatherMapper {
     private static final double WIND_MODERATE_THRESHOLD = 4.0; // m/s, 기상청 기준
     private static final double WIND_STRONG_THRESHOLD = 9.0;   // m/s, 기상청 기준
+    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
     // 일별 내부 DTO 목록을 API 계약용 WeatherDto 목록으로 변환한다.
     public List<WeatherDto> toWeatherDtoList(
@@ -43,7 +45,7 @@ public class WeatherMapper {
         UUID weatherId = stableWeatherId(dto, gridX, gridY);
         return WeatherDto.builder()
                 .id(weatherId)
-                .forecastedAt(LocalDateTime.now())
+                .forecastedAt(LocalDateTime.now(KST))
                 .forecastAt(dto.getDate().atStartOfDay())
                 .skyStatus(dto.getSkyStatus())
                 .temperature(
