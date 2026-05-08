@@ -36,5 +36,5 @@ clothesplz:
   jwt:
     access-token-secret: abcdefghijklmnopqrstuvwxyz123456
     access-token-exp: 900000
-    refresh-token-secret: abcdefghijklmnopqrstuvwxyz123456
+    refresh-token-secret: dfghdfghfghijklmnopqrstuvwxyz123456
     refresh-token-exp: 3600000
