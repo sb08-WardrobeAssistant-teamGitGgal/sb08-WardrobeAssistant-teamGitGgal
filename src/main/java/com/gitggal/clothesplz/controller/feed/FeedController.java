@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @Slf4j
@@ -61,6 +62,32 @@ public class FeedController {
     feedService.deleteFeed(feedId);
 
     log.info("[Controller] 피드 삭제 요청 완료");
+    return ResponseEntity
+        .status(HttpStatus.NO_CONTENT)
+        .build();
+  }
+
+  // TODO: security 구현 시 @AuthenticationPrincipal로 교체
+  @PostMapping("/{feedId}/like")
+  public ResponseEntity<Void> like(
+      @PathVariable UUID feedId,
+      @RequestParam UUID userId
+  ) {
+    feedService.increaseLikeCount(feedId, userId);
+
+    return ResponseEntity
+        .status(HttpStatus.NO_CONTENT)
+        .build();
+  }
+
+  // TODO: security 구현 시 @AuthenticationPrincipal로 교체
+  @DeleteMapping("/{feedId}/like")
+  public ResponseEntity<Void> cancelLike(
+      @PathVariable UUID feedId,
+      @RequestParam UUID userId
+  ) {
+    feedService.decreaseLikeCount(feedId, userId);
+
     return ResponseEntity
         .status(HttpStatus.NO_CONTENT)
         .build();

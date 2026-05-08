@@ -15,4 +15,10 @@ public interface FeedService {
 
   // 피드 삭제
   void deleteFeed(UUID feedId);
+
+  // 피드 좋아요
+  void increaseLikeCount(UUID feedId, UUID userId);
+
+  // 피드 좋아요 취소
+  void decreaseLikeCount(UUID feedId, UUID userId);
 }
