@@ -23,6 +23,8 @@ public class WeatherParserService {
      */
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd");
     private static final String REPRESENTATIVE_TIME = "1400";
+    /** "1mm 미만" 같은 표현을 수치화할 때 쓰는 근사 오프셋 */
+    private static final double UNDER_THRESHOLD_OFFSET = 0.1;
 
     public List<DailyWeatherForecastDto> parseDailyForecast(WeatherApiResponseDto response) {
         log.info("[Service] 기상청 응답 데이터 파싱 시작");
@@ -65,43 +67,42 @@ public class WeatherParserService {
             PrecipitationType precipitationType = PrecipitationType.NONE;
 
             for (WeatherItem item : dayItems) {
-                if ("TMP".equals(item.getCategory())) {
-                    try{
-                        int val = Integer.parseInt(item.getFcstValue());
-                        maxTemp = (maxTemp == null) ? val : Math.max(maxTemp, val);
-                        minTemp = (minTemp == null) ? val : Math.min(minTemp, val);
-                        sumTemp += val;
-                        tempCount++;
-                    } catch (NumberFormatException e) {
-                        log.warn("[Service] TMP 값 파싱 실패: {}", item.getFcstValue());
+                switch (item.getCategory()) {
+                    case "TMP" -> {
+                        try{
+                            int val = Integer.parseInt(item.getFcstValue());
+                            maxTemp = (maxTemp == null) ? val : Math.max(maxTemp, val);
+                            minTemp = (minTemp == null) ? val : Math.min(minTemp, val);
+                            sumTemp += val;
+                            tempCount++;
+                        } catch (NumberFormatException e) {
+                            log.warn("[Service] TMP 값 파싱 실패: {}", item.getFcstValue());
+                        }
                     }
-                }
-                if ("REH".equals(item.getCategory())) {
-                    parseDouble(item.getFcstValue()).ifPresent(humidities::add);
-                }
-                if ("POP".equals(item.getCategory())) {
-                    parseDouble(item.getFcstValue()).ifPresent(pops::add);
-                }
-                if ("WSD".equals(item.getCategory())) {
-                    parseDouble(item.getFcstValue()).ifPresent(winds::add);
-                }
-                if ("PCP".equals(item.getCategory())) {
-                    Optional<Double> pcp = parsePrecipitationAmount(item.getFcstValue());
-                    if (pcp.isPresent()) {
-                        precipitationAmountSum += pcp.get();
-                        hasPrecipitationAmount = true;
+                    case "REH" -> parseDouble(item.getFcstValue()).ifPresent(humidities::add);
+                    case "POP" -> parseDouble(item.getFcstValue()).ifPresent(pops::add);
+                    case "WSD" -> parseDouble(item.getFcstValue()).ifPresent(winds::add);
+                    case "PCP" -> {
+                        Optional<Double> pcp = parsePrecipitationAmount(item.getFcstValue());
+                        if (pcp.isPresent()) {
+                            precipitationAmountSum += pcp.get();
+                            hasPrecipitationAmount = true;
+                        }
                     }
-                }
-                if ("PTY".equals(item.getCategory())) {
-                    int nextPriority = parsePtyPriority(item.getFcstValue(), item.getFcstTime());
-                    if (nextPriority > precipitationPriority) {
-                        precipitationPriority = nextPriority;
-                        precipitationType = convertPrecipitationType(item.getFcstValue());
+                    case "PTY" -> {
+                        int nextPriority = parsePtyPriority(item.getFcstValue(), item.getFcstTime());
+                        if (nextPriority > precipitationPriority) {
+                            precipitationPriority = nextPriority;
+                            precipitationType = convertPrecipitationType(item.getFcstValue());
+                        }
                     }
-                }
-                // 오후 2시 대표 기상
-                if ("SKY".equals(item.getCategory()) && REPRESENTATIVE_TIME.equals(item.getFcstTime())) {
-                    representativeSky = item.getFcstValue();
+                    case "SKY" -> {
+                        if (REPRESENTATIVE_TIME.equals(item.getFcstTime())) {
+                            representativeSky = item.getFcstValue();
+                        }
+                    }
+                    default -> {
+                    }
                 }
             }
             // 데이터가 없는 날은 리스트에 추가하지 않음 (NaN 방지)
@@ -186,12 +187,12 @@ public class WeatherParserService {
 
     private Optional<Double> parsePrecipitationAmount(String value) {
         if (value == null || value.isBlank() || value.contains("강수없음")) {
-            return Optional.of(0.0);
+            return Optional.empty();
         }
         String cleaned = value.replace("mm", "").replace(" ", "");
         if (cleaned.contains("미만")) {
             String numeric = cleaned.replace("미만", "");
-            return parseDouble(numeric).map(v -> Math.max(0.0, v - 0.1));
+            return parseDouble(numeric).map(v -> Math.max(0.0, v - UNDER_THRESHOLD_OFFSET));
         }
         if (cleaned.contains("이상")) {
             String numeric = cleaned.replace("이상", "");
