@@ -43,51 +43,38 @@ public class WeatherMapper {
             int gridX,
             int gridY) {
         UUID weatherId = stableWeatherId(dto, gridX, gridY);
-        return WeatherDto.builder()
-                .id(weatherId)
-                .forecastedAt(LocalDateTime.now(KST))
-                .forecastAt(dto.getDate().atStartOfDay())
-                .skyStatus(dto.getSkyStatus())
-                .temperature(
-                        TemperatureDto.builder()
-                                .current(dto.getAvgTemp())
-                                .min(dto.getMinTemp())
-                                .max(dto.getMaxTemp())
-                                .comparedToDayBefore(dto.getTemperatureComparedToDayBefore())
-                                .build())
-                .location(
-                        WeatherAPILocationDto.builder()
-                                .latitude(latitude)
-                                .longitude(longitude)
-                                .x(gridX)
-                                .y(gridY)
-                                .locationNames(List.of()) // 행정구역명은 카카오 등 연동 시 채움
-                                .build())
-                .precipitation(
-                        PrecipitationDto.builder()
-                                .type(dto.getPrecipitationType() == null ? PrecipitationType.NONE : dto.getPrecipitationType())
-                                .amount(dto.getPrecipitationAmount())
-                                .probability(dto.getPrecipitationProbability())
-                                .build())
-                .humidity(HumidityDto.builder()
-                        .current(dto.getHumidityCurrent())
-                        .comparedToDayBefore(dto.getHumidityComparedToDayBefore())
-                        .build())
-                .windSpeed(WindSpeedDto.builder()
-                        .speed(dto.getWindSpeed())
-                        .asWord(toWindPhrase(dto.getWindSpeed()))
-                        .build())
-                .build();
+        WeatherAPILocationDto location =
+                new WeatherAPILocationDto(latitude, longitude, gridX, gridY, List.of());
+
+        PrecipitationDto precipitation = new PrecipitationDto(
+                dto.precipitationType() == null ? PrecipitationType.NONE : dto.precipitationType(),
+                dto.precipitationAmount(),
+                dto.precipitationProbability());
+
+        HumidityDto humidity = new HumidityDto(dto.humidityCurrent(), dto.humidityComparedToDayBefore());
+
+        TemperatureDto temperature = new TemperatureDto(
+                dto.avgTemp(),
+                dto.temperatureComparedToDayBefore(),
+                dto.minTemp(),
+                dto.maxTemp());
+
+        WindSpeedDto windSpeed = new WindSpeedDto(dto.windSpeed(), toWindPhrase(dto.windSpeed()));
+
+        return new WeatherDto(
+                weatherId,
+                LocalDateTime.now(KST),
+                dto.date().atStartOfDay(),
+                location,
+                dto.skyStatus(),
+                precipitation,
+                humidity,
+                temperature,
+                windSpeed);
     }
 
     public WeatherAPILocationDto toLocationDto(double latitude, double longitude, int gridX, int gridY) {
-        return WeatherAPILocationDto.builder()
-                .latitude(latitude)
-                .longitude(longitude)
-                .x(gridX)
-                .y(gridY)
-                .locationNames(List.of())
-                .build();
+        return new WeatherAPILocationDto(latitude, longitude, gridX, gridY, List.of());
     }
 
     private WindPhrase toWindPhrase(Double speed) {
@@ -101,7 +88,7 @@ public class WeatherMapper {
     }
 
     private UUID stableWeatherId(DailyWeatherForecastDto dto, int gridX, int gridY) {
-        String identitySource = "%d:%d:%s".formatted(gridX, gridY, dto.getDate());
+        String identitySource = "%d:%d:%s".formatted(gridX, gridY, dto.date());
         return UUID.nameUUIDFromBytes(identitySource.getBytes(StandardCharsets.UTF_8));
     }
 }
