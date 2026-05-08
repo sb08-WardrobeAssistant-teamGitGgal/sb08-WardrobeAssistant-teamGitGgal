@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.util.List;
 
@@ -42,7 +43,8 @@ public class WeatherController {
             @RequestParam(name = "latitude") double latitude,
             @RequestParam(name = "longitude") double longitude) {
         log.info("[Controller] 날씨 위치 조회 요청 - lat: {}, lon: {}", latitude, longitude);
-        return Mono.fromSupplier(() -> weatherService.getWeatherLocation(latitude, longitude))
+        return Mono.fromCallable(() -> weatherService.getWeatherLocation(latitude, longitude))
+                .subscribeOn(Schedulers.boundedElastic())
                 .doOnSuccess(res -> log.info("[Controller] 날씨 위치 조회 성공 - x: {}, y: {}", res.getX(), res.getY()))
                 .doOnError(e -> log.error("[Controller] 날씨 위치 조회 실패: {}", e.getMessage()))
                 .onErrorMap(e -> new BusinessException(WeatherErrorCode.WEATHER_API_ERROR));
