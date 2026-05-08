@@ -2,13 +2,15 @@ package com.gitggal.clothesplz.service.image.impl;
 
 import com.gitggal.clothesplz.exception.BusinessException;
 import com.gitggal.clothesplz.exception.code.ImageErrorCode;
+import com.gitggal.clothesplz.service.image.ImageSanitizer;
 import com.gitggal.clothesplz.service.image.ImageUploader;
+import com.gitggal.clothesplz.service.image.ValidatedImage;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Set;
 import java.util.UUID;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
@@ -18,25 +20,23 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 @Profile("dev")
 @Service
 @Slf4j
+@RequiredArgsConstructor
 public class LocalImageUploader implements ImageUploader {
 
   private static final Path IMAGE_PATH = Path.of(".files/");
-  private static final Set<String> ALLOWED_EXTENSIONS = Set.of(".jpg", ".jpeg", ".png", ".webp");
+  private final ImageSanitizer imageFileValidator;
 
   @Override
   public String upload(MultipartFile image) {
     log.info("[Service] 이미지 업로드 요청 시작: 요청 파일 명 = {}", image.getOriginalFilename());
-    validateImageFile(image);
+    ValidatedImage validatedImage = imageFileValidator.sanitize(image);
 
     try {
       Files.createDirectories(IMAGE_PATH);
-      byte[] imageBytes = image.getBytes();
-
-      String extension = extractExtension(image.getOriginalFilename());
-      String savedFileName = UUID.randomUUID() + extension;
+      String savedFileName = UUID.randomUUID() + validatedImage.extension();
       Path savedPath = IMAGE_PATH.resolve(savedFileName);
 
-      Files.write(savedPath, imageBytes);
+      Files.write(savedPath, validatedImage.bytes());
 
       log.info("[Service] 이미지 업로드 요청 완료: 저장 파일 명 = {}", savedFileName);
       return ServletUriComponentsBuilder
@@ -65,33 +65,5 @@ public class LocalImageUploader implements ImageUploader {
     } catch (Exception e) {
       log.warn("[Service] 이미지 삭제 요청 실패: imageUrl={}, reason={}", imageUrl, e.getMessage());
     }
-  }
-
-  private void validateImageFile(MultipartFile image) {
-    if (image == null || image.isEmpty()) {
-      log.warn("[Service] 이미지 업로드 요청 실패: 이미지 파일이 없음");
-      throw new BusinessException(ImageErrorCode.IMAGE_EMPTY);
-    }
-
-    String contentType = image.getContentType();
-    if (contentType == null || !contentType.startsWith("image/")) {
-      log.warn("[Service] 이미지 업로드 요청 실패: 이미지 파일 타입이 아님");
-      throw new BusinessException(ImageErrorCode.INVALID_IMAGE_CONTENT_TYPE);
-    }
-
-    String originalFilename = image.getOriginalFilename();
-    if (originalFilename == null || !originalFilename.contains(".")) {
-      log.warn("[Service] 이미지 업로드 요청 실패: 이미지 파일 확장자가 없음");
-      throw new BusinessException(ImageErrorCode.IMAGE_EXTENSION_NOT_FOUND);
-    }
-
-    if (!ALLOWED_EXTENSIONS.contains(extractExtension(originalFilename))) {
-      log.warn("[Service] 이미지 업로드 요청 실패: 지원하지 않는 이미지 파일 형식");
-      throw new BusinessException(ImageErrorCode.UNSUPPORTED_IMAGE_FORMAT);
-    }
-  }
-
-  private String extractExtension(String filename) {
-    return filename.substring(filename.lastIndexOf('.')).toLowerCase();
   }
 }
