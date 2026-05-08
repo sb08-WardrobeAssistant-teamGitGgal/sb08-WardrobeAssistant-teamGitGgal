@@ -2,6 +2,11 @@ package com.gitggal.clothesplz.util.weather;
 
 /**
  * 위도·경도(WGS84)를 기상청 단기예보 격자 좌표(nx, ny)로 변환합니다.
+ *
+ * @param latitudeDegrees WGS84 위도 (33.0 ~ 38.5)
+ * @param longitudeDegrees WGS84 경도 (124.5 ~ 131.9)
+ * @return 기상청 격자 좌표 (nx, ny)
+ * @throws IllegalArgumentException 한반도 범위를 벗어난 좌표 입력 시
  */
 public final class KmaGridCoordinateConverter {
 
