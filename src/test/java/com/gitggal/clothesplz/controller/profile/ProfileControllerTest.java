@@ -168,7 +168,7 @@ class ProfileControllerTest {
     }
 
     @Test
-    @DisplayName("실패 - 토큰 없이 접근 시 401 반환")
+    @DisplayName("실패 - 토큰 없이 접근 시 302 리다이렉트")
     void getProfile_withoutToken_returns401() throws Exception {
       mockMvc.perform(get("/api/users/{userId}/profiles", userId))
           .andExpect(status().isFound())
@@ -244,7 +244,7 @@ class ProfileControllerTest {
     }
 
     @Test
-    @DisplayName("실패 - 토큰 없이 접근 시 401 반환")
+    @DisplayName("실패 - 토큰 없이 접근 시 302 리다이렉트")
     void updateProfile_withoutToken_returns401() throws Exception {
       ProfileUpdateRequest request = new ProfileUpdateRequest(null, null, null, null, null);
 
