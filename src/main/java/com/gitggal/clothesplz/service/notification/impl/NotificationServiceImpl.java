@@ -38,7 +38,7 @@ public class NotificationServiceImpl implements NotificationService {
 
   /**
    * 알림 전송
-   * <p>
+   *
    * 동작
    * - receiverId로 저장소에서 SseEmitter 조회
    * - emitter가 있으면 (현재 SSE 연결 중) -> send

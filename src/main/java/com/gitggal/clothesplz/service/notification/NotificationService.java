@@ -1,6 +1,5 @@
 package com.gitggal.clothesplz.service.notification;
 
-import com.gitggal.clothesplz.dto.notification.NotificationDto;
 import com.gitggal.clothesplz.dto.notification.NotificationDtoCursorResponse;
 import com.gitggal.clothesplz.dto.notification.NotificationRequest;
 import java.util.UUID;
