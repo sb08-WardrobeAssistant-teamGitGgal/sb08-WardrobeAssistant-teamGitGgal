@@ -55,7 +55,7 @@ public class LoginSuccessHandler implements AuthenticationSuccessHandler {
 
       } catch (JOSEException e) {
         ErrorResponse errorResponse = ErrorResponse.of(UserErrorCode.JWT_TOKEN_GENERATION_FAILED);
-        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         response.getWriter().write(objectMapper.writeValueAsString(errorResponse));
       }
     } else {
