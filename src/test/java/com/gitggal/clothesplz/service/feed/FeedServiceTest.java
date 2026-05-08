@@ -227,7 +227,7 @@ public class FeedServiceTest extends ServiceTestSupport {
     }
 
     @Test
-    @DisplayName("좋아요 정보를 찾을 수 없는 경우 예외 발생")
+    @DisplayName("이미 좋아요 한 경우 예외 발생")
     void increaseLikeCount_FeedLikeNotFound_ThrowsException() {
       // given
       given(feedRepository.findWithLockById(eq(feedId))).willReturn(Optional.of(mockFeed));
