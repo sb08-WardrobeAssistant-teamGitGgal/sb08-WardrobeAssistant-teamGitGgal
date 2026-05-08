@@ -1,6 +1,7 @@
 package com.gitggal.clothesplz.controller.follow;
 
 import com.gitggal.clothesplz.dto.follow.FollowListResponse;
+import com.gitggal.clothesplz.dto.follow.FollowSummaryDto;
 import com.gitggal.clothesplz.service.follow.FollowService;
 import jakarta.validation.constraints.Positive;
 import java.util.UUID;
@@ -57,6 +58,20 @@ public class FollowController {
         followService.getFollowers(followeeId, nameLike, cursor, idAfter, limit);
 
     log.info("[Controller] 팔로워 목록 조회 요청 완료: followeeId={}", followeeId);
+
+    return ResponseEntity.ok(response);
+  }
+
+  @GetMapping("/summary")
+  public ResponseEntity<FollowSummaryDto> getFollowSummary(
+      @RequestParam UUID userId,
+      @RequestParam UUID requesterId) {   // 현재 로그인 사용자
+
+    log.info("[Controller] 팔로우 요약 조회 요청 시작: userId={}", userId);
+
+    FollowSummaryDto response = followService.getFollowSummary(userId, requesterId);
+
+    log.info("[Controller] 팔로우 요약 조회 요청 완료: userId={}", userId);
 
     return ResponseEntity.ok(response);
   }

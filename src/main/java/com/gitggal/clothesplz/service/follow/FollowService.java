@@ -1,6 +1,7 @@
 package com.gitggal.clothesplz.service.follow;
 
 import com.gitggal.clothesplz.dto.follow.FollowListResponse;
+import com.gitggal.clothesplz.dto.follow.FollowSummaryDto;
 import java.util.UUID;
 
 /**
@@ -29,4 +30,9 @@ public interface FollowService {
       UUID idAfter,
       int limit
   );
+
+  /**
+   * 팔로우 요약 조회
+   */
+  FollowSummaryDto getFollowSummary(UUID userId, UUID requesterId);
 }

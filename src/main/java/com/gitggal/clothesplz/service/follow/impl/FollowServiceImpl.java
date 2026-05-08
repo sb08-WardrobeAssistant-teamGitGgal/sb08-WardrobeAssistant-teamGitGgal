@@ -2,6 +2,8 @@ package com.gitggal.clothesplz.service.follow.impl;
 
 import com.gitggal.clothesplz.dto.follow.FollowDto;
 import com.gitggal.clothesplz.dto.follow.FollowListResponse;
+import com.gitggal.clothesplz.dto.follow.FollowSummaryDto;
+import com.gitggal.clothesplz.entity.base.BaseEntity;
 import com.gitggal.clothesplz.entity.follow.Follow;
 import com.gitggal.clothesplz.exception.BusinessException;
 import com.gitggal.clothesplz.exception.code.FollowErrorCode;
@@ -11,6 +13,7 @@ import com.gitggal.clothesplz.service.follow.FollowService;
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -53,7 +56,7 @@ public class FollowServiceImpl implements FollowService {
     List<Follow> followings =
         followRepository.findFollowings(followerId, nameLike, cursorInstant, idAfter, limit + 1);
 
-    return getFollowListResponse(followerId, null, limit, followings);
+    return getFollowListResponse(followerId, null, nameLike, limit, followings);
   }
 
   /**
@@ -80,7 +83,46 @@ public class FollowServiceImpl implements FollowService {
     List<Follow> followers =
         followRepository.findFollowers(followeeId, nameLike, cursorInstant, idAfter, limit + 1);
 
-    return getFollowListResponse(null, followeeId, limit, followers);
+    return getFollowListResponse(null, followeeId, nameLike, limit, followers);
+  }
+
+  /**
+   * 팔로우 요약 조회
+   */
+  @Override
+  public FollowSummaryDto getFollowSummary(UUID userId, UUID requesterId) {
+
+    log.info("[Service] 팔로우 요약 조회 요청 시작: userId={}", userId);
+
+    if (requesterId == null) return null;
+
+    // 나를 팔로우하고 있는 사람 수
+    long followerCount = followRepository.countByFollowee_Id(userId);
+
+    // 내가 팔로우한 사람 수
+    long followingCount = followRepository.countByFollower_Id(userId);
+
+    // 현재 로그인 사용자가 이 사람을 팔로우 하고 있는가
+    Optional<Follow> myFollow = followRepository.findByFollower_IdAndFollowee_Id(
+        requesterId, userId);
+
+    boolean followedByMe = myFollow.isPresent();
+
+    UUID followedByMeId = myFollow.map(BaseEntity::getId).orElse(null);
+
+    // 이 사람이 현재 로그인 사용자를 팔로우 하고 있는가
+    boolean followingMe = followRepository.existsByFollower_IdAndFollowee_Id(userId, requesterId);
+
+    log.info("[Service] 팔로우 요약 조회 요청 완료: userId={}", userId);
+
+    return new FollowSummaryDto(
+        userId,
+        followerCount,
+        followingCount,
+        followedByMe,
+        followedByMeId,
+        followingMe
+    );
   }
 
   /**
@@ -89,6 +131,7 @@ public class FollowServiceImpl implements FollowService {
   private @NonNull FollowListResponse getFollowListResponse(
       UUID followerId,
       UUID followeeId,
+      String nameLike,
       int limit,
       List<Follow> followList) {
 
@@ -112,8 +155,9 @@ public class FollowServiceImpl implements FollowService {
       nextIdAfter = last.getId();
     }
 
-    long totalCount = (followerId == null) ? followRepository.countByFollowee_Id(followeeId)
-        : followRepository.countByFollower_Id(followerId);
+    long totalCount = (followerId == null)
+        ? followRepository.countFollowers(followeeId, nameLike)
+        : followRepository.countFollowings(followerId, nameLike);
 
     List<FollowDto> dtoList = pageData.stream()
         .map(followMapper::toDto)

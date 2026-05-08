@@ -86,6 +86,48 @@ public class FollowRepositoryImpl implements FollowRepositoryCustom {
   }
 
   /**
+   * 내가 팔로우를 건 행의 수 [이름 검색도 적용]
+   */
+  @Override
+  public long countFollowings(UUID followerId, String nameLike) {
+    Long result = queryFactory
+        .select(follow.count())
+
+        .from(follow)
+
+        .join(follow.followee)
+
+        .where(
+            follow.follower.id.eq(followerId),
+            nameLikeCondition(nameLike, follow.followee.name)
+        )
+        .fetchOne();
+
+    return result != null ? result : 0L;
+  }
+
+  /**
+   * 나를 팔로우하고 있는 행의 수 [이름 검색도 적용]
+   */
+  @Override
+  public long countFollowers(UUID followeeId, String nameLike) {
+    Long result = queryFactory
+
+        .select(follow.count())
+
+        .from(follow)
+
+        .join(follow.follower)
+
+        .where(follow.followee.id.eq(followeeId),
+            nameLikeCondition(nameLike, follow.follower.name)
+        )
+        .fetchOne();
+
+    return result != null ? result : 0L;
+  }
+
+  /**
    * 이름 검색 조건
    */
   private BooleanExpression nameLikeCondition(String nameLike, StringPath namePath) {
@@ -107,7 +149,7 @@ public class FollowRepositoryImpl implements FollowRepositoryCustom {
     }
 
     return follow.createdAt.lt(cursor)
-        .or (
+        .or(
             follow.createdAt.eq(cursor)
                 .and(follow.id.lt(idAfter))
         );

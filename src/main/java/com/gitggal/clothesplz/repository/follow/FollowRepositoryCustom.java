@@ -37,4 +37,8 @@ public interface FollowRepositoryCustom {
       UUID idAfter,
       int limit
   );
+
+  long countFollowings(UUID followerId, String nameLike);
+
+  long countFollowers(UUID followeeId, String nameLike);
 }
