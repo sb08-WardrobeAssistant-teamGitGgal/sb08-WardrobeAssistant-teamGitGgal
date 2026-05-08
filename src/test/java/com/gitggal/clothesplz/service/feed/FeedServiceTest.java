@@ -12,6 +12,7 @@ import com.gitggal.clothesplz.dto.feed.FeedCreateRequest;
 import com.gitggal.clothesplz.dto.feed.FeedDto;
 import com.gitggal.clothesplz.dto.feed.FeedUpdateRequest;
 import com.gitggal.clothesplz.entity.feed.Feed;
+import com.gitggal.clothesplz.entity.feed.FeedLike;
 import com.gitggal.clothesplz.entity.user.User;
 import com.gitggal.clothesplz.entity.weather.Weather;
 import com.gitggal.clothesplz.exception.BusinessException;
@@ -41,10 +42,13 @@ public class FeedServiceTest extends ServiceTestSupport {
 
   private UUID weatherId;
   private UUID authorId;
+  private UUID userId;
   private UUID feedId;
   private Weather mockWeather;
   private User mockAuthor;
+  private User mockUser;
   private Feed mockFeed;
+  private FeedLike mockFeedLike;
   private FeedCreateRequest feedCreateRequest;
   private FeedUpdateRequest feedUpdateRequest;
 
@@ -52,10 +56,13 @@ public class FeedServiceTest extends ServiceTestSupport {
   void setUp() {
     weatherId = UUID.randomUUID();
     authorId = UUID.randomUUID();
+    userId = UUID.randomUUID();
     feedId = UUID.randomUUID();
     mockWeather = mock(Weather.class);
     mockAuthor = mock(User.class);
+    mockUser = mock(User.class);
     mockFeed = mock(Feed.class);
+    mockFeedLike = mock(FeedLike.class);
     feedCreateRequest = new FeedCreateRequest(
         authorId,
         weatherId,
@@ -149,7 +156,7 @@ public class FeedServiceTest extends ServiceTestSupport {
 
   @Nested
   @DisplayName("피드 삭제 관련 테스트")
-  class deleteFeedTests {
+  class DeleteFeedTests {
 
     @Test
     @DisplayName("피드 삭제 성공인 경우")
@@ -172,6 +179,120 @@ public class FeedServiceTest extends ServiceTestSupport {
 
       // when & then
       assertThatThrownBy(() -> feedService.deleteFeed(feedId))
+          .isInstanceOf(BusinessException.class);
+    }
+  }
+
+  @Nested
+  @DisplayName("피드 좋아요 관련 테스트")
+  class increaseLikeTests {
+
+    @Test
+    @DisplayName("피드 좋아요 성공인 경우")
+    void increaseLikeCount_success() {
+      // given
+      given(feedRepository.findWithLockById(eq(feedId))).willReturn(Optional.of(mockFeed));
+      given(userRepository.findById(eq(userId))).willReturn(Optional.of(mockUser));
+      given(feedLikeRepository.existsByFeedIdAndUserId(eq(feedId), eq(userId))).willReturn(false);
+
+      // when
+      feedService.increaseLikeCount(feedId, userId);
+
+      // then
+      then(feedLikeRepository).should().save(any(FeedLike.class));
+      then(mockFeed).should().increaseLikeCount();
+    }
+
+    @Test
+    @DisplayName("피드 정보를 찾을 수 없는 경우 예외 발생")
+    void increaseLikeCount_feedNotFound_ThrowsException() {
+      // given
+      given(feedRepository.findWithLockById(eq(feedId))).willReturn(Optional.empty());
+
+      // when & then
+      assertThatThrownBy(() -> feedService.increaseLikeCount(feedId, userId))
+          .isInstanceOf(BusinessException.class);
+    }
+
+    @Test
+    @DisplayName("사용자 정보를 찾을 수 없는 경우 예외 발생")
+    void increaseLikeCount_UserNotFound_ThrowsException() {
+      // given
+      given(feedRepository.findWithLockById(eq(feedId))).willReturn(Optional.of(mockFeed));
+      given(userRepository.findById(eq(userId))).willReturn(Optional.empty());
+
+      // when & then
+      assertThatThrownBy(() -> feedService.increaseLikeCount(feedId, userId))
+          .isInstanceOf(BusinessException.class);
+    }
+
+    @Test
+    @DisplayName("좋아요 정보를 찾을 수 없는 경우 예외 발생")
+    void increaseLikeCount_FeedLikeNotFound_ThrowsException() {
+      // given
+      given(feedRepository.findWithLockById(eq(feedId))).willReturn(Optional.of(mockFeed));
+      given(userRepository.findById(eq(userId))).willReturn(Optional.of(mockUser));
+      given(feedLikeRepository.existsByFeedIdAndUserId(eq(feedId), eq(userId))).willReturn(true);
+
+      // when & then
+      assertThatThrownBy(() -> feedService.increaseLikeCount(feedId, userId))
+          .isInstanceOf(BusinessException.class);
+    }
+  }
+
+  @Nested
+  @DisplayName("피드 좋아요 취소 관련 테스트")
+  class decreaseLikeTests {
+
+    @Test
+    @DisplayName("피드 좋아요 취소 성공인 경우")
+    void decreaseLikeCount_success() {
+      // given
+      given(feedRepository.findWithLockById(eq(feedId))).willReturn(Optional.of(mockFeed));
+      given(userRepository.findById(eq(userId))).willReturn(Optional.of(mockUser));
+      given(feedLikeRepository.findByFeedIdAndUserId(eq(feedId), eq(userId))).willReturn(Optional.of(mockFeedLike));
+
+      // when
+      feedService.decreaseLikeCount(feedId, userId);
+
+      // then
+      then(feedLikeRepository).should().delete(any(FeedLike.class));
+      then(mockFeed).should().decreaseLikeCount();
+    }
+
+    @Test
+    @DisplayName("피드 정보를 찾을 수 없는 경우 예외 발생")
+    void decreaseLikeCount_feedNotFound_ThrowsException() {
+      // given
+      given(feedRepository.findWithLockById(eq(feedId))).willReturn(Optional.empty());
+
+      // when & then
+      assertThatThrownBy(() -> feedService.decreaseLikeCount(feedId, userId))
+          .isInstanceOf(BusinessException.class);
+    }
+
+    @Test
+    @DisplayName("사용자 정보를 찾을 수 없는 경우 예외 발생")
+    void decreaseLikeCount_UserNotFound_ThrowsException() {
+      // given
+      given(feedRepository.findWithLockById(eq(feedId))).willReturn(Optional.of(mockFeed));
+      given(userRepository.findById(eq(userId))).willReturn(Optional.empty());
+
+      // when & then
+      assertThatThrownBy(() -> feedService.decreaseLikeCount(feedId, userId))
+          .isInstanceOf(BusinessException.class);
+    }
+
+    @Test
+    @DisplayName("좋아요 정보를 찾을 수 없는 경우 예외 발생")
+    void decreaseLikeCount_FeedLikeNotFound_ThrowsException() {
+      // given
+      given(feedRepository.findWithLockById(eq(feedId))).willReturn(Optional.of(mockFeed));
+      given(userRepository.findById(eq(userId))).willReturn(Optional.of(mockUser));
+      given(feedLikeRepository.findByFeedIdAndUserId(eq(feedId), eq(userId))).willReturn(Optional.empty());
+
+      // when & then
+      assertThatThrownBy(() -> feedService.decreaseLikeCount(feedId, userId))
           .isInstanceOf(BusinessException.class);
     }
   }

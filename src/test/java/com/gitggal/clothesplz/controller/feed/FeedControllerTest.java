@@ -51,6 +51,7 @@ public class FeedControllerTest {
 
   private UUID weatherId;
   private UUID authorId;
+  private UUID userId;
   private UUID feedId;
   private FeedDto feedDto;
 
@@ -58,6 +59,7 @@ public class FeedControllerTest {
   void setUp() {
     authorId = UUID.randomUUID();
     weatherId = UUID.randomUUID();
+    userId = UUID.randomUUID();
     feedId = UUID.randomUUID();
     feedDto = new FeedDto(
         UUID.randomUUID(), Instant.now(), Instant.now(),
@@ -177,6 +179,49 @@ public class FeedControllerTest {
 
       mockMvc.perform(delete("/api/feeds/{feedId}", feedId))
           .andExpect(status().isNoContent());
+    }
+  }
+
+  @Nested
+  @DisplayName("피드 좋아요 관련 테스트")
+  class increaseLikeTests {
+    @Test
+    @DisplayName("성공 - 204 반환")
+    void increaseLikeCount_success() throws Exception {
+      willDoNothing().given(feedService).increaseLikeCount(eq(feedId), eq(userId));
+
+      mockMvc.perform(post("/api/feeds/{feedId}/like", feedId)
+              .param("userId", userId.toString()))
+          .andExpect(status().isNoContent());
+    }
+
+    @Test
+    @DisplayName("실패 - userId 없으면 400 반환")
+    void increaseLikeCount_missingUserId_returns400() throws Exception {
+      mockMvc.perform(post("/api/feeds/{feedId}/like", feedId))
+          .andExpect(status().isBadRequest());
+    }
+  }
+
+  @Nested
+  @DisplayName("피드 좋아요 취소 관련 테스트")
+  class decreaseLikeCountTests {
+
+    @Test
+    @DisplayName("성공 - 204 반환")
+    void decreaseLikeCount_success() throws Exception {
+      willDoNothing().given(feedService).decreaseLikeCount(eq(feedId), eq(userId));
+
+      mockMvc.perform(delete("/api/feeds/{feedId}/like", feedId)
+              .param("userId", userId.toString()))
+          .andExpect(status().isNoContent());
+    }
+
+    @Test
+    @DisplayName("실패 - userId 없으면 400 반환")
+    void decreaseLikeCount_missingUserId_returns400() throws Exception {
+      mockMvc.perform(delete("/api/feeds/{feedId}/like", feedId))
+          .andExpect(status().isBadRequest());
     }
   }
 }
