@@ -7,7 +7,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gitggal.clothesplz.entity.user.User;
 import com.gitggal.clothesplz.repository.user.UserRepository;
 import com.gitggal.clothesplz.service.image.ImageUploader;
@@ -42,9 +41,6 @@ class LoginIntegrationTest {
   @Autowired
   private PasswordEncoder passwordEncoder;
 
-  @Autowired
-  private ObjectMapper objectMapper;
-
   private static final String TEST_EMAIL = "test@test.com";
   private static final String TEST_PASSWORD = "password123!";
   private static final String TEST_NAME = "tester";
@@ -66,7 +62,7 @@ class LoginIntegrationTest {
     mockMvc.perform(post("/api/auth/sign-in")
             .with(csrf())
             .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-            .param("email", TEST_EMAIL)
+            .param("username", TEST_EMAIL)
             .param("password", TEST_PASSWORD))
         .andDo(print())
         .andExpect(status().isOk())
@@ -83,7 +79,7 @@ class LoginIntegrationTest {
     mockMvc.perform(post("/api/auth/sign-in")
             .with(csrf())
             .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-            .param("email", TEST_EMAIL)
+            .param("username", TEST_EMAIL)
             .param("password", "wrong"))
         .andDo(print())
         .andExpect(status().isUnauthorized())
@@ -96,7 +92,7 @@ class LoginIntegrationTest {
     mockMvc.perform(post("/api/auth/sign-in")
             .with(csrf())
             .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-            .param("email", "not@example.com")
+            .param("username", "not@example.com")
             .param("password", TEST_PASSWORD))
         .andDo(print())
         .andExpect(status().isUnauthorized())
@@ -108,7 +104,7 @@ class LoginIntegrationTest {
   void loginFailure_NoCsrfToken() throws Exception {
     mockMvc.perform(post("/api/auth/sign-in")
             .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-            .param("email", TEST_EMAIL)
+            .param("username", TEST_EMAIL)
             .param("password", TEST_PASSWORD))
         .andDo(print())
         .andExpect(status().isForbidden());
@@ -121,7 +117,7 @@ class LoginIntegrationTest {
     String firstAccessToken = mockMvc.perform(post("/api/auth/sign-in")
             .with(csrf())
             .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-            .param("email", TEST_EMAIL)
+            .param("username", TEST_EMAIL)
             .param("password", TEST_PASSWORD))
         .andExpect(status().isOk())
         .andReturn()
@@ -131,7 +127,7 @@ class LoginIntegrationTest {
     mockMvc.perform(post("/api/auth/sign-in")
             .with(csrf())
             .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-            .param("email", TEST_EMAIL)
+            .param("username", TEST_EMAIL)
             .param("password", TEST_PASSWORD))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.accessToken").exists());
@@ -144,7 +140,7 @@ class LoginIntegrationTest {
     mockMvc.perform(post("/api/auth/sign-in")
             .with(csrf())
             .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-            .param("email", TEST_EMAIL)
+            .param("username", TEST_EMAIL)
             .param("password", TEST_PASSWORD))
         .andDo(print())
         .andExpect(status().isOk())

@@ -26,7 +26,7 @@ class ClothesUserDetailsTest {
     ClothesUserDetails userDetails = new ClothesUserDetails(userDto, "encoded-password");
 
     assertThat(userDetails.getUserDto()).isEqualTo(userDto);
-    assertThat(userDetails.getUsername()).isEqualTo("홍길동");
+    assertThat(userDetails.getUsername()).isEqualTo("test@test.com");
     assertThat(userDetails.getPassword()).isEqualTo("encoded-password");
     assertThat(userDetails.getAuthorities())
         .extracting("authority")

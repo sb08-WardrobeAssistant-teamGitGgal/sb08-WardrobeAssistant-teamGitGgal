@@ -115,10 +115,10 @@ class LoginSuccessHandlerTest {
 
     loginSuccessHandler.onAuthenticationSuccess(request, response, authentication);
 
-    verify(jwtRegistry).invalidateJwtInformationByUserId(userDetails.getUserDto().id());
     verify(jwtRegistry, never()).registerJwtInformation(any());
     verify(tokenProvider, never()).addRefreshCookie(any(), any());
-    verify(response).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+    verify(jwtRegistry, never()).invalidateJwtInformationByUserId(any());
+    verify(response).setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
   }
 
   @Test

@@ -28,6 +28,6 @@ public class ClothesUserDetails implements UserDetails {
 
   @Override
   public String getUsername() {
-    return userDto.name();
+    return userDto.email();
   }
 }

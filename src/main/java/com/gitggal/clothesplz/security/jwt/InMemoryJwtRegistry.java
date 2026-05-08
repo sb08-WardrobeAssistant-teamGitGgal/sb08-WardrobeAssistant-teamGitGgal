@@ -22,13 +22,13 @@ public class InMemoryJwtRegistry implements JwtRegistry {
   public void registerJwtInformation(JwtInformation jwtInformation) {
     UUID userId = jwtInformation.userDto().id();
 
-    JwtInformation oldJwt = origin.get(userId);
-    if (oldJwt != null) {
-      removeTokenIndex(oldJwt.accessToken(), oldJwt.refreshToken());
-    }
-
-    origin.put(userId, jwtInformation);
-    addTokenIndex(userId, jwtInformation.accessToken(), jwtInformation.refreshToken());
+    origin.compute(userId, (key, oldJwt) -> {
+      if (oldJwt != null) {
+        removeTokenIndex(oldJwt.accessToken(), oldJwt.refreshToken());
+      }
+      addTokenIndex(key, jwtInformation.accessToken(), jwtInformation.refreshToken());
+      return jwtInformation;
+    });
   }
 
   // JWT 무효화
@@ -86,13 +86,16 @@ public class InMemoryJwtRegistry implements JwtRegistry {
   @Override
   public void rotateJwtInformation(String oldRefreshToken, JwtInformation newJwtInformation) {
     UUID userId = newJwtInformation.userDto().id();
-    JwtInformation oldJwt = origin.get(userId);
 
-    if (oldJwt != null && oldJwt.refreshToken().equals(oldRefreshToken)) {
-      removeTokenIndex(oldJwt.accessToken(), oldJwt.refreshToken());
-      origin.put(userId, newJwtInformation);
-      addTokenIndex(userId, newJwtInformation.accessToken(), newJwtInformation.refreshToken());
-    }
+    origin.computeIfPresent(userId, (key, oldJwt) -> {
+      if (oldJwt.refreshToken().equals(oldRefreshToken)) {
+        removeTokenIndex(oldJwt.accessToken(), oldJwt.refreshToken());
+        addTokenIndex(userId, newJwtInformation.accessToken(), newJwtInformation.refreshToken());
+        return newJwtInformation;
+      }
+      return oldJwt;
+    });
+
   }
 
   // 만료된 Jwt 정리

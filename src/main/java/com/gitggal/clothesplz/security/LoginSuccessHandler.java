@@ -37,7 +37,6 @@ public class LoginSuccessHandler implements AuthenticationSuccessHandler {
 
     if (authentication.getPrincipal() instanceof ClothesUserDetails userDetails) {
       try {
-        jwtRegistry.invalidateJwtInformationByUserId(userDetails.getUserDto().id());
         String accessToken = tokenProvider.generateAccessToken(userDetails);
         String refreshToken = tokenProvider.generateRefreshToken(userDetails);
         Instant accessExpiry = tokenProvider.getAccessTokenExpiry(accessToken);
@@ -46,6 +45,7 @@ public class LoginSuccessHandler implements AuthenticationSuccessHandler {
         UserDto userDto = userDetails.getUserDto();
 
         JwtInformation jwtInformation = new JwtInformation(userDto, accessToken, refreshToken, accessExpiry, refreshExpiry);
+        jwtRegistry.invalidateJwtInformationByUserId(userDetails.getUserDto().id());
         jwtRegistry.registerJwtInformation(jwtInformation);
         tokenProvider.addRefreshCookie(response, refreshToken);
 

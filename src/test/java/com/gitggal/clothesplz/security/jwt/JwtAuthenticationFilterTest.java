@@ -128,8 +128,8 @@ class JwtAuthenticationFilterTest {
   }
 
   private ClothesUserDetails userDetails(UUID userId) {
-    UserDto userDto =  new UserDto(
-        UUID.randomUUID(),
+    UserDto userDto = new UserDto(
+        userId,
         Instant.now(),
         "test@test.com",
         "홍길동",
