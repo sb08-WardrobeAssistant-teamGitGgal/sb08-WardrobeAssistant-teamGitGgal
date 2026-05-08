@@ -45,7 +45,7 @@ public class User extends BaseUpdatableEntity {
     this.password = password;
   }
 
-  void updateName(String newName) {
+  public void updateName(String newName) {
     this.name = newName;
   }
 }
