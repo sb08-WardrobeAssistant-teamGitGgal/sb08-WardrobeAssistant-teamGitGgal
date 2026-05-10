@@ -52,7 +52,8 @@ public class WeatherApiService {
                 .queryParam("base_time", baseTimeInfo[1])
                 .queryParam("nx", gridX)
                 .queryParam("ny", gridY)
-                .build(true)
+                .encode()
+                .build()
                 .toUri();
 
         log.info("[Service] 기상청 외부 API 호출 시작: baseDate={}, baseTime={}, nx={}, ny={}",

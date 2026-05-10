@@ -64,6 +64,6 @@ clothesplz:
 
 weather:
   api:
-    uri: ${WEATHER_API_URI}
-    key: ${WEATHER_API_SERVICE_KEY}
+    url: ${WEATHER_API_URL}
+    service-key: ${WEATHER_API_SERVICE_KEY}
 
