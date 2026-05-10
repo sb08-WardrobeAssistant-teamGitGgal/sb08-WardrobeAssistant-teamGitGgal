@@ -76,11 +76,9 @@ public class ProfileServiceImpl implements ProfileService {
     Profile profile = findProfileOrThrow(user);
     Location location = findLocationOrNull(profile);
 
-    // TODO: User 이름 변경 정책 확정 후 반영해야 합니다.
-    // e.g.
-    // if (request.name() != null) {
-    //  user.updateName(request.name());
-    // }
+     if (request.name() != null) {
+      user.updateName(request.name());
+     }
 
     String imageUrl = (image != null && !image.isEmpty()) ? imageUploader.upload(image) : null;
 
