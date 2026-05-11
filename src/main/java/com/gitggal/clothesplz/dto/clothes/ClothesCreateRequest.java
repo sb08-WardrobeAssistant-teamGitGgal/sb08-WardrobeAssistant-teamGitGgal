@@ -20,6 +20,7 @@ public record ClothesCreateRequest(
     ClothesType type,
 
     @Valid
+    @NotNull(message = "속성 목록은 필수입니다.")
     List<ClothesAttributeDto> attributes
 ) {
 
