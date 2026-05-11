@@ -12,7 +12,7 @@ import com.gitggal.clothesplz.entity.clothes.ClothesAttribute;
 import com.gitggal.clothesplz.entity.clothes.ClothesAttributeDef;
 import com.gitggal.clothesplz.entity.user.User;
 import com.gitggal.clothesplz.exception.BusinessException;
-import com.gitggal.clothesplz.exception.code.CommonErrorCode;
+import com.gitggal.clothesplz.exception.code.ClothesErrorCode;
 import com.gitggal.clothesplz.exception.code.UserErrorCode;
 import com.gitggal.clothesplz.mapper.clothes.ClothesMapper;
 import com.gitggal.clothesplz.repository.clothes.ClothesAttributeDefRepository;
@@ -21,11 +21,11 @@ import com.gitggal.clothesplz.repository.clothes.ClothesRepository;
 import com.gitggal.clothesplz.repository.user.UserRepository;
 import com.gitggal.clothesplz.service.clothes.ClothesService;
 import com.gitggal.clothesplz.service.image.ImageUploader;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -54,54 +54,56 @@ public class ClothesServiceImpl implements ClothesService {
   @Override
   @Transactional
   public ClothesDto createClothes(ClothesCreateRequest request, MultipartFile image) {
+    log.info("[Service] 의상 생성 요청 시작");
 
-    User owner = findUserOrThrow(request.ownerId());
-    String imageUrl = image != null ? imageUploader.upload(image) : null;
+    UUID ownerId = request.ownerId();
     List<ClothesAttributeDto> attributes = request.attributes();
 
+    User owner = findUserOrThrow(ownerId);
+    String imageUrl = image != null ? imageUploader.upload(image) : null;
+
     try {
-      // 1. 옷 저장
-      Clothes clothes = clothesRepository.save(
-          clothesMapper.toClothes(owner, request, imageUrl, null));
+      Clothes clothes = clothesMapper.toClothes(owner, request, imageUrl, null);
+      clothesRepository.save(clothes);
 
-      // 2. 요청의 속성 정의 ID 모음
-      List<UUID> attributeIds = attributes.stream()
-          .map(ClothesAttributeDto::definitionId)
-          .toList();
-
-      // 3. attributeIds로 ClothesAttributeDef 조회
-      List<ClothesAttributeDef> attributeDefs = clothesAttributeDefRepository.findAllById(attributeIds);
-      Map<UUID, ClothesAttributeDef> defById = attributeDefs.stream()
-          .collect(Collectors.toMap(ClothesAttributeDef::getId, Function.identity()));
-
-      if (defById.size() != attributeIds.size()) {
-        throw new BusinessException(CommonErrorCode.INVALID_INPUT);
+      List<UUID> attributeIds = attributes.stream().map(ClothesAttributeDto::definitionId).toList();
+      if (attributeIds.size() != attributeIds.stream().distinct().count()) {
+        log.error("[Service] 의상 생성 요청 실패 - 중복된 속성 정의 ID가 포함되었습니다.");
+        throw new BusinessException(ClothesErrorCode.DUPLICATE_CLOTHES_ATTRIBUTE_DEFINITION_ID);
       }
 
-      // 4. 조회된 ClothesAttributeDef, clothes, value로 ClothesAttribute 생성 및 저장
-      List<ClothesAttribute> clothesAttributes = attributes.stream()
-          .map(attribute -> {
-            ClothesAttributeDef def = defById.get(attribute.definitionId());
-            if (def == null) {
-              throw new BusinessException(CommonErrorCode.INVALID_INPUT);
-            }
-            return clothesMapper.toClothesAttribute(clothes, def, attribute.value());
-          })
-          .toList();
-      clothesAttributeRepository.saveAll(clothesAttributes);
+      List<ClothesAttributeDef> clothesAttributes = clothesAttributeDefRepository.findAllById(attributeIds);
+      if (clothesAttributes.size() != attributeIds.size()) {
+        log.error("[Service] 의상 생성 요청 실패 - 존재하지 않는 속성 정의 ID가 포함되었습니다.");
+        throw new BusinessException(ClothesErrorCode.CLOTHES_ATTRIBUTE_DEFINITION_NOT_FOUND);
+      }
 
-      // 5. ClothesAttributeDef + value → ClothesAttributeWithDefDto 목록 변환
-      List<ClothesAttributeWithDefDto> attributeWithDefDtos = clothesAttributes.stream()
-          .map(attribute -> new ClothesAttributeWithDefDto(
-              attribute.getDefinition().getId(),
-              attribute.getDefinition().getName(),
-              attribute.getDefinition().getSelectableValues(),
-              attribute.getValue()))
-          .toList();
+      // definitionId 기준으로 요청 속성을 빠르게 조회하기 위해 List를 Map으로 변환 -> O(1)
+      Map<UUID, ClothesAttributeDto> requestAttributeByDefinitionId = new HashMap<>();
+      for (ClothesAttributeDto attribute : attributes) {
+        requestAttributeByDefinitionId.put(attribute.definitionId(), attribute);
+      }
 
-      // 6. ClothesDto 변환 후 반환
-      return clothesMapper.toClothesDto(clothes, owner, attributeWithDefDtos);
+      List<ClothesAttribute> clothesAttributeList = new ArrayList<>();
+      List<ClothesAttributeWithDefDto> attributeDef = new ArrayList<>();
+
+      for (ClothesAttributeDef def : clothesAttributes) {
+        String value = requestAttributeByDefinitionId.get(def.getId()).value();
+        if (!def.getSelectableValues().contains(value)) {
+          log.error("[Service] 의상 생성 요청 실패 - 허용되지 않는 속성 값입니다. definitionId={}, value={}", def.getId(), value);
+          throw new BusinessException(ClothesErrorCode.INVALID_CLOTHES_ATTRIBUTE_VALUE);
+        }
+
+        clothesAttributeList.add(clothesMapper.toClothesAttribute(clothes, def, value));
+        attributeDef.add(clothesMapper.toClothesAttributeWithDefDto(def, value));
+      }
+      clothesAttributeRepository.saveAll(clothesAttributeList);
+
+      log.info("[Service] 의상 생성 요청 완료");
+      return clothesMapper.toClothesDto(clothes, owner, attributeDef);
     } catch (RuntimeException e) {
+
+      log.error("[Service] 의상 생성 요청 실패");
       if (imageUrl != null) {
         imageUploader.delete(imageUrl);
       }
