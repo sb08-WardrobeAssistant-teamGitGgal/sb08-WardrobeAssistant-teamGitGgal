@@ -1,40 +1,25 @@
 package com.gitggal.clothesplz.dto.weather;
 
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.util.List;
 
-@Getter
-@NoArgsConstructor
-public class WeatherApiResponseDto {
-    private Response response;
+/**
+ * 외부 날씨 API 응답을 매핑하기 위한 DTO
+ * 필드 계층 구조: response > body > items > item(List)
+ */
+@JsonIgnoreProperties(ignoreUnknown = true)
+public record WeatherApiResponseDto(Response response) {
 
-    @Getter
-    @NoArgsConstructor
-    public static class Response {
-        private Body body;
-    }
+    public record Response(Body body) {}
 
-    @Getter
-    @NoArgsConstructor
-    public static class Body {
-        private Items items;
-    }
+    public record Body(Items items) {}
 
-    @Getter
-    @NoArgsConstructor
-    public static class Items {
-        private List<WeatherItem> item;
-    }
+    public record Items(List<WeatherItem> item) {}
 
-    @Getter
-    @NoArgsConstructor
-    public static class WeatherItem {
-        private String category;  // TMP(기온), REH(습도), SKY(하늘상태) 등
-        private String fcstDate;  // 예보 일자
-        private String fcstTime;  // 예보 시각
-        private String fcstValue; // 예보 값
-    }
-
+    public record WeatherItem(
+            String category, // 자료구분 코드
+            String fcstDate, // 예측 일자
+            String fcstTime, // 예측 시간
+            String fcstValue // 예보 값
+    ) {}
 }

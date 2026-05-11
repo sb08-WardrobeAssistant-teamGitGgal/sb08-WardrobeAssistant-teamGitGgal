@@ -53,7 +53,7 @@ public final class KmaGridCoordinateConverter {
         double tanSlat1Half = Math.tan(Math.PI * 0.25 + slat1 * 0.5);
         double sf = Math.pow(tanSlat1Half, sn) * Math.cos(slat1) / sn;
 
-        double ro = RE * sf / Math.tan(Math.PI * 0.25 + olat * 0.5);
+        double ro = RE * sf / Math.pow(Math.tan(Math.PI * 0.25 + olat * 0.5), sn);
 
         double tanLatHalf = Math.tan(Math.PI * 0.25 + latitudeDegrees * degrad * 0.5);
         double ra = RE * sf / Math.pow(tanLatHalf, sn);
