@@ -14,6 +14,8 @@ import com.gitggal.clothesplz.repository.user.SocialAccountRepository;
 import com.gitggal.clothesplz.repository.user.UserRepository;
 import com.gitggal.clothesplz.repository.weather.LocationRepository;
 import com.gitggal.clothesplz.repository.weather.WeatherRepository;
+import com.gitggal.clothesplz.service.image.ImageUploader;
+import com.gitggal.clothesplz.service.weather.WeatherApiService;
 import com.gitggal.clothesplz.support.IntegrationTestSupport;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
@@ -47,4 +49,8 @@ public abstract class ServiceTestSupport extends IntegrationTestSupport {
   protected WeatherRepository weatherRepository;
   @MockitoBean
   protected LocationRepository locationRepository;
+  @MockitoBean
+  protected ImageUploader imageUploader;
+  @MockitoBean
+  protected WeatherApiService weatherApiService;
 }

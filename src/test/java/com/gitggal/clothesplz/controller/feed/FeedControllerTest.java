@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willDoNothing;
 import static org.mockito.BDDMockito.willThrow;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -12,6 +13,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.gitggal.clothesplz.config.TestSecurityConfig;
 import com.gitggal.clothesplz.dto.feed.CommentCreateRequest;
 import com.gitggal.clothesplz.dto.feed.CommentDto;
 import com.gitggal.clothesplz.dto.feed.FeedCreateRequest;
@@ -23,6 +25,8 @@ import com.gitggal.clothesplz.dto.weather.TemperatureDto;
 import com.gitggal.clothesplz.dto.weather.WeatherSummaryDto;
 import com.gitggal.clothesplz.entity.weather.PrecipitationType;
 import com.gitggal.clothesplz.entity.weather.SkyStatus;
+import com.gitggal.clothesplz.exception.GlobalExceptionHandler;
+import com.gitggal.clothesplz.security.jwt.JwtAuthenticationFilter;
 import com.gitggal.clothesplz.service.feed.FeedService;
 import java.time.Instant;
 import java.util.List;
@@ -32,15 +36,28 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.FilterType;
+import org.springframework.context.annotation.Import;
 import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-@WebMvcTest(FeedController.class)
-@AutoConfigureMockMvc(addFilters = false) // 테스트를 위해 security 끄기
+@Import({
+    GlobalExceptionHandler.class,
+    TestSecurityConfig.class
+})
+@WebMvcTest(
+    controllers = FeedController.class,
+    excludeFilters = {
+        @ComponentScan.Filter(
+            type = FilterType.ASSIGNABLE_TYPE,
+            classes = JwtAuthenticationFilter.class
+        )
+    }
+)
 @DisplayName("피드 컨트롤러 테스트")
 public class FeedControllerTest {
 
@@ -89,6 +106,7 @@ public class FeedControllerTest {
       given(feedService.createFeed(any())).willReturn(feedDto);
 
       mockMvc.perform(post("/api/feeds")
+              .with(csrf())
               .contentType(MediaType.APPLICATION_JSON)
               .content(objectMapper.writeValueAsString(request)))
           .andExpect(status().isCreated())
@@ -102,6 +120,7 @@ public class FeedControllerTest {
           null, weatherId, List.of(UUID.randomUUID()), "피드 내용 테스트");
 
       mockMvc.perform(post("/api/feeds")
+              .with(csrf())
               .contentType(MediaType.APPLICATION_JSON)
               .content(objectMapper.writeValueAsString(request)))
           .andExpect(status().isBadRequest());
@@ -114,6 +133,7 @@ public class FeedControllerTest {
           authorId, null, List.of(UUID.randomUUID()), "피드 내용 테스트");
 
       mockMvc.perform(post("/api/feeds")
+              .with(csrf())
               .contentType(MediaType.APPLICATION_JSON)
               .content(objectMapper.writeValueAsString(request)))
           .andExpect(status().isBadRequest());
@@ -126,6 +146,7 @@ public class FeedControllerTest {
           authorId, weatherId, List.of(), "피드 내용 테스트");
 
       mockMvc.perform(post("/api/feeds")
+              .with(csrf())
               .contentType(MediaType.APPLICATION_JSON)
               .content(objectMapper.writeValueAsString(request)))
           .andExpect(status().isBadRequest());
@@ -138,6 +159,7 @@ public class FeedControllerTest {
           authorId, weatherId, List.of(UUID.randomUUID()), "");
 
       mockMvc.perform(post("/api/feeds")
+              .with(csrf())
               .contentType(MediaType.APPLICATION_JSON)
               .content(objectMapper.writeValueAsString(request)))
           .andExpect(status().isBadRequest());
@@ -155,6 +177,7 @@ public class FeedControllerTest {
       given(feedService.updateFeed(eq(feedId), any())).willReturn(feedDto);
 
       mockMvc.perform(patch("/api/feeds/{feedId}", feedId)
+              .with(csrf())
               .contentType(MediaType.APPLICATION_JSON)
               .content(objectMapper.writeValueAsString(request)))
           .andExpect(status().isOk());
@@ -166,6 +189,7 @@ public class FeedControllerTest {
       FeedUpdateRequest request = new FeedUpdateRequest("");
 
       mockMvc.perform(patch("/api/feeds/{feedId}", feedId)
+              .with(csrf())
               .contentType(MediaType.APPLICATION_JSON)
               .content(objectMapper.writeValueAsString(request)))
           .andExpect(status().isBadRequest());
@@ -181,7 +205,8 @@ public class FeedControllerTest {
     void deleteFeed_Success() throws Exception {
       willDoNothing().given(feedService).deleteFeed(feedId);
 
-      mockMvc.perform(delete("/api/feeds/{feedId}", feedId))
+      mockMvc.perform(delete("/api/feeds/{feedId}", feedId)
+              .with(csrf()))
           .andExpect(status().isNoContent());
     }
   }
@@ -196,6 +221,7 @@ public class FeedControllerTest {
       willDoNothing().given(feedService).increaseLikeCount(eq(feedId), eq(userId));
 
       mockMvc.perform(post("/api/feeds/{feedId}/like", feedId)
+              .with(csrf())
               .param("userId", userId.toString()))
           .andExpect(status().isNoContent());
     }
@@ -203,7 +229,8 @@ public class FeedControllerTest {
     @Test
     @DisplayName("실패 - userId 없으면 400 반환")
     void increaseLikeCount_MissingUserId_Returns400() throws Exception {
-      mockMvc.perform(post("/api/feeds/{feedId}/like", feedId))
+      mockMvc.perform(post("/api/feeds/{feedId}/like", feedId)
+              .with(csrf()))
           .andExpect(status().isBadRequest());
     }
   }
@@ -218,6 +245,7 @@ public class FeedControllerTest {
       willDoNothing().given(feedService).decreaseLikeCount(eq(feedId), eq(userId));
 
       mockMvc.perform(delete("/api/feeds/{feedId}/like", feedId)
+              .with(csrf())
               .param("userId", userId.toString()))
           .andExpect(status().isNoContent());
     }
@@ -225,7 +253,8 @@ public class FeedControllerTest {
     @Test
     @DisplayName("실패 - userId 없으면 400 반환")
     void decreaseLikeCount_MissingUserId_Returns400() throws Exception {
-      mockMvc.perform(delete("/api/feeds/{feedId}/like", feedId))
+      mockMvc.perform(delete("/api/feeds/{feedId}/like", feedId)
+              .with(csrf()))
           .andExpect(status().isBadRequest());
     }
   }
@@ -245,6 +274,7 @@ public class FeedControllerTest {
       given(feedService.createComment(eq(feedId), any())).willReturn(commentDto);
 
       mockMvc.perform(post("/api/feeds/{feedId}/comments", feedId)
+              .with(csrf())
               .contentType(MediaType.APPLICATION_JSON)
               .content(objectMapper.writeValueAsString(request)))
           .andExpect(status().isCreated())
@@ -257,6 +287,7 @@ public class FeedControllerTest {
       CommentCreateRequest request = new CommentCreateRequest(null, authorId, "댓글 내용 테스트");
 
       mockMvc.perform(post("/api/feeds/{feedId}/comments", feedId)
+              .with(csrf())
               .contentType(MediaType.APPLICATION_JSON)
               .content(objectMapper.writeValueAsString(request)))
           .andExpect(status().isBadRequest());
@@ -268,6 +299,7 @@ public class FeedControllerTest {
       CommentCreateRequest request = new CommentCreateRequest(feedId, null, "댓글 내용 테스트");
 
       mockMvc.perform(post("/api/feeds/{feedId}/comments", feedId)
+              .with(csrf())
               .contentType(MediaType.APPLICATION_JSON)
               .content(objectMapper.writeValueAsString(request)))
           .andExpect(status().isBadRequest());
@@ -279,6 +311,7 @@ public class FeedControllerTest {
       CommentCreateRequest request = new CommentCreateRequest(feedId, authorId, "");
 
       mockMvc.perform(post("/api/feeds/{feedId}/comments", feedId)
+              .with(csrf())
               .contentType(MediaType.APPLICATION_JSON)
               .content(objectMapper.writeValueAsString(request)))
           .andExpect(status().isBadRequest());
@@ -290,6 +323,7 @@ public class FeedControllerTest {
       CommentCreateRequest request = new CommentCreateRequest(feedId, authorId, "a".repeat(2001));
 
       mockMvc.perform(post("/api/feeds/{feedId}/comments", feedId)
+              .with(csrf())
               .contentType(MediaType.APPLICATION_JSON)
               .content(objectMapper.writeValueAsString(request)))
           .andExpect(status().isBadRequest());
@@ -304,6 +338,7 @@ public class FeedControllerTest {
         .given(feedService).increaseLikeCount(eq(feedId), eq(userId));
 
     mockMvc.perform(post("/api/feeds/{feedId}/like", feedId)
+            .with(csrf())
             .param("userId", userId.toString()))
         .andExpect(status().isConflict());
   }
