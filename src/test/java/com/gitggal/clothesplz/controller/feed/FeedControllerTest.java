@@ -4,6 +4,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willDoNothing;
+import static org.mockito.BDDMockito.willThrow;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -11,6 +12,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.gitggal.clothesplz.dto.feed.CommentCreateRequest;
+import com.gitggal.clothesplz.dto.feed.CommentDto;
 import com.gitggal.clothesplz.dto.feed.FeedCreateRequest;
 import com.gitggal.clothesplz.dto.feed.FeedDto;
 import com.gitggal.clothesplz.dto.feed.FeedUpdateRequest;
@@ -31,6 +34,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -79,7 +83,7 @@ public class FeedControllerTest {
 
     @Test
     @DisplayName("성공 - 201 반환")
-    void createFeed_success() throws Exception {
+    void createFeed_Success() throws Exception {
       FeedCreateRequest request = new FeedCreateRequest(
           authorId, weatherId, List.of(UUID.randomUUID()), "피드 내용 테스트");
       given(feedService.createFeed(any())).willReturn(feedDto);
@@ -93,7 +97,7 @@ public class FeedControllerTest {
 
     @Test
     @DisplayName("실패 - authorId 없으면 400 반환")
-    void createFeed_missingAuthorId_returns400() throws Exception {
+    void createFeed_MissingAuthorId_Returns400() throws Exception {
       FeedCreateRequest request = new FeedCreateRequest(
           null, weatherId, List.of(UUID.randomUUID()), "피드 내용 테스트");
 
@@ -105,7 +109,7 @@ public class FeedControllerTest {
 
     @Test
     @DisplayName("실패 - weatherId 없으면 400 반환")
-    void createFeed_missingWeatherId_returns400() throws Exception {
+    void createFeed_MissingWeatherId_Returns400() throws Exception {
       FeedCreateRequest request = new FeedCreateRequest(
           authorId, null, List.of(UUID.randomUUID()), "피드 내용 테스트");
 
@@ -117,7 +121,7 @@ public class FeedControllerTest {
 
     @Test
     @DisplayName("실패 - clothesIds 비어있으면 400 반환")
-    void createFeed_emptyClothesIds_returns400() throws Exception {
+    void createFeed_EmptyClothesIds_Returns400() throws Exception {
       FeedCreateRequest request = new FeedCreateRequest(
           authorId, weatherId, List.of(), "피드 내용 테스트");
 
@@ -129,7 +133,7 @@ public class FeedControllerTest {
 
     @Test
     @DisplayName("실패 - content 비어있으면 400 반환")
-    void createFeed_blankContent_returns400() throws Exception {
+    void createFeed_BlankContent_Returns400() throws Exception {
       FeedCreateRequest request = new FeedCreateRequest(
           authorId, weatherId, List.of(UUID.randomUUID()), "");
 
@@ -146,7 +150,7 @@ public class FeedControllerTest {
 
     @Test
     @DisplayName("성공 - 200 반환")
-    void updateFeed_success() throws Exception {
+    void updateFeed_Success() throws Exception {
       FeedUpdateRequest request = new FeedUpdateRequest("피드 수정");
       given(feedService.updateFeed(eq(feedId), any())).willReturn(feedDto);
 
@@ -158,7 +162,7 @@ public class FeedControllerTest {
 
     @Test
     @DisplayName("실패 - content 비어있으면 400 반환")
-    void updateFeed_blankContent_returns400() throws Exception {
+    void updateFeed_BlankContent_Returns400() throws Exception {
       FeedUpdateRequest request = new FeedUpdateRequest("");
 
       mockMvc.perform(patch("/api/feeds/{feedId}", feedId)
@@ -174,7 +178,7 @@ public class FeedControllerTest {
 
     @Test
     @DisplayName("성공 - 204 반환")
-    void deleteFeed_success() throws Exception {
+    void deleteFeed_Success() throws Exception {
       willDoNothing().given(feedService).deleteFeed(feedId);
 
       mockMvc.perform(delete("/api/feeds/{feedId}", feedId))
@@ -184,10 +188,11 @@ public class FeedControllerTest {
 
   @Nested
   @DisplayName("피드 좋아요 관련 테스트")
-  class increaseLikeTests {
+  class IncreaseLikeTests {
+
     @Test
     @DisplayName("성공 - 204 반환")
-    void increaseLikeCount_success() throws Exception {
+    void increaseLikeCount_Success() throws Exception {
       willDoNothing().given(feedService).increaseLikeCount(eq(feedId), eq(userId));
 
       mockMvc.perform(post("/api/feeds/{feedId}/like", feedId)
@@ -197,7 +202,7 @@ public class FeedControllerTest {
 
     @Test
     @DisplayName("실패 - userId 없으면 400 반환")
-    void increaseLikeCount_missingUserId_returns400() throws Exception {
+    void increaseLikeCount_MissingUserId_Returns400() throws Exception {
       mockMvc.perform(post("/api/feeds/{feedId}/like", feedId))
           .andExpect(status().isBadRequest());
     }
@@ -205,11 +210,11 @@ public class FeedControllerTest {
 
   @Nested
   @DisplayName("피드 좋아요 취소 관련 테스트")
-  class decreaseLikeCountTests {
+  class DecreaseLikeCountTests {
 
     @Test
     @DisplayName("성공 - 204 반환")
-    void decreaseLikeCount_success() throws Exception {
+    void decreaseLikeCount_Success() throws Exception {
       willDoNothing().given(feedService).decreaseLikeCount(eq(feedId), eq(userId));
 
       mockMvc.perform(delete("/api/feeds/{feedId}/like", feedId)
@@ -219,9 +224,87 @@ public class FeedControllerTest {
 
     @Test
     @DisplayName("실패 - userId 없으면 400 반환")
-    void decreaseLikeCount_missingUserId_returns400() throws Exception {
+    void decreaseLikeCount_MissingUserId_Returns400() throws Exception {
       mockMvc.perform(delete("/api/feeds/{feedId}/like", feedId))
           .andExpect(status().isBadRequest());
     }
+  }
+
+  @Nested
+  @DisplayName("피드 댓글 생성 관련 테스트")
+  class CreateCommentTests {
+
+    @Test
+    @DisplayName("성공 - 201 반환")
+    void createComment_Success() throws Exception {
+      CommentCreateRequest request = new CommentCreateRequest(feedId, authorId, "댓글 내용 테스트");
+      CommentDto commentDto = new CommentDto(
+          UUID.randomUUID(), Instant.now(), feedId,
+          new AuthorDto(authorId, "댓글 작성자", "profileUrl"),
+          "댓글 내용 테스트");
+      given(feedService.createComment(eq(feedId), any())).willReturn(commentDto);
+
+      mockMvc.perform(post("/api/feeds/{feedId}/comments", feedId)
+              .contentType(MediaType.APPLICATION_JSON)
+              .content(objectMapper.writeValueAsString(request)))
+          .andExpect(status().isCreated())
+          .andExpect(jsonPath("$.content").value("댓글 내용 테스트"));
+    }
+
+    @Test
+    @DisplayName("실패 - feedId 없으면 400 반환")
+    void createComment_MissingFeedId_Returns400() throws Exception {
+      CommentCreateRequest request = new CommentCreateRequest(null, authorId, "댓글 내용 테스트");
+
+      mockMvc.perform(post("/api/feeds/{feedId}/comments", feedId)
+              .contentType(MediaType.APPLICATION_JSON)
+              .content(objectMapper.writeValueAsString(request)))
+          .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("실패 - authorId 없으면 400 반환")
+    void createComment_MissingAuthorId_Returns400() throws Exception {
+      CommentCreateRequest request = new CommentCreateRequest(feedId, null, "댓글 내용 테스트");
+
+      mockMvc.perform(post("/api/feeds/{feedId}/comments", feedId)
+              .contentType(MediaType.APPLICATION_JSON)
+              .content(objectMapper.writeValueAsString(request)))
+          .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("실패 - content 비어있으면 400 반환")
+    void createComment_BlankContent_Returns400() throws Exception {
+      CommentCreateRequest request = new CommentCreateRequest(feedId, authorId, "");
+
+      mockMvc.perform(post("/api/feeds/{feedId}/comments", feedId)
+              .contentType(MediaType.APPLICATION_JSON)
+              .content(objectMapper.writeValueAsString(request)))
+          .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("실패 - content 2000자 초과하면 400 반환")
+    void createComment_ContentExceedsMaxLength_Returns400() throws Exception {
+      CommentCreateRequest request = new CommentCreateRequest(feedId, authorId, "a".repeat(2001));
+
+      mockMvc.perform(post("/api/feeds/{feedId}/comments", feedId)
+              .contentType(MediaType.APPLICATION_JSON)
+              .content(objectMapper.writeValueAsString(request)))
+          .andExpect(status().isBadRequest());
+    }
+  }
+
+  @Test
+  @DisplayName("실패 - 락 획득 실패 시 409 반환")
+  void like_LockAcquisitionFailed_Returns409() throws Exception {
+    UUID userId = UUID.randomUUID();
+    willThrow(new PessimisticLockingFailureException("lock timeout"))
+        .given(feedService).increaseLikeCount(eq(feedId), eq(userId));
+
+    mockMvc.perform(post("/api/feeds/{feedId}/like", feedId)
+            .param("userId", userId.toString()))
+        .andExpect(status().isConflict());
   }
 }
