@@ -42,6 +42,7 @@ public class WeatherParserService {
 
         // 1. 날짜(fcstDate)별로 아이템들을 그룹화 (오늘, 내일, 모레...)
         Map<String, List<WeatherItem>> groupedByDate = items.stream()
+                .filter(Objects::nonNull)
                 .filter(item -> item.fcstDate() != null && item.fcstDate().matches("\\d{8}")) // 날짜 형식 검증
                 .collect(Collectors.groupingBy(WeatherItem::fcstDate));
 
@@ -68,6 +69,10 @@ public class WeatherParserService {
             PrecipitationType precipitationType = PrecipitationType.NONE;
 
             for (WeatherItem item : dayItems) {
+                if (item.category() == null) {
+                    log.debug("[Service] category가 null인 항목 스킵: {}", item);
+                    continue;
+                }
                 switch (item.category()) {
                     case "TMP" -> {
                         try{
@@ -98,7 +103,7 @@ public class WeatherParserService {
                         }
                     }
                     case "SKY" -> {
-                        if (REPRESENTATIVE_TIME.equals(item.fcstTime())) {
+                        if (REPRESENTATIVE_TIME.equals(item.fcstTime()) && item.fcstValue() != null) {
                             representativeSky = item.fcstValue();
                         }
                     }
