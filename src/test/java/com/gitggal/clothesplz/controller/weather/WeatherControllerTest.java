@@ -9,14 +9,19 @@ import com.gitggal.clothesplz.dto.weather.WindSpeedDto;
 import com.gitggal.clothesplz.entity.weather.PrecipitationType;
 import com.gitggal.clothesplz.entity.weather.SkyStatus;
 import com.gitggal.clothesplz.entity.weather.WindPhrase;
+import com.gitggal.clothesplz.config.TestSecurityConfig;
+import com.gitggal.clothesplz.exception.GlobalExceptionHandler;
 import com.gitggal.clothesplz.exception.BusinessException;
 import com.gitggal.clothesplz.exception.code.WeatherErrorCode;
+import com.gitggal.clothesplz.security.jwt.JwtAuthenticationFilter;
 import com.gitggal.clothesplz.service.weather.WeatherService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.FilterType;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -36,8 +41,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @DisplayName("날씨 컨트롤러 테스트")
-@WebMvcTest(WeatherController.class)
-@AutoConfigureMockMvc(addFilters = false)
+@Import({GlobalExceptionHandler.class, TestSecurityConfig.class})
+@WebMvcTest(
+        controllers = WeatherController.class,
+        excludeFilters = {
+                @ComponentScan.Filter(
+                        type = FilterType.ASSIGNABLE_TYPE,
+                        classes = JwtAuthenticationFilter.class
+                )
+        }
+)
 class WeatherControllerTest {
 
     @Autowired
