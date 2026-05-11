@@ -48,7 +48,7 @@ storage:
     secret-key: ${AWS_SECRET_KEY}
     region: ${AWS_S3_REGION}
     bucket: ${AWS_S3_BUCKET}
-    expiration-duration-in-minutes: ${AWS_S3_PRESIGNED_URL_EXPIRATION_MINUTES:10080}
+    cloudfront: ${AWS_CLOUDFRONT_DOMAIN}
 
 # 초기 계정
 clothesplz:
@@ -56,3 +56,14 @@ clothesplz:
     username: ${ADMIN_USERNAME}
     password: ${ADMIN_PASSWORD}
     email: ${ADMIN_EMAIL}
+  jwt:
+    access-token-secret: ${ACCESS_TOKEN_SECRET}
+    access-token-exp: ${ACCESS_TOKEN_EXP}
+    refresh-token-secret: ${REFRESH_TOKEN_SECRET}
+    refresh-token-exp: ${REFRESH_TOKEN_EXP}
+
+weather:
+  api:
+    url: ${WEATHER_API_URL}
+    service-key: ${WEATHER_API_SERVICE_KEY}
+

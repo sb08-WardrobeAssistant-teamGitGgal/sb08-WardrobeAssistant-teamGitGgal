@@ -44,10 +44,12 @@ application-prod.yaml
 CLAUDE.md
 AGENTS.md
 GEMINI.md
+.claude/
 
 ### file ###
 .logs/
 .files/
+api.json
 
 ### generated ###
 src/main/generated/

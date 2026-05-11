@@ -1,8 +1,12 @@
 package com.gitggal.clothesplz.exception;
 
 import com.gitggal.clothesplz.exception.code.CommonErrorCode;
+import com.gitggal.clothesplz.exception.code.FeedErrorCode;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.PessimisticLockingFailureException;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -54,6 +58,23 @@ public class GlobalExceptionHandler {
     return ResponseEntity.badRequest()
         .body(ErrorResponse.of(CommonErrorCode.INVALID_INPUT, details));
   }
+
+  // 락 획득 실패나 타임아웃 발생했을 때 예외 처리하는 핸들러
+  @ExceptionHandler(PessimisticLockingFailureException.class)
+  public ResponseEntity<ErrorResponse> handlePessimisticLockingFailure(PessimisticLockingFailureException e) {
+    log.warn("Lock acquisition failed: {}", e.getMessage());
+    return ResponseEntity.status(HttpStatus.CONFLICT)
+        .body(ErrorResponse.of(FeedErrorCode.LOCK_ACQUISITION_FAILED));
+  }
+
+  // 권한 없는 접근시 발생 -> 403
+  @ExceptionHandler(AccessDeniedException.class)
+  public ResponseEntity<ErrorResponse> handleAccessDeniedException(AccessDeniedException e) {
+    log.warn("Access denied: {}", e.getMessage());
+    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+        .body(ErrorResponse.of(CommonErrorCode.FORBIDDEN));
+  }
+
 
   @ExceptionHandler(Exception.class)
   public ResponseEntity<ErrorResponse> handleException(Exception e) {

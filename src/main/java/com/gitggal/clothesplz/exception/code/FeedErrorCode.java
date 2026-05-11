@@ -10,7 +10,8 @@ public enum FeedErrorCode implements ErrorCode {
   FEED_COMMENT_NOT_FOUND(2002, HttpStatus.NOT_FOUND, "댓글을 찾을 수 없습니다."),
   FEED_LIKE_ALREADY_EXISTS(2003, HttpStatus.CONFLICT, "이미 좋아요한 피드입니다."),
   FEED_LIKE_NOT_FOUND(2004, HttpStatus.NOT_FOUND, "좋아요 내역을 찾을 수 없습니다."),
-  UNAUTHORIZED_FEED_ACCESS(2005, HttpStatus.FORBIDDEN, "해당 피드에 접근 권한이 없습니다.");
+  UNAUTHORIZED_FEED_ACCESS(2005, HttpStatus.FORBIDDEN, "해당 피드에 접근 권한이 없습니다."),
+  LOCK_ACQUISITION_FAILED(2006, HttpStatus.CONFLICT, "잠시 후 다시 시도해주세요.");
 
   private final int code;
   private final HttpStatus httpStatus;
