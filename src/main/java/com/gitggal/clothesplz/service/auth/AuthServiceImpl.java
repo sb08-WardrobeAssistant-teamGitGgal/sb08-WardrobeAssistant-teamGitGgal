@@ -30,7 +30,14 @@ public class AuthServiceImpl implements AuthService {
     }
 
     String userId = tokenProvider.getUsernameFromToken(refreshToken);
-    UserDetails userDetails = clothesUserDetailsService.loadUserById(UUID.fromString(userId));
+    UUID parsedUserId;
+    try {
+      parsedUserId = UUID.fromString(userId);
+    } catch (IllegalArgumentException e) {
+      throw new BusinessException(UserErrorCode.INVALID_TOKEN);
+    }
+
+    UserDetails userDetails = clothesUserDetailsService.loadUserById(parsedUserId);
 
     if (!(userDetails instanceof ClothesUserDetails clothesUserDetails)) {
       throw new BusinessException(UserErrorCode.INVALID_TOKEN);
@@ -56,7 +63,7 @@ public class AuthServiceImpl implements AuthService {
       );
       return jwtInformation;
     } catch (JOSEException e) {
-      throw new BusinessException(UserErrorCode.INVALID_TOKEN);
+      throw new BusinessException(UserErrorCode.JWT_TOKEN_GENERATION_FAILED);
     }
 
   }

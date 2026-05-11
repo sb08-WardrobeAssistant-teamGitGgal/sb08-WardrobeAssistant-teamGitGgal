@@ -1,5 +1,7 @@
 package com.gitggal.clothesplz.controller.auth;
 
+import com.gitggal.clothesplz.exception.BusinessException;
+import com.gitggal.clothesplz.exception.code.UserErrorCode;
 import com.gitggal.clothesplz.security.jwt.JwtDto;
 import com.gitggal.clothesplz.security.jwt.JwtInformation;
 import com.gitggal.clothesplz.security.jwt.JwtTokenProvider;
@@ -34,9 +36,14 @@ public class AuthController {
   }
 
   @PostMapping("/refresh")
-  public ResponseEntity<JwtDto> refresh(@CookieValue("REFRESH_TOKEN") String refreshToken,
+  public ResponseEntity<JwtDto> refresh(
+      @CookieValue(value = "REFRESH_TOKEN", required = false) String refreshToken,
       HttpServletResponse response) {
     log.info("[Controller] 토큰 재발급 요청");
+    if (refreshToken == null || refreshToken.isBlank()) {
+      throw new BusinessException(UserErrorCode.JWT_TOKEN_NOT_FOUND);
+    }
+
     JwtInformation jwtInformation = authService.refresh(refreshToken);
     ResponseCookie refreshCookie = jwtTokenProvider.generateRefreshTokenCookie(
         jwtInformation.refreshToken());

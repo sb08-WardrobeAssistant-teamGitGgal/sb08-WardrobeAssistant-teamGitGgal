@@ -1,4 +1,4 @@
-package com.gitggal.clothesplz.service;
+package com.gitggal.clothesplz.service.auth;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -17,7 +17,6 @@ import com.gitggal.clothesplz.security.ClothesUserDetailsService;
 import com.gitggal.clothesplz.security.jwt.JwtInformation;
 import com.gitggal.clothesplz.security.jwt.JwtRegistry;
 import com.gitggal.clothesplz.security.jwt.JwtTokenProvider;
-import com.gitggal.clothesplz.service.auth.AuthServiceImpl;
 import com.nimbusds.jose.JOSEException;
 import java.time.Instant;
 import java.util.UUID;
@@ -190,7 +189,7 @@ class AuthServiceTest {
       // when & then
       assertThatThrownBy(() -> authService.refresh(oldRefreshToken))
           .isInstanceOf(BusinessException.class)
-          .hasFieldOrPropertyWithValue("errorCode", UserErrorCode.INVALID_TOKEN);
+          .hasFieldOrPropertyWithValue("errorCode", UserErrorCode.JWT_TOKEN_GENERATION_FAILED);
 
       verify(tokenProvider).validateRefreshToken(oldRefreshToken);
       verify(jwtRegistry).hasActiveJwtInformationByRefreshToken(oldRefreshToken);
