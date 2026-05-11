@@ -1,5 +1,6 @@
 package com.gitggal.clothesplz.config;
 
+import com.gitggal.clothesplz.security.CustomLogoutHandler;
 import com.gitggal.clothesplz.security.LoginFailureHandler;
 import com.gitggal.clothesplz.security.LoginSuccessHandler;
 import com.gitggal.clothesplz.security.SpaCsrfTokenRequestHandler;
@@ -12,6 +13,7 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -19,6 +21,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.authentication.logout.HttpStatusReturningLogoutSuccessHandler;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 
 @Slf4j
@@ -33,7 +36,8 @@ public class SecurityConfig {
   public SecurityFilterChain filterChain(
       HttpSecurity http,
       LoginSuccessHandler loginSuccessHandler,
-      LoginFailureHandler loginFailureHandler
+      LoginFailureHandler loginFailureHandler,
+      CustomLogoutHandler logoutHandler
   ) throws Exception {
     http
         .csrf(csrf -> csrf
@@ -47,10 +51,17 @@ public class SecurityConfig {
             .passwordParameter("password")
             .successHandler(loginSuccessHandler)
             .failureHandler(loginFailureHandler))
+        .logout(logout -> logout
+            .logoutUrl("/api/auth/sign-out")
+            .addLogoutHandler(logoutHandler)
+            .logoutSuccessHandler(
+                new HttpStatusReturningLogoutSuccessHandler(HttpStatus.NO_CONTENT)
+            ))
         .authorizeHttpRequests(auth -> auth
             .requestMatchers(HttpMethod.GET, "/api/auth/csrf-token").permitAll() //csrf 토큰 조회 허용
             .requestMatchers(HttpMethod.POST, "/api/users").permitAll() // 회원가입 허용
             .requestMatchers(HttpMethod.POST, "/api/auth/sign-in").permitAll() // 로그인 허용
+            .requestMatchers(HttpMethod.POST, "/api/auth/sign-out").permitAll() // 로그아웃 허용
             .requestMatchers(HttpMethod.POST, "/api/auth/refresh").permitAll()
             .requestMatchers("/api/**").authenticated() // api 인증 필요
             .anyRequest().permitAll()
