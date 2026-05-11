@@ -25,6 +25,9 @@ jobs:
 
       - name: 빌드 및 테스트
         run: ./gradlew build jacocoTestReport
+        env:
+          WEATHER_API_URL: ${{ secrets.WEATHER_API_URL }}
+          WEATHER_API_SERVICE_KEY: ${{ secrets.WEATHER_API_SERVICE_KEY }}
 
       - name: Codecov에 커버리지 리포트 업로드
         uses: codecov/codecov-action@v5
