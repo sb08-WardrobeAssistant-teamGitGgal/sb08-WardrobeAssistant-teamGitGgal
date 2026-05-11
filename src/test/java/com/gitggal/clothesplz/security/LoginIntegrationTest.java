@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.gitggal.clothesplz.entity.user.User;
 import com.gitggal.clothesplz.repository.user.UserRepository;
 import com.gitggal.clothesplz.service.image.ImageUploader;
+import com.gitggal.clothesplz.service.weather.WeatherApiService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -31,6 +32,9 @@ class LoginIntegrationTest {
 
   @MockitoBean
   private ImageUploader imageUploader;
+
+  @MockitoBean
+  private WeatherApiService weatherApiService;
 
   @Autowired
   private MockMvc mockMvc;
