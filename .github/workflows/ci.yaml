@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 체크아웃
+        uses: actions/checkout@v4
+
+      - name: JDK 17 설치
+        uses: actions/setup-java@v5
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      - name: 실행 권한 부여
+        run: chmod +x gradlew
+
+      - name: 빌드 및 테스트
+        run: ./gradlew build jacocoTestReport
+        env:
+          WEATHER_API_URL: ${{ secrets.WEATHER_API_URL }}
+          WEATHER_API_SERVICE_KEY: ${{ secrets.WEATHER_API_SERVICE_KEY }}
+
+      - name: Codecov에 커버리지 리포트 업로드
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: build/reports/jacoco/test/jacocoTestReport.xml
