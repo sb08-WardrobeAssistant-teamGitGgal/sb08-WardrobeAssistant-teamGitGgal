@@ -194,7 +194,7 @@ class WeatherParserServiceTest {
         List<WeatherItem> items = List.of(
                 item("TMP", "20260508", "0600", "15"),
                 item("PTY", "20260508", "0600", "2"),
-                item("PTY", "20260508", "0900", "4")
+                item("PTY", "20260508", "0600", "4")
         );
         assertThat(parserService.parseDailyForecast(wrap(items)).get(0).precipitationType())
                 .isEqualTo(PrecipitationType.SHOWER);
