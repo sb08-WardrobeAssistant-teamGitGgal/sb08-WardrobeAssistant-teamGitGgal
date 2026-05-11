@@ -1,26 +1,19 @@
 package com.gitggal.clothesplz.dto.weather;
 
 import com.gitggal.clothesplz.entity.weather.SkyStatus;
-import com.gitggal.clothesplz.entity.weather.WindPhrase;
-import lombok.*;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-@Getter
-@Builder
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor
-public class WeatherDto {
+public record WeatherDto(
+        UUID id,
+        LocalDateTime forecastedAt,
+        LocalDateTime forecastAt,
+        WeatherAPILocationDto location,
+        SkyStatus skyStatus,
+        PrecipitationDto precipitation,
+        HumidityDto humidity,
+        TemperatureDto temperature,
+        WindSpeedDto windSpeed
+) {}
 
-    private UUID id;
-    private LocalDateTime forecastedAt;
-    private LocalDateTime forecastAt;
-    private WeatherAPILocationDto location;
-    private SkyStatus skyStatus;
-    private PrecipitationDto precipitation;
-    private HumidityDto humidity;
-    private TemperatureDto temperature;
-    private WindSpeedDto windSpeed;
-
-}
