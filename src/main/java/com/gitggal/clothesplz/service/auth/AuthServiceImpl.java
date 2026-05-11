@@ -30,6 +30,10 @@ public class AuthServiceImpl implements AuthService {
     }
 
     String userId = tokenProvider.getUsernameFromToken(refreshToken);
+    if (userId == null || userId.isBlank()) {
+      throw new BusinessException(UserErrorCode.INVALID_TOKEN);
+    }
+
     UUID parsedUserId;
     try {
       parsedUserId = UUID.fromString(userId);
