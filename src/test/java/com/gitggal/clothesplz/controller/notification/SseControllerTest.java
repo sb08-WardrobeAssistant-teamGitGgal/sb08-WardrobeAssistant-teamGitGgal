@@ -2,6 +2,7 @@ package com.gitggal.clothesplz.controller.notification;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -88,7 +89,7 @@ class SseControllerTest {
         .andExpect(request().asyncStarted());
 
     // then
-    verify(emitterRepository).save(any(UUID.class), any(SseEmitter.class));
+    verify(emitterRepository).save(eq(userId), any(SseEmitter.class));
   }
 
   @Test
