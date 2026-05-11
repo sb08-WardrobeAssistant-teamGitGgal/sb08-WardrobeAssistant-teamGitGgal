@@ -2,6 +2,7 @@ package com.gitggal.clothesplz.controller.user;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -90,6 +91,7 @@ public class UserControllerTest {
 
       //when & then
       mockMvc.perform(post("/api/users")
+              .with(csrf())
               .contentType(MediaType.APPLICATION_JSON)
               .content(objectMapper.writeValueAsString(userCreateRequest)))
           .andExpect(status().isCreated())
@@ -106,6 +108,7 @@ public class UserControllerTest {
 
       // when & then
       mockMvc.perform(post("/api/users")
+              .with(csrf())
               .contentType(MediaType.APPLICATION_JSON)
               .content(objectMapper.writeValueAsString(invalidRequest)))
           .andDo(print())
