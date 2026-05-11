@@ -43,7 +43,7 @@ public class WeatherApiService {
         // 기상청 발표 시간 기준에 맞게 base_date와 base_time을 계산하여 배열로 반환받음
         String[] baseTimeInfo = calculateBaseTime();
 
-        // 안전한 API 호출을 위해 URL과 파라미터를 조합하여 URI 객체 생성
+        // serviceKey는 원문(raw) 형태로 주입됨을 가정. 인코딩된 값을 주입하면 이중 인코딩 발생.
         URI uri = UriComponentsBuilder.fromHttpUrl(apiUrl)
                 .queryParam("serviceKey", serviceKey)
                 .queryParam("numOfRows", 1000)
