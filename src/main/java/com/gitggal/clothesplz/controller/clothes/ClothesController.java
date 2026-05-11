@@ -71,9 +71,7 @@ public class ClothesController implements ClothesControllerApi {
     clothesService.deleteClothes(clothesId);
 
     log.info("[Controller] 의상 삭제 요청 완료: clothesId = {}", clothesId);
-    return ResponseEntity
-        .status(HttpStatus.OK)
-        .build();
+    return ResponseEntity.noContent().build();
   }
 
   @Override
@@ -83,7 +81,7 @@ public class ClothesController implements ClothesControllerApi {
       @RequestPart @Valid ClothesUpdateRequest request,
       @RequestPart(required = false) MultipartFile image
   ) {
-    log.info("[Controller] 의상 수정 요청 시작: clothesId = {}", clothesId);
+    log.info("[Controller] 의상 수정 요청 시작");
 
     ClothesDto response = clothesService.updateClothes(
         clothesId,
@@ -91,7 +89,7 @@ public class ClothesController implements ClothesControllerApi {
         image
     );
 
-    log.info("[Controller] 의상 수정 요청 완료: clothesId = {}", clothesId);
+    log.info("[Controller] 의상 수정 요청 완료");
     return ResponseEntity
         .status(HttpStatus.OK)
         .body(response);

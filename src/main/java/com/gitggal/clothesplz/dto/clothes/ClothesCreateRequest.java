@@ -21,7 +21,7 @@ public record ClothesCreateRequest(
 
     @Valid
     @NotNull(message = "속성 목록은 필수입니다.")
-    List<ClothesAttributeDto> attributes
+    List<@NotNull(message = "속성 항목은 null일 수 없습니다.") @Valid ClothesAttributeDto> attributes
 ) {
 
 }
