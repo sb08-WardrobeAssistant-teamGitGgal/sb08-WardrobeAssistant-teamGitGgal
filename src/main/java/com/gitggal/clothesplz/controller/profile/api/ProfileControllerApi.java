@@ -3,6 +3,7 @@ package com.gitggal.clothesplz.controller.profile.api;
 import com.gitggal.clothesplz.dto.profile.request.ProfileUpdateRequest;
 import com.gitggal.clothesplz.dto.profile.response.ProfileDto;
 import com.gitggal.clothesplz.exception.ErrorResponse;
+import com.gitggal.clothesplz.security.ClothesUserDetails;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -30,7 +31,9 @@ public interface ProfileControllerApi {
   )
   ResponseEntity<ProfileDto> getProfile(
       @Parameter(description = "사용자 ID", required = true)
-      UUID userId
+      UUID userId,
+      @Parameter(hidden = true)
+      ClothesUserDetails userDetails
   );
 
   @Operation(summary = "프로필 업데이트", description = "사용자 프로필을 수정합니다.")
@@ -53,6 +56,8 @@ public interface ProfileControllerApi {
       @Parameter(description = "사용자 ID", required = true)
       UUID userId,
       ProfileUpdateRequest request,
-      MultipartFile image
+      MultipartFile image,
+      @Parameter(hidden = true)
+      ClothesUserDetails userDetails
   );
 }

@@ -32,6 +32,14 @@ logging:
     org.hibernate.SQL: DEBUG
     org.hibernate.type.descriptor.sql.BasicBinder: TRACE
 
+
+clothesplz:
+  jwt:
+    access-token-secret: abcdefghijklmnopqrstuvwxyz123456
+    access-token-exp: 900000
+    refresh-token-secret: dfghdfghfghijklmnopqrstuvwxyz123456
+    refresh-token-exp: 3600000
+
 weather:
   api:
     url: ${WEATHER_API_URL}

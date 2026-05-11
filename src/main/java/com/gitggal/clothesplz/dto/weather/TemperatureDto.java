@@ -1,18 +1,11 @@
 package com.gitggal.clothesplz.dto.weather;
 
+import lombok.Builder;
 
-import lombok.*;
-
-@Getter
 @Builder
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor
-public class TemperatureDto {
-
-    private double current;
-    private double comparedToDayBefore;
-    private double min;
-    private double max;
-
-
-}
+public record TemperatureDto(
+        double current,
+        double comparedToDayBefore,
+        double min,
+        double max
+) {}

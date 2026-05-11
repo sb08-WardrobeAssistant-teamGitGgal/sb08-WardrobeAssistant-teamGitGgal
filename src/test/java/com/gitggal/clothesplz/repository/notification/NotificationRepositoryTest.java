@@ -14,9 +14,9 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
-import org.springframework.boot.test.context.TestConfiguration;
 
 @Import({QuerydslConfig.class, NotificationRepositoryTest.JpaAuditingConfig.class})
 @DisplayName("알림 레포지토리 테스트")
@@ -74,6 +74,8 @@ class NotificationRepositoryTest extends RepositoryTestSupport {
     em.persistAndFlush(notification(savedUser));
     Thread.sleep(1);
     em.persistAndFlush(notification(savedUser));
+    em.flush();
+    em.clear();
 
     // 첫 번째 페이지 조회
     List<Notification> firstPage = notificationRepository.findPage(savedUser.getId(), null, null, 2);

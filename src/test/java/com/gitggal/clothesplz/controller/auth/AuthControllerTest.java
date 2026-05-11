@@ -5,19 +5,33 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.gitggal.clothesplz.config.TestSecurityConfig;
 import com.gitggal.clothesplz.exception.GlobalExceptionHandler;
+import com.gitggal.clothesplz.security.jwt.JwtAuthenticationFilter;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.FilterType;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
 
-@Import(GlobalExceptionHandler.class)
-@WebMvcTest(AuthController.class)
-@AutoConfigureMockMvc(addFilters = false)
+
+@Import({
+    GlobalExceptionHandler.class,
+    TestSecurityConfig.class
+})
+@WebMvcTest(
+    controllers = AuthController.class,
+    excludeFilters = {
+        @ComponentScan.Filter(
+            type = FilterType.ASSIGNABLE_TYPE,
+            classes = JwtAuthenticationFilter.class
+        )
+    }
+)
 @DisplayName("AuthController Test")
 class AuthControllerTest {
 

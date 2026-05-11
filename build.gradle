@@ -61,6 +61,8 @@ dependencies {
     annotationProcessor "jakarta.annotation:jakarta.annotation-api"
     annotationProcessor "jakarta.persistence:jakarta.persistence-api"
 
+    // WebFlux
+    implementation 'org.springframework.boot:spring-boot-starter-webflux'
     // Security
     implementation 'org.springframework.boot:spring-boot-starter-security'
     testImplementation 'org.springframework.security:spring-security-test'
@@ -68,6 +70,9 @@ dependencies {
     // AWS
     implementation platform('software.amazon.awssdk:bom:2.31.62')
     implementation 'software.amazon.awssdk:s3'
+
+    // jwt
+    implementation 'com.nimbusds:nimbus-jose-jwt:10.3'
 }
 
 tasks.named('test') {

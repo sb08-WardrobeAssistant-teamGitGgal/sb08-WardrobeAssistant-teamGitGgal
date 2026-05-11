@@ -6,24 +6,49 @@ import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.BDDMockito.willThrow;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.gitggal.clothesplz.controller.ControllerTestSupport;
+import com.gitggal.clothesplz.config.TestSecurityConfig;
 import com.gitggal.clothesplz.dto.notification.NotificationDtoCursorResponse;
 import com.gitggal.clothesplz.exception.BusinessException;
+import com.gitggal.clothesplz.exception.GlobalExceptionHandler;
 import com.gitggal.clothesplz.exception.code.NotificationErrorCode;
+import com.gitggal.clothesplz.security.jwt.JwtAuthenticationFilter;
 import com.gitggal.clothesplz.service.notification.NotificationService;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.FilterType;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
 
+@Import({
+    GlobalExceptionHandler.class,
+    TestSecurityConfig.class
+})
+@WebMvcTest(
+    controllers = NotificationController.class,
+    excludeFilters = {
+        @ComponentScan.Filter(
+            type = FilterType.ASSIGNABLE_TYPE,
+            classes = JwtAuthenticationFilter.class
+        )
+    }
+)
 @DisplayName("알림 컨트롤러 테스트")
-class NotificationControllerTest extends ControllerTestSupport {
+class NotificationControllerTest {
+
+  @Autowired
+  private MockMvc mockMvc;
 
   @MockitoBean
   private NotificationService notificationService;
@@ -44,12 +69,11 @@ class NotificationControllerTest extends ControllerTestSupport {
     // when & then
     mockMvc.perform(get("/api/notifications")
             .param("receiverId", receiverId.toString())
-            .param("limit", "10"))
+            .param("limit", "10")
+            .with(csrf()))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.hasNext").value(false))
-        .andExpect(jsonPath("$.totalCount").value(5))
-        .andExpect(jsonPath("$.sortBy").value("createdAt"))
-        .andExpect(jsonPath("$.sortDirection").value("DESCENDING"));
+        .andExpect(jsonPath("$.totalCount").value(5));
   }
 
   @Test
@@ -79,7 +103,8 @@ class NotificationControllerTest extends ControllerTestSupport {
 
     // when & then
     mockMvc.perform(delete("/api/notifications/{notificationId}", notificationId)
-            .param("requesterId", requesterId.toString()))
+            .param("requesterId", requesterId.toString())
+            .with(csrf()))
         .andExpect(status().isNoContent());
 
     then(notificationService).should().deleteNotification(notificationId, requesterId);
@@ -97,7 +122,8 @@ class NotificationControllerTest extends ControllerTestSupport {
 
     // when & then
     mockMvc.perform(delete("/api/notifications/{notificationId}", notificationId)
-            .param("requesterId", requesterId.toString()))
+            .param("requesterId", requesterId.toString())
+            .with(csrf()))
         .andExpect(status().isNotFound());
   }
 

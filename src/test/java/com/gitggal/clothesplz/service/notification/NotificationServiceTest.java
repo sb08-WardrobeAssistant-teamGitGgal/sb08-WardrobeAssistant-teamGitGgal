@@ -18,8 +18,10 @@ import com.gitggal.clothesplz.entity.user.User;
 import com.gitggal.clothesplz.exception.BusinessException;
 import com.gitggal.clothesplz.exception.code.NotificationErrorCode;
 import com.gitggal.clothesplz.mapper.notification.NotificationMapper;
+import com.gitggal.clothesplz.repository.notification.NotificationRepository;
 import com.gitggal.clothesplz.repository.notification.SseEmitterRepository;
-import com.gitggal.clothesplz.service.ServiceTestSupport;
+import com.gitggal.clothesplz.repository.user.UserRepository;
+import com.gitggal.clothesplz.service.notification.impl.NotificationServiceImpl;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.List;
@@ -27,33 +29,35 @@ import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+@ExtendWith(MockitoExtension.class)
 @DisplayName("알림 서비스 테스트")
-class NotificationServiceTest extends ServiceTestSupport {
+class NotificationServiceTest {
 
-  @MockitoBean
+  @Mock
+  private UserRepository userRepository;
+  @Mock
+  private NotificationRepository notificationRepository;
+  @Mock
   private SseEmitterRepository emitterRepository;
-
-  @MockitoBean
+  @Mock
   private NotificationMapper notificationMapper;
 
-  @Autowired
-  private NotificationService notificationService;
+  @InjectMocks
+  private NotificationServiceImpl notificationService;
 
   @Test
   @DisplayName("SSE 연결 중인 사용자에게 알림을 저장하고 즉시 전송한다")
   void send_connectedUser_savesAndSendsViaSSE() throws IOException {
     // given
     UUID receiverId = UUID.randomUUID();
-
-    NotificationRequest request = new NotificationRequest(
-        receiverId, "제목", "내용", NotificationLevel.INFO);
-
-    NotificationDto responseDto = new NotificationDto(
-        UUID.randomUUID(), Instant.now(), receiverId, "제목", "내용", NotificationLevel.INFO);
+    NotificationRequest request = new NotificationRequest(receiverId, "제목", "내용", NotificationLevel.INFO);
+    NotificationDto responseDto = new NotificationDto(UUID.randomUUID(), Instant.now(), receiverId, "제목", "내용", NotificationLevel.INFO);
 
     User receiver = mock(User.class);
     Notification saved = mock(Notification.class);
