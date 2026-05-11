@@ -3,8 +3,11 @@ package com.gitggal.clothesplz.service.clothes.impl;
 import com.gitggal.clothesplz.dto.clothes.ClothesCreateRequest;
 import com.gitggal.clothesplz.dto.clothes.ClothesDto;
 import com.gitggal.clothesplz.dto.clothes.ClothesDtoCursorResponse;
+import com.gitggal.clothesplz.dto.clothes.ClothesGetRequest;
 import com.gitggal.clothesplz.dto.clothes.ClothesUpdateRequest;
-import com.gitggal.clothesplz.entity.clothes.ClothesType;
+import com.gitggal.clothesplz.mapper.clothes.ClothesMapper;
+import com.gitggal.clothesplz.repository.clothes.ClothesAttributeDefRepository;
+import com.gitggal.clothesplz.repository.clothes.ClothesAttributeRepository;
 import com.gitggal.clothesplz.repository.clothes.ClothesRepository;
 import com.gitggal.clothesplz.service.clothes.ClothesService;
 import java.util.UUID;
@@ -20,16 +23,14 @@ import org.springframework.web.multipart.MultipartFile;
 public class ClothesServiceImpl implements ClothesService {
 
   private final ClothesRepository clothesRepository;
+  private final ClothesAttributeDefRepository clothesAttributeDefRepository;
+  private final ClothesAttributeRepository clothesAttributeRepository;
+  private final ClothesMapper clothesMapper;
 
   @Override
   @Transactional(readOnly = true)
-  public ClothesDtoCursorResponse getClothes(
-      String cursor,
-      UUID idAfter,
-      Integer limit,
-      ClothesType typeEqual,
-      UUID ownerId
-  ) {
+  public ClothesDtoCursorResponse getClothes(ClothesGetRequest request) {
+
     return null;
   }
 

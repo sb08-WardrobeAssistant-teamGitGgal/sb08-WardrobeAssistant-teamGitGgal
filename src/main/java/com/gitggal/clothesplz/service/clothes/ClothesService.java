@@ -3,20 +3,14 @@ package com.gitggal.clothesplz.service.clothes;
 import com.gitggal.clothesplz.dto.clothes.ClothesCreateRequest;
 import com.gitggal.clothesplz.dto.clothes.ClothesDto;
 import com.gitggal.clothesplz.dto.clothes.ClothesDtoCursorResponse;
+import com.gitggal.clothesplz.dto.clothes.ClothesGetRequest;
 import com.gitggal.clothesplz.dto.clothes.ClothesUpdateRequest;
-import com.gitggal.clothesplz.entity.clothes.ClothesType;
 import java.util.UUID;
 import org.springframework.web.multipart.MultipartFile;
 
 public interface ClothesService {
 
-  ClothesDtoCursorResponse getClothes(
-      String cursor,
-      UUID idAfter,
-      Integer limit,
-      ClothesType typeEqual,
-      UUID ownerId
-  );
+  ClothesDtoCursorResponse getClothes(ClothesGetRequest request);
 
   ClothesDto createClothes(
       ClothesCreateRequest request,

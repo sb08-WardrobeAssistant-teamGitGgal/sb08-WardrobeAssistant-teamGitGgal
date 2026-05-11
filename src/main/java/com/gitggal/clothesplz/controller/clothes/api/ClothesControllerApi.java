@@ -3,9 +3,10 @@ package com.gitggal.clothesplz.controller.clothes.api;
 import com.gitggal.clothesplz.dto.clothes.ClothesCreateRequest;
 import com.gitggal.clothesplz.dto.clothes.ClothesDto;
 import com.gitggal.clothesplz.dto.clothes.ClothesDtoCursorResponse;
+import com.gitggal.clothesplz.dto.clothes.ClothesGetRequest;
 import com.gitggal.clothesplz.dto.clothes.ClothesUpdateRequest;
-import com.gitggal.clothesplz.entity.clothes.ClothesType;
 import com.gitggal.clothesplz.exception.ErrorResponse;
+import org.springdoc.core.annotations.ParameterObject;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -32,16 +33,7 @@ public interface ClothesControllerApi {
       content = @Content(schema = @Schema(implementation = ErrorResponse.class))
   )
   ResponseEntity<ClothesDtoCursorResponse> getClothes(
-      @Parameter(description = "커서", required = false)
-      String cursor,
-      @Parameter(description = "보조 커서 ID", required = false)
-      UUID idAfter,
-      @Parameter(description = "조회 개수", required = true)
-      Integer limit,
-      @Parameter(description = "의상 타입", required = false)
-      ClothesType typeEqual,
-      @Parameter(description = "소유자 ID", required = true)
-      UUID ownerId
+      @ParameterObject ClothesGetRequest request
   );
 
   @Operation(summary = "옷 등록", description = "새로운 옷을 등록합니다.")

@@ -4,8 +4,8 @@ import com.gitggal.clothesplz.controller.clothes.api.ClothesControllerApi;
 import com.gitggal.clothesplz.dto.clothes.ClothesCreateRequest;
 import com.gitggal.clothesplz.dto.clothes.ClothesDto;
 import com.gitggal.clothesplz.dto.clothes.ClothesDtoCursorResponse;
+import com.gitggal.clothesplz.dto.clothes.ClothesGetRequest;
 import com.gitggal.clothesplz.dto.clothes.ClothesUpdateRequest;
-import com.gitggal.clothesplz.entity.clothes.ClothesType;
 import com.gitggal.clothesplz.service.clothes.ClothesService;
 import jakarta.validation.Valid;
 import java.util.UUID;
@@ -34,22 +34,10 @@ public class ClothesController implements ClothesControllerApi {
 
   @Override
   @GetMapping
-  public ResponseEntity<ClothesDtoCursorResponse> getClothes(
-      @RequestParam(required = false) String cursor,
-      @RequestParam(required = false) UUID idAfter,
-      @RequestParam Integer limit,
-      @RequestParam(required = false) ClothesType typeEqual,
-      @RequestParam UUID ownerId
-  ) {
+  public ResponseEntity<ClothesDtoCursorResponse> getClothes(@Valid ClothesGetRequest request) {
     log.info("[Controller] 의상 조회 요청 시작");
 
-    ClothesDtoCursorResponse response = clothesService.getClothes(
-        cursor,
-        idAfter,
-        limit,
-        typeEqual,
-        ownerId
-    );
+    ClothesDtoCursorResponse response = clothesService.getClothes(request);
 
     log.info("[Controller] 의상 조회 요청 완료");
     return ResponseEntity
