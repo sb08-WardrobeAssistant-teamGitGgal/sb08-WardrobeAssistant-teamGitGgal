@@ -30,14 +30,13 @@ import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-  private final JwtAuthenticationFilter jwtAuthenticationFilter;
-
   @Bean
   public SecurityFilterChain filterChain(
       HttpSecurity http,
       LoginSuccessHandler loginSuccessHandler,
       LoginFailureHandler loginFailureHandler,
-      CustomLogoutHandler logoutHandler
+      CustomLogoutHandler logoutHandler,
+      JwtAuthenticationFilter jwtAuthenticationFilter
   ) throws Exception {
     http
         .csrf(csrf -> csrf
