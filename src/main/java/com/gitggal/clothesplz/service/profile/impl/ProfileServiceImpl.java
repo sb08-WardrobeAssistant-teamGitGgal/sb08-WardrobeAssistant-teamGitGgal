@@ -74,37 +74,44 @@ public class ProfileServiceImpl implements ProfileService {
 
     User user = findUserOrThrow(userId);
     Profile profile = findProfileOrThrow(user);
+    Location location = findLocationOrNull(profile);
 
-    // TODO: User 이름 변경 정책 확정 후 반영해야 합니다.
-    // e.g.
-    // if (request.name() != null) {
-    //  user.updateName(request.name());
-    // }
+     if (request.name() != null) {
+      user.updateName(request.name());
+     }
 
     String imageUrl = (image != null && !image.isEmpty()) ? imageUploader.upload(image) : null;
 
     try {
-      Location location = locationRepository.findByGridXAndGridY(
-          request.location().x(),
-          request.location().y()
-      ).orElseGet(() -> locationRepository.save(Location.builder()
-              .latitude(request.location().latitude())
-              .longitude(request.location().longitude())
-              .gridX(request.location().x())
-              .gridY(request.location().y())
-              .locationNames(request.location().locationNames().stream()
-                  .map(String::trim)
-                  .collect(Collectors.joining(","))).build()
-          )
-      );
-
+      if (request.location() != null) {
+        location = locationRepository.findByGridXAndGridY(
+            request.location().x(),
+            request.location().y()
+        ).orElseGet(() -> locationRepository.save(Location.builder()
+                .latitude(request.location().latitude())
+                .longitude(request.location().longitude())
+                .gridX(request.location().x())
+                .gridY(request.location().y())
+                .locationNames(request.location().locationNames().stream()
+                    .map(String::trim)
+                    .collect(Collectors.joining(","))).build()
+            )
+        );
+      }
       WeatherAPILocation responseLocation = profileMapper.toWeatherAPILocation(location);
 
       String oldImageUrl = profile.getImageUrl();
 
-      profile.update(request.gender(), imageUrl, request.birthDate(), location.getLatitude(),
-          location.getLongitude(), location.getGridX(), location.getGridY(),
-          request.temperatureSensitivity());
+      profile.update(
+          request.gender(),
+          imageUrl,
+          request.birthDate(),
+          responseLocation != null ? responseLocation.latitude() : null,
+          responseLocation != null ? responseLocation.longitude() : null,
+          responseLocation != null ? responseLocation.x() : null,
+          responseLocation != null ? responseLocation.y() : null,
+          request.temperatureSensitivity()
+      );
 
       deleteOldImageAfterCommit(imageUrl, oldImageUrl);
 
@@ -131,6 +138,12 @@ public class ProfileServiceImpl implements ProfileService {
       log.warn("[Service] 프로필 조회 실패: 존재하지 않는 프로필");
       return new BusinessException(ProfileErrorCode.PROFILE_NOT_FOUND);
     });
+  }
+
+  private Location findLocationOrNull(Profile profile) {
+    return (profile.getGridX() != null && profile.getGridY() != null)
+        ? locationRepository.findByGridXAndGridY(profile.getGridX(), profile.getGridY()).orElse(null)
+        : null;
   }
 
   private void deleteOldImageAfterCommit(String imageUrl, String oldImageUrl) {

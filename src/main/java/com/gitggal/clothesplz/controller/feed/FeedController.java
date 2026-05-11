@@ -1,5 +1,7 @@
 package com.gitggal.clothesplz.controller.feed;
 
+import com.gitggal.clothesplz.dto.feed.CommentCreateRequest;
+import com.gitggal.clothesplz.dto.feed.CommentDto;
 import com.gitggal.clothesplz.dto.feed.FeedCreateRequest;
 import com.gitggal.clothesplz.dto.feed.FeedDto;
 import com.gitggal.clothesplz.dto.feed.FeedUpdateRequest;
@@ -16,6 +18,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @Slf4j
@@ -64,5 +67,43 @@ public class FeedController {
     return ResponseEntity
         .status(HttpStatus.NO_CONTENT)
         .build();
+  }
+
+  // TODO: security 구현 시 @AuthenticationPrincipal로 교체
+  @PostMapping("/{feedId}/like")
+  public ResponseEntity<Void> like(
+      @PathVariable UUID feedId,
+      @RequestParam UUID userId
+  ) {
+    feedService.increaseLikeCount(feedId, userId);
+
+    return ResponseEntity
+        .status(HttpStatus.NO_CONTENT)
+        .build();
+  }
+
+  // TODO: security 구현 시 @AuthenticationPrincipal로 교체
+  @DeleteMapping("/{feedId}/like")
+  public ResponseEntity<Void> cancelLike(
+      @PathVariable UUID feedId,
+      @RequestParam UUID userId
+  ) {
+    feedService.decreaseLikeCount(feedId, userId);
+
+    return ResponseEntity
+        .status(HttpStatus.NO_CONTENT)
+        .build();
+  }
+
+  @PostMapping("/{feedId}/comments")
+  public ResponseEntity<CommentDto> comment(
+      @PathVariable UUID feedId,
+      @Valid @RequestBody CommentCreateRequest commentCreateRequest
+  ) {
+    CommentDto commentDto = feedService.createComment(feedId, commentCreateRequest);
+
+    return ResponseEntity
+        .status(HttpStatus.CREATED)
+        .body(commentDto);
   }
 }

@@ -1,5 +1,6 @@
 package com.gitggal.clothesplz.entity.feed;
 
+import com.gitggal.clothesplz.dto.clothes.OotdDto;
 import com.gitggal.clothesplz.entity.base.BaseUpdatableEntity;
 import com.gitggal.clothesplz.entity.user.User;
 import com.gitggal.clothesplz.entity.weather.Weather;
@@ -62,9 +63,23 @@ public class Feed extends BaseUpdatableEntity {
     this.commentCount = 0L;
   }
 
-  public void update(String newContent){
+  public void update(String newContent) {
     if (newContent != null && !newContent.equals(this.content)) {
       this.content = newContent;
     }
+  }
+
+  public void increaseLikeCount() {
+    this.likeCount++;
+  }
+
+  public void decreaseLikeCount() {
+    if (this.likeCount > 0) {
+      this.likeCount--;
+    }
+  }
+
+  public void increaseCommentCount() {
+    this.commentCount++;
   }
 }
