@@ -12,12 +12,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.gitggal.clothesplz.config.TestSecurityConfig;
+import com.gitggal.clothesplz.controller.user.UserController;
 import com.gitggal.clothesplz.dto.user.UserDto;
 import com.gitggal.clothesplz.entity.user.UserRole;
 import com.gitggal.clothesplz.exception.BusinessException;
 import com.gitggal.clothesplz.exception.GlobalExceptionHandler;
-import com.gitggal.clothesplz.security.jwt.JwtAuthenticationFilter;
 import com.gitggal.clothesplz.exception.code.UserErrorCode;
+import com.gitggal.clothesplz.security.ClothesUserDetailsService;
 import com.gitggal.clothesplz.security.jwt.JwtAuthenticationFilter;
 import com.gitggal.clothesplz.security.jwt.JwtInformation;
 import com.gitggal.clothesplz.security.jwt.JwtTokenProvider;
@@ -38,7 +39,6 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.ResponseCookie;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-
 
 @Import({
     GlobalExceptionHandler.class,
@@ -63,10 +63,10 @@ class AuthControllerTest {
   private AuthService authService;
 
   @MockitoBean
-  private JwtAuthenticationFilter jwtAuthenticationFilter;
+  private JwtTokenProvider jwtTokenProvider;
 
   @MockitoBean
-  private JwtTokenProvider jwtTokenProvider;
+  private ClothesUserDetailsService clothesUserDetailsService;
 
   private UserDto userDto;
   private JwtInformation jwtInformation;
@@ -108,8 +108,7 @@ class AuthControllerTest {
     @DisplayName("성공 - CSRF 토큰 요청 시 204 No Content를 반환한다")
     void success_getCsrfToken() throws Exception {
       // when & then
-      mockMvc.perform(get("/api/auth/csrf-token")
-              .with(csrf()))
+      mockMvc.perform(get("/api/auth/csrf-token"))
           .andDo(print())
           .andExpect(status().isNoContent());
     }
