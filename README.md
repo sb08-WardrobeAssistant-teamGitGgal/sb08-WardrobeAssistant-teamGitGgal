@@ -1,0 +1,1 @@
+[![codecov](https://codecov.io/gh/sb08-WardrobeAssistant-teamGitGgal/sb08-WardrobeAssistant-teamGitGgal/graph/badge.svg?token=VLATROMN0N)](https://codecov.io/gh/sb08-WardrobeAssistant-teamGitGgal/sb08-WardrobeAssistant-teamGitGgal)

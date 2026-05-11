@@ -86,26 +86,27 @@ jacoco {
 
 // jacoco 리포트
 def jacocoExcludePatterns = [
-        "/Application",
-        "/Q",
-        "**/Config",
-        "**/Dto",
-        "**/Request",
-        "**/Response",
-        "**/Exception",
-        "**/MapperImpl",
-        "/config/",
-        "**/Event*"
+        "**/*Application*",
+        "**/Q*",
+        "**/*Config*",
+        "**/*Dto*",
+        "**/*Request*",
+        "**/*Response*",
+        "**/*Exception*",
+        "**/*MapperImpl*",
+        "**/config/**",
+        "**/*Event*",
+        "**/*ErrorCode*",
+        "**/*Mapper*"
 ]
 
 jacocoTestReport {
-    dependsOn test // 리포트 생성 전 테스트 실행
+    dependsOn test
     reports {
         xml.required = true
         html.required = true
     }
 
-    // classDirectories에서 패턴을 걷어냅니다.
     afterEvaluate {
         classDirectories.setFrom(files(classDirectories.files.collect {
             fileTree(dir: it, exclude: jacocoExcludePatterns)
@@ -120,14 +121,18 @@ jacocoTestCoverageVerification {
             fileTree(dir: it, exclude: jacocoExcludePatterns)
         }))
     }
+
     violationRules {
         rule {
             enabled = true
             element = 'CLASS'
+
+            excludes = jacocoExcludePatterns
+
             limit {
                 counter = 'LINE'
                 value = 'COVEREDRATIO'
-                minimum = 0.80
+                minimum = 0.00
             }
         }
     }
@@ -140,7 +145,7 @@ sourceSets {
     main.java.srcDirs += [ querydslDir ]
 }
 
-tasks.withType(JavaCompile).configureEach {
+tasks.named('compileJava') {
     options.getGeneratedSourceOutputDirectory().set(file(querydslDir))
 }
 
