@@ -40,7 +40,3 @@ clothesplz:
     refresh-token-secret: dfghdfghfghijklmnopqrstuvwxyz123456
     refresh-token-exp: 3600000
 
-weather:
-  api:
-    url: ${WEATHER_API_URL}
-    service-key: ${WEATHER_API_SERVICE_KEY}
