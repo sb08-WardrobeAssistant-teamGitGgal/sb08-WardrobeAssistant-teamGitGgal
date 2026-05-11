@@ -12,6 +12,7 @@ import com.gitggal.clothesplz.dto.user.UserCreateRequest;
 import com.gitggal.clothesplz.dto.user.UserDto;
 import com.gitggal.clothesplz.entity.user.UserRole;
 import com.gitggal.clothesplz.exception.GlobalExceptionHandler;
+import com.gitggal.clothesplz.security.jwt.JwtAuthenticationFilter;
 import com.gitggal.clothesplz.service.user.UserService;
 import java.time.Instant;
 import java.util.UUID;
@@ -20,16 +21,29 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
+import org.springframework.boot.autoconfigure.security.servlet.SecurityFilterAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.FilterType;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 @Import(GlobalExceptionHandler.class)
-@WebMvcTest(UserController.class)
-@AutoConfigureMockMvc(addFilters = false)
+@WebMvcTest(
+    controllers = UserController.class,
+    excludeFilters = @ComponentScan.Filter(
+        type = FilterType.ASSIGNABLE_TYPE,
+        classes = {JwtAuthenticationFilter.class}
+    ),
+    excludeAutoConfiguration = {
+        SecurityAutoConfiguration.class,
+        SecurityFilterAutoConfiguration.class
+    }
+)
 @DisplayName("UserController Test")
 public class UserControllerTest {
 
