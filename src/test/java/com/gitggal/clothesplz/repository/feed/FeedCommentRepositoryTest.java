@@ -176,6 +176,6 @@ class FeedCommentRepositoryTest extends RepositoryTestSupport {
     assertThat(result).hasSize(2);
     UUID firstId = result.get(0).id();
     UUID secondId = result.get(1).id();
-    assertThat(firstId.compareTo(secondId)).isGreaterThan(0);
+    assertThat(firstId.toString().compareTo(secondId.toString())).isGreaterThan(0);
   }
 }
