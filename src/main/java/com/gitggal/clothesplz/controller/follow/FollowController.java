@@ -5,6 +5,7 @@ import com.gitggal.clothesplz.dto.follow.FollowDto;
 import com.gitggal.clothesplz.dto.follow.FollowListResponse;
 import com.gitggal.clothesplz.dto.follow.FollowSummaryDto;
 import com.gitggal.clothesplz.service.follow.FollowService;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -35,7 +36,7 @@ public class FollowController {
 
   @PostMapping
   public ResponseEntity<FollowDto> createFollow(
-      @RequestBody FollowCreateRequest request) {
+      @RequestBody @Valid FollowCreateRequest request) {
 
     log.info("[Controller] 팔로우 생성 요청 시작: followerId={}, followeeId={}", request.followerId(), request.followeeId());
 
