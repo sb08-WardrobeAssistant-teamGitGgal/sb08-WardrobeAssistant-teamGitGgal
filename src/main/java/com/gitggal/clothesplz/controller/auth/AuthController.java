@@ -15,6 +15,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.web.csrf.CsrfToken;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -56,9 +57,10 @@ public class AuthController {
   }
 
   @PostMapping("/reset-password")
-  public ResponseEntity<Void> sendTempPassword(@RequestBody ResetPasswordRequest request){
-    log.info("이메일 전송 시작");
+  public ResponseEntity<Void> sendTempPassword(@Validated @RequestBody ResetPasswordRequest request){
+    log.info("[Controller] 임시 비밀번호 발급 요청");
     authService.sendTempPassword(request);
-    return ResponseEntity.status(HttpStatus.OK).build();
+    log.info("[Controller] 임시 비밀번호 발급 완료");
+    return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
   }
 }

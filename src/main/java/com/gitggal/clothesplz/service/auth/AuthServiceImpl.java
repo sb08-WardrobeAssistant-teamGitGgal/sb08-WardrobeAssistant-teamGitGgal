@@ -94,6 +94,7 @@ public class AuthServiceImpl implements AuthService {
   @Transactional
   @Override
   public void sendTempPassword(ResetPasswordRequest request) {
+    log.info("[Service] 임시 비밀번호 발급 요청");
     String email = request.email();
 
     log.info("이메일 전송 시작");
@@ -101,6 +102,7 @@ public class AuthServiceImpl implements AuthService {
         .orElseThrow(() -> new BusinessException(UserErrorCode.USER_NOT_FOUND));
 
     String tempPassword;
+
     // 임시 비밀번호 생성
     try {
       SecureRandom secureRandom = SecureRandom.getInstance("NativePRNG");
@@ -122,6 +124,6 @@ public class AuthServiceImpl implements AuthService {
         + "\n 임시 비밀번호 : " + tempPassword + " \n3분 뒤 임시 비밀번호는 파기됩니다.\n "
         + "로그인 후 마이페이지에서 비밀번호를 변경해 주세요");
     javaMailSender.send(message);
-
+    log.info("[Service] 임시 비밀번호 발급 완료");
   }
 }
