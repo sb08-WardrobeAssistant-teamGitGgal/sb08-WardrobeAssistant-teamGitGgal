@@ -3,6 +3,7 @@ package com.gitggal.clothesplz.controller.clothes;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -105,7 +106,9 @@ class ClothesControllerTest {
           .andExpect(status().isCreated())
           .andExpect(jsonPath("$.ownerId").value(ownerId.toString()))
           .andExpect(jsonPath("$.name").value("흰 티셔츠"))
-          .andExpect(jsonPath("$.type").value("TOP"));
+          .andExpect(jsonPath("$.type").value("TOP"))
+          .andExpect(jsonPath("$.attributes[0].definitionId").value(definitionId.toString()))
+          .andExpect(jsonPath("$.attributes[0].value").value("WHITE"));
     }
 
     @Test
@@ -118,14 +121,21 @@ class ClothesControllerTest {
       MockMultipartFile image = new MockMultipartFile(
           "image", "shirt.jpg", MediaType.IMAGE_JPEG_VALUE, "img".getBytes()
       );
-      given(clothesService.createClothes(any(), any())).willReturn(clothesDto);
+      ClothesDto clothesDtoWithImage = new ClothesDto(
+          UUID.randomUUID(), ownerId, "흰 티셔츠",
+          "https://cdn.example.com/shirt.jpg", ClothesType.TOP,
+          List.of(new ClothesAttributeWithDefDto(definitionId, "색상", List.of("WHITE", "BLACK"), "WHITE"))
+      );
+      given(clothesService.createClothes(any(), any())).willReturn(clothesDtoWithImage);
 
       mockMvc.perform(multipart("/api/clothes")
               .file(toRequestPart(request))
               .file(image)
               .with(csrf()))
           .andExpect(status().isCreated())
-          .andExpect(jsonPath("$.name").value("흰 티셔츠"));
+          .andExpect(jsonPath("$.name").value("흰 티셔츠"))
+          .andExpect(jsonPath("$.imageUrl").value("https://cdn.example.com/shirt.jpg"));
+      verify(clothesService).createClothes(any(), any());
     }
 
     @Test

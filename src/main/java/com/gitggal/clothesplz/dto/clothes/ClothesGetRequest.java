@@ -29,8 +29,8 @@ public record ClothesGetRequest(
     UUID ownerId
 ) {
 
-  @AssertTrue(message = "cursor와 idAfter는 함께 제공되거나 함께 생략되어야 합니다.")
+  @AssertTrue(message = "cursor와 idAfter는 함께 제공되거나 함께 생략되어야 합니다. (빈 문자열 cursor는 생략으로 간주됩니다.)")
   public boolean isCursorConsistent() {
-    return (cursor == null) == (idAfter == null);
+    return (cursor == null || cursor.isBlank()) == (idAfter == null);
   }
 }

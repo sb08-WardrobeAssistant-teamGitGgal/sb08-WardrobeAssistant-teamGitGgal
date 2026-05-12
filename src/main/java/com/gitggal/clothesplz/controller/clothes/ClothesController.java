@@ -100,11 +100,11 @@ public class ClothesController implements ClothesControllerApi {
   public ResponseEntity<ClothesDto> extractByUrl(
       @RequestParam String url
   ) {
-    log.info("[Controller] 의상 URL로 의상 조회 시작: url = {}", url);
+    log.info("[Controller] 의상 URL로 의상 조회 시작");
 
     ClothesDto response = clothesService.extractByUrl(url);
 
-    log.info("[Controller] 의상 URL로 의상 조회 완료: url = {}", url);
+    log.info("[Controller] 의상 URL로 의상 조회 완료");
     return ResponseEntity
         .status(HttpStatus.OK)
         .body(response);
