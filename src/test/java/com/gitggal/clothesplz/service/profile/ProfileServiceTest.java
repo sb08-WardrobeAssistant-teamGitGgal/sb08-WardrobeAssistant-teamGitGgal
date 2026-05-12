@@ -184,6 +184,95 @@ class ProfileServiceTest extends ServiceTestSupport {
   }
 
   @Test
+  @DisplayName("위치 정보 없는 프로필 조회 시 location이 null로 반환된다")
+  void getProfile_withNoLocation_returnsNullLocation() {
+    // given
+    UUID userId = UUID.randomUUID();
+    User user = new User("홍길동", "hong@test.com", "hong_password");
+    Profile profileNoLocation = Profile.builder()
+        .user(user)
+        .gender(Gender.MALE)
+        .build();
+
+    given(userRepository.findById(userId)).willReturn(Optional.of(user));
+    given(profileRepository.findByUser(user)).willReturn(Optional.of(profileNoLocation));
+
+    // when
+    ProfileDto result = profileService.getProfile(userId);
+
+    // then
+    assertThat(result.location()).isNull();
+  }
+
+  @Test
+  @DisplayName("프로필 수정 중 예외 발생 시 업로드된 이미지가 삭제된다")
+  void updateProfile_onException_deletesUploadedImage() {
+    // given
+    UUID userId = UUID.randomUUID();
+    User user = new User("홍길동", "hong@test.com", "hong_password");
+    // 기존 프로필은 다른 좌표(50, 100)로 설정해 요청 위치(60, 127)와 구별
+    Profile profile = Profile.builder()
+        .user(user)
+        .gender(Gender.MALE)
+        .birthDate(LocalDate.of(1995, 1, 1))
+        .latitude(37.0)
+        .longitude(126.0)
+        .gridX(50)
+        .gridY(100)
+        .build();
+    ProfileUpdateRequest request = request();
+    MockMultipartFile image = new MockMultipartFile(
+        "image",
+        "profile.jpg",
+        "image/jpeg",
+        "img".getBytes()
+    );
+    String newImageUrl = "http://localhost:8080/files/new.png";
+
+    given(userRepository.findById(userId)).willReturn(Optional.of(user));
+    given(profileRepository.findByUser(user)).willReturn(Optional.of(profile));
+    given(imageUploader.upload(image)).willReturn(newImageUrl);
+    given(locationRepository.findByGridXAndGridY(50, 100)).willReturn(Optional.of(location())); // findLocationOrNull
+    given(locationRepository.findByGridXAndGridY(60, 127)).willThrow(new RuntimeException("DB 오류")); // 요청 위치 조회
+
+    // when
+    Throwable thrown = catchThrowable(() -> profileService.updateProfile(userId, request, image));
+
+    // then
+    assertThat(thrown).isInstanceOf(RuntimeException.class);
+    verify(imageUploader).delete(newImageUrl);
+  }
+
+  @Test
+  @DisplayName("새 이미지 URL이 기존 이미지 URL과 같으면 기존 이미지는 삭제되지 않는다")
+  void updateProfile_withSameImageUrl_doesNotDeleteOldImage() {
+    // given
+    UUID userId = UUID.randomUUID();
+    User user = new User("홍길동", "hong@test.com", "hong_password");
+    String sameImageUrl = "http://localhost:8080/files/same.png";
+    Profile profile = profileWithImage(user, sameImageUrl);
+    ProfileUpdateRequest request = request();
+    Location location = location();
+    MockMultipartFile image = new MockMultipartFile(
+        "image",
+        "profile.jpg",
+        "image/jpeg",
+        "img".getBytes()
+    );
+
+    given(userRepository.findById(userId)).willReturn(Optional.of(user));
+    given(profileRepository.findByUser(user)).willReturn(Optional.of(profile));
+    given(imageUploader.upload(image)).willReturn(sameImageUrl);
+    given(locationRepository.findByGridXAndGridY(60, 127)).willReturn(Optional.of(location));
+
+    // when
+    profileService.updateProfile(userId, request, image);
+
+    // then
+    verify(imageUploader, never()).delete(sameImageUrl);
+  }
+
+  @Test
   @DisplayName("없는 사용자로 조회하면 USER_NOT_FOUND 예외가 발생한다")
   void getProfile_userNotFound_throwsException() {
     // given
