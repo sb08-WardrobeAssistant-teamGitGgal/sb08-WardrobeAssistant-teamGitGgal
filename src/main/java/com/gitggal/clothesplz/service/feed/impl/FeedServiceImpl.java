@@ -3,6 +3,8 @@ package com.gitggal.clothesplz.service.feed.impl;
 import com.gitggal.clothesplz.dto.clothes.OotdDto;
 import com.gitggal.clothesplz.dto.feed.CommentCreateRequest;
 import com.gitggal.clothesplz.dto.feed.CommentDto;
+import com.gitggal.clothesplz.dto.feed.CommentDtoCursorResponse;
+import com.gitggal.clothesplz.dto.feed.CommentPageRequest;
 import com.gitggal.clothesplz.dto.feed.FeedCreateRequest;
 import com.gitggal.clothesplz.dto.feed.FeedDto;
 import com.gitggal.clothesplz.dto.feed.FeedUpdateRequest;
@@ -168,5 +170,41 @@ public class FeedServiceImpl implements FeedService {
 
     log.info("[Service] 피드 댓글 생성 요청 완료 - commentId: {}", savedComment.getId());
     return commentMapper.toDto(savedComment);
+  }
+
+  @Override
+  public CommentDtoCursorResponse findAll(UUID feedId, CommentPageRequest commentPageRequest) {
+    log.info("[Service] 피드 댓글 목록 조회 요청 시작 - feedId: {}", feedId);
+
+    Feed feed = feedRepository.findWithDetailsById(feedId)
+        .orElseThrow(() -> new BusinessException(FeedErrorCode.FEED_NOT_FOUND));
+
+    List<CommentDto> comments = feedCommentRepository.findAllByCursor(feedId, commentPageRequest);
+
+    boolean hasNext = comments.size() > commentPageRequest.limit();
+    List<CommentDto> data = hasNext ? comments.subList(0, commentPageRequest.limit()) : comments;
+
+    String nextCursor = null;
+    UUID nextIdAfter = null;
+
+    if (!data.isEmpty() && hasNext) {
+      CommentDto lastComment = data.get(data.size() - 1);
+      nextCursor = lastComment.createdAt().toString();
+      nextIdAfter = lastComment.id();
+    }
+
+    long totalCount = feed.getCommentCount();
+
+    log.info("[Service] 피드 댓글 생성 요청 완료 - commentCount: {}", totalCount);
+
+    return new CommentDtoCursorResponse(
+        data,
+        nextCursor,
+        nextIdAfter,
+        hasNext,
+        totalCount,
+        "createdAt",
+        "DESCENDING"
+    );
   }
 }

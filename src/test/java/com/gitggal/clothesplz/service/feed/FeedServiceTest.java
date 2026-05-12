@@ -10,9 +10,13 @@ import static org.mockito.Mockito.mock;
 
 import com.gitggal.clothesplz.dto.feed.CommentCreateRequest;
 import com.gitggal.clothesplz.dto.feed.CommentDto;
+import com.gitggal.clothesplz.dto.feed.CommentDtoCursorResponse;
+import com.gitggal.clothesplz.dto.feed.CommentPageRequest;
 import com.gitggal.clothesplz.dto.feed.FeedCreateRequest;
 import com.gitggal.clothesplz.dto.feed.FeedDto;
 import com.gitggal.clothesplz.dto.feed.FeedUpdateRequest;
+import com.gitggal.clothesplz.dto.user.AuthorDto;
+import java.time.Instant;
 import com.gitggal.clothesplz.entity.feed.Feed;
 import com.gitggal.clothesplz.entity.feed.FeedComment;
 import com.gitggal.clothesplz.entity.feed.FeedLike;
@@ -59,6 +63,9 @@ public class FeedServiceTest extends ServiceTestSupport {
   private FeedCreateRequest feedCreateRequest;
   private FeedUpdateRequest feedUpdateRequest;
   private CommentCreateRequest commentCreateRequest;
+  private CommentPageRequest pageRequest;
+  private CommentDto commentDto1;
+  private CommentDto commentDto2;
 
   @BeforeEach
   void setUp() {
@@ -88,6 +95,18 @@ public class FeedServiceTest extends ServiceTestSupport {
       feedId,
       authorId,
       "댓글 생성"
+    );
+
+    pageRequest = new CommentPageRequest(null, null, 2);
+
+    commentDto1 = new CommentDto(
+        UUID.randomUUID(), Instant.now(), feedId,
+        new AuthorDto(authorId, "작성자1", "url1"), "댓글1"
+    );
+
+    commentDto2 = new CommentDto(
+        UUID.randomUUID(), Instant.now(), feedId,
+        new AuthorDto(authorId, "작성자2", "url2"), "댓글2"
     );
   }
 
@@ -358,6 +377,84 @@ public class FeedServiceTest extends ServiceTestSupport {
 
       // when & then
       assertThatThrownBy(() -> feedService.createComment(feedId, commentCreateRequest))
+          .isInstanceOf(BusinessException.class);
+    }
+  }
+
+  @Nested
+  @DisplayName("댓글 목록 조회 관련 테스트")
+  class CommentFindAllTests {
+
+    @Test
+    @DisplayName("댓글 목록 조회 성공 - 다음 페이지 없는 경우")
+    void findAll_Success_NoNextPage() {
+      // given
+      given(feedRepository.findWithDetailsById(eq(feedId))).willReturn(Optional.of(mockFeed));
+      given(feedCommentRepository.findAllByCursor(eq(feedId), eq(pageRequest)))
+          .willReturn(List.of(commentDto1));
+      given(mockFeed.getCommentCount()).willReturn(1L);
+
+      // when
+      CommentDtoCursorResponse result = feedService.findAll(feedId, pageRequest);
+
+      // then
+      assertThat(result.hasNext()).isFalse();
+      assertThat(result.nextCursor()).isNull();
+      assertThat(result.nextIdAfter()).isNull();
+      assertThat(result.data().size()).isEqualTo(1);
+      assertThat(result.totalCount()).isEqualTo(1L);
+    }
+
+    @Test
+    @DisplayName("댓글 목록 조회 성공 - 다음 페이지 있는 경우")
+    void findAll_Success_HasNextPage() {
+      // given
+      CommentDto commentDto3 = new CommentDto(
+          UUID.randomUUID(), Instant.now(), feedId,
+          new AuthorDto(authorId, "작성자3", "url3"), "댓글3"
+      );
+      given(feedRepository.findWithDetailsById(eq(feedId))).willReturn(Optional.of(mockFeed));
+      given(feedCommentRepository.findAllByCursor(eq(feedId), eq(pageRequest)))
+          .willReturn(List.of(commentDto1, commentDto2, commentDto3));
+      given(mockFeed.getCommentCount()).willReturn(3L);
+
+      // when
+      CommentDtoCursorResponse result = feedService.findAll(feedId, pageRequest);
+
+      // then
+      assertThat(result.hasNext()).isTrue();
+      assertThat(result.nextCursor()).isEqualTo(commentDto2.createdAt().toString());
+      assertThat(result.nextIdAfter()).isEqualTo(commentDto2.id());
+      assertThat(result.data().size()).isEqualTo(2);
+      assertThat(result.totalCount()).isEqualTo(3L);
+    }
+
+    @Test
+    @DisplayName("피드에 댓글이 없어 빈 목록 반환하는 경우")
+    void findAll_EmptyComments() {
+      // given
+      given(feedRepository.findWithDetailsById(eq(feedId))).willReturn(Optional.of(mockFeed));
+      given(feedCommentRepository.findAllByCursor(eq(feedId), eq(pageRequest)))
+          .willReturn(List.of());
+      given(mockFeed.getCommentCount()).willReturn(0L);
+
+      // when
+      CommentDtoCursorResponse result = feedService.findAll(feedId, pageRequest);
+
+      // then
+      assertThat(result.hasNext()).isFalse();
+      assertThat(result.data().size()).isEqualTo(0);
+      assertThat(result.totalCount()).isEqualTo(0L);
+    }
+
+    @Test
+    @DisplayName("피드 정보를 찾을 수 없는 경우 예외 발생")
+    void findAll_FeedNotFound_ThrowsException() {
+      // given
+      given(feedRepository.findWithDetailsById(eq(feedId))).willReturn(Optional.empty());
+
+      // when & then
+      assertThatThrownBy(() -> feedService.findAll(feedId, pageRequest))
           .isInstanceOf(BusinessException.class);
     }
   }

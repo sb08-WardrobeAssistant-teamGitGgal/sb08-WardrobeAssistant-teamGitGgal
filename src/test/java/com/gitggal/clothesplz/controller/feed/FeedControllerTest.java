@@ -7,6 +7,7 @@ import static org.mockito.BDDMockito.willDoNothing;
 import static org.mockito.BDDMockito.willThrow;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -16,6 +17,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gitggal.clothesplz.config.TestSecurityConfig;
 import com.gitggal.clothesplz.dto.feed.CommentCreateRequest;
 import com.gitggal.clothesplz.dto.feed.CommentDto;
+import com.gitggal.clothesplz.dto.feed.CommentDtoCursorResponse;
+import com.gitggal.clothesplz.dto.feed.CommentPageRequest;
 import com.gitggal.clothesplz.dto.feed.FeedCreateRequest;
 import com.gitggal.clothesplz.dto.feed.FeedDto;
 import com.gitggal.clothesplz.dto.feed.FeedUpdateRequest;
@@ -75,6 +78,8 @@ public class FeedControllerTest {
   private UUID userId;
   private UUID feedId;
   private FeedDto feedDto;
+  private CommentDto commentDto1;
+  private CommentDto commentDto2;
 
   @BeforeEach
   void setUp() {
@@ -82,6 +87,7 @@ public class FeedControllerTest {
     weatherId = UUID.randomUUID();
     userId = UUID.randomUUID();
     feedId = UUID.randomUUID();
+
     feedDto = new FeedDto(
         UUID.randomUUID(), Instant.now(), Instant.now(),
         new AuthorDto(authorId, "피드 작성자", "profileUrl"),
@@ -91,6 +97,16 @@ public class FeedControllerTest {
             new PrecipitationDto(PrecipitationType.NONE, 0.1, 0.1),
             new TemperatureDto(0.1, 0.1, 0.1, 0.1)),
         List.of(), "피드 내용 테스트", 0L, 0, false
+    );
+
+    commentDto1 = new CommentDto(
+        UUID.randomUUID(), Instant.now(), feedId,
+        new AuthorDto(authorId, "작성자1", "url1"), "댓글1"
+    );
+
+    commentDto2 = new CommentDto(
+        UUID.randomUUID(), Instant.now(), feedId,
+        new AuthorDto(authorId, "작성자2", "url2"), "댓글2"
     );
   }
 
@@ -267,11 +283,8 @@ public class FeedControllerTest {
     @DisplayName("성공 - 201 반환")
     void createComment_Success() throws Exception {
       CommentCreateRequest request = new CommentCreateRequest(feedId, authorId, "댓글 내용 테스트");
-      CommentDto commentDto = new CommentDto(
-          UUID.randomUUID(), Instant.now(), feedId,
-          new AuthorDto(authorId, "댓글 작성자", "profileUrl"),
-          "댓글 내용 테스트");
-      given(feedService.createComment(eq(feedId), any())).willReturn(commentDto);
+
+      given(feedService.createComment(eq(feedId), any())).willReturn(commentDto1);
 
       mockMvc.perform(post("/api/feeds/{feedId}/comments", feedId)
               .with(csrf())
@@ -341,5 +354,45 @@ public class FeedControllerTest {
             .with(csrf())
             .param("userId", userId.toString()))
         .andExpect(status().isConflict());
+  }
+
+  @Nested
+  @DisplayName("피드 목록 조회 관련 테스트")
+  class CommentFindAllTests {
+    @Test
+    @DisplayName("성공 - 200 반환")
+    void commentFindAll_Success() throws Exception {
+      CommentPageRequest commentPageRequest =
+          new CommentPageRequest(null, null, 2);
+
+      CommentDtoCursorResponse response = new CommentDtoCursorResponse(
+          List.of(commentDto1, commentDto2),
+          null,
+          null,
+          false,
+          2L,
+          "createdAt",
+          "DESCENDING"
+      );
+
+      given(feedService.findAll(eq(feedId), eq(commentPageRequest))).willReturn(response);
+
+      mockMvc.perform(get("/api/feeds/{feedId}/comments", feedId)
+              .param("limit", "2"))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$.data").isArray())
+          .andExpect(jsonPath("$.data.length()").value(2))
+          .andExpect(jsonPath("$.data[0].content").value("댓글1"))
+          .andExpect(jsonPath("$.data[1].content").value("댓글2"))
+          .andExpect(jsonPath("$.hasNext").value(false))
+          .andExpect(jsonPath("$.totalCount").value(2));
+    }
+
+    @Test
+    @DisplayName("실패 - limit 없으면 400 반환")
+    void commentFindAll_MissingLimit_Returns400() throws Exception {
+      mockMvc.perform(get("/api/feeds/{feedId}/comments", feedId))
+          .andExpect(status().isBadRequest());
+    }
   }
 }
