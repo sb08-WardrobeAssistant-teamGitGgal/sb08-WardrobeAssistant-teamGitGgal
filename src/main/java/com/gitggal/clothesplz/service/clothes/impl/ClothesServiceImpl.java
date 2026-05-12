@@ -21,6 +21,8 @@ import com.gitggal.clothesplz.repository.clothes.ClothesRepository;
 import com.gitggal.clothesplz.repository.user.UserRepository;
 import com.gitggal.clothesplz.service.clothes.ClothesService;
 import com.gitggal.clothesplz.service.image.ImageUploader;
+import java.time.Instant;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -47,8 +49,56 @@ public class ClothesServiceImpl implements ClothesService {
   @Override
   @Transactional(readOnly = true)
   public ClothesDtoCursorResponse getClothes(ClothesGetRequest request) {
+    User owner = findUserOrThrow(request.ownerId());
 
-    return null;
+    // 문자열로된 시간(cursor), 타입변환
+    Instant instantCursor;
+    try {
+      instantCursor = (request.cursor() != null && !request.cursor().isBlank())
+          ? Instant.parse(request.cursor())
+          : null;
+    } catch (DateTimeParseException e) {
+      throw new BusinessException(ClothesErrorCode.INVALID_CURSOR_FORMAT);
+    }
+
+    List<Clothes> clothesList = clothesRepository.findAllByCursor(request, instantCursor);
+    Long totalCount = clothesRepository.countByCursor(request);
+
+    boolean hasNext = clothesList.size() > request.limit();
+    List<Clothes> pageData = hasNext ? clothesList.subList(0, request.limit()) : clothesList;
+    String nextCursor = hasNext ? pageData.get(pageData.size() - 1).getCreatedAt().toString() : null;
+    UUID nextIdAfter = hasNext ? pageData.get(pageData.size() - 1).getId() : null;
+
+    List<UUID> ids = pageData.stream().map(Clothes::getId).toList();
+    Map<UUID, List<ClothesAttributeWithDefDto>> attrsMap = new HashMap<>();
+
+    // 의상 ID별 속성 리스트를 가져오고, Map형태로 변경한다. -> 탐색 O(1)
+    if (!ids.isEmpty()) {
+      for (ClothesAttribute attr : clothesAttributeRepository.findAllByClothesIdIn(ids)) {
+        attrsMap.computeIfAbsent(
+                attr.getClothes().getId(),
+                k -> new ArrayList<>())
+            .add(clothesMapper.toClothesAttributeWithDefDto(attr.getDefinition(), attr.getValue()));
+      }
+    }
+
+    List<ClothesDto> data = pageData.stream()
+        .map(clothes -> clothesMapper.toClothesDto(
+            clothes,
+            owner,
+            attrsMap.getOrDefault(clothes.getId(), List.of()))
+        )
+        .toList();
+
+    return new ClothesDtoCursorResponse(
+        data,
+        nextCursor,
+        nextIdAfter,
+        hasNext,
+        totalCount,
+        "createdAt",
+        "DESCENDING"
+    );
   }
 
   @Override
