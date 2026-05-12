@@ -10,10 +10,12 @@ import static org.mockito.BDDMockito.verify;
 
 import com.gitggal.clothesplz.dto.user.UserCreateRequest;
 import com.gitggal.clothesplz.dto.user.UserDto;
+import com.gitggal.clothesplz.entity.profile.Profile;
 import com.gitggal.clothesplz.entity.user.User;
 import com.gitggal.clothesplz.entity.user.UserRole;
 import com.gitggal.clothesplz.exception.BusinessException;
 import com.gitggal.clothesplz.mapper.user.UserMapper;
+import com.gitggal.clothesplz.repository.profile.ProfileRepository;
 import com.gitggal.clothesplz.repository.user.UserRepository;
 import java.time.Instant;
 import java.util.UUID;
@@ -36,6 +38,9 @@ class UserServiceTest {
 
   @Mock
   private UserRepository userRepository;
+
+  @Mock
+  private ProfileRepository profileRepository;
 
   @Mock
   private UserMapper userMapper;
@@ -72,6 +77,9 @@ class UserServiceTest {
       given(passwordEncoder.encode(request.password())).willReturn(encodedPassword);
       given(userRepository.existsByEmail(request.email())).willReturn(false);
       given(userRepository.save(any(User.class)))
+          .willAnswer(invocation -> invocation.getArgument(0));
+
+      given(profileRepository.save(any(Profile.class)))
           .willAnswer(invocation -> invocation.getArgument(0));
       given(userMapper.toDto(any(User.class))).willReturn(responseDto);
 

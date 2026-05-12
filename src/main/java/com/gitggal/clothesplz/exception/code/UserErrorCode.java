@@ -14,6 +14,7 @@ public enum UserErrorCode implements ErrorCode {
   // 인증
   AUTHENTICATION_FAILED(1101, HttpStatus.UNAUTHORIZED, "이메일 또는 비밀번호가 올바르지 않습니다."),
   AUTHENTICATION_PRINCIPAL_INVALID(1102, HttpStatus.INTERNAL_SERVER_ERROR, "인증 사용자 정보가 올바르지 않습니다."),
+  INVALID_TOKEN(1103, HttpStatus.UNAUTHORIZED, "토큰이 올바르지 않습니다."),
 
   // JWT
   JWT_TOKEN_INVALID(1201, HttpStatus.UNAUTHORIZED, "토큰이 유효하지 않습니다."),
@@ -23,17 +24,22 @@ public enum UserErrorCode implements ErrorCode {
   JWT_TOKEN_NOT_FOUND(1205, HttpStatus.UNAUTHORIZED, "토큰을 찾을 수 없습니다.");
 
 
-
   private final int code;
   private final HttpStatus httpStatus;
   private final String message;
 
   @Override
-  public int getCode() { return code; }
+  public int getCode() {
+    return code;
+  }
 
   @Override
-  public HttpStatus getHttpStatus() { return httpStatus; }
+  public HttpStatus getHttpStatus() {
+    return httpStatus;
+  }
 
   @Override
-  public String getMessage() { return message; }
+  public String getMessage() {
+    return message;
+  }
 }
