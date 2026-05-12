@@ -241,6 +241,35 @@ class ProfileServiceTest extends ServiceTestSupport {
   }
 
   @Test
+  @DisplayName("새 이미지 URL이 기존 이미지 URL과 같으면 기존 이미지는 삭제되지 않는다")
+  void updateProfile_withSameImageUrl_doesNotDeleteOldImage() {
+    // given
+    UUID userId = UUID.randomUUID();
+    User user = new User("홍길동", "hong@test.com", "hong_password");
+    String sameImageUrl = "http://localhost:8080/files/same.png";
+    Profile profile = profileWithImage(user, sameImageUrl);
+    ProfileUpdateRequest request = request();
+    Location location = location();
+    MockMultipartFile image = new MockMultipartFile(
+        "image",
+        "profile.jpg",
+        "image/jpeg",
+        "img".getBytes()
+    );
+
+    given(userRepository.findById(userId)).willReturn(Optional.of(user));
+    given(profileRepository.findByUser(user)).willReturn(Optional.of(profile));
+    given(imageUploader.upload(image)).willReturn(sameImageUrl);
+    given(locationRepository.findByGridXAndGridY(60, 127)).willReturn(Optional.of(location));
+
+    // when
+    profileService.updateProfile(userId, request, image);
+
+    // then
+    verify(imageUploader, never()).delete(sameImageUrl);
+  }
+
+  @Test
   @DisplayName("없는 사용자로 조회하면 USER_NOT_FOUND 예외가 발생한다")
   void getProfile_userNotFound_throwsException() {
     // given
