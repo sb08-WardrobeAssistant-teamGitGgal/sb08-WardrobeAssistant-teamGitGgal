@@ -36,7 +36,7 @@ class ClothesRepositoryTest extends RepositoryTestSupport {
 
   private void waitForNextTimestamp() {
     try {
-      Thread.sleep(10);
+      Thread.sleep(1100);
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       throw new RuntimeException(e);
@@ -84,7 +84,7 @@ class ClothesRepositoryTest extends RepositoryTestSupport {
 
     ClothesGetRequest request = new ClothesGetRequest(
         cursor.toString(),
-        UUID.fromString("00000000-0000-0000-0000-000000000000"),
+        c2.getId(),
         20,
         null,
         owner.getId()
