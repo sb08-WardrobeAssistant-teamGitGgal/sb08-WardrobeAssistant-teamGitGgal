@@ -40,3 +40,12 @@ clothesplz:
     refresh-token-secret: dfghdfghfghijklmnopqrstuvwxyz123456
     refresh-token-exp: 3600000
 
+weather:
+  api:
+    url: http://dummy-weather-api
+    service-key: dummy-service-key
+
+kakao:
+  api:
+    rest-key: dummy-kakao-key
+
