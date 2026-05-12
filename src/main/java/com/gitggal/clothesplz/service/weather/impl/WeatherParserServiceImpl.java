@@ -5,6 +5,7 @@ import com.gitggal.clothesplz.dto.weather.WeatherApiResponseDto.WeatherItem;
 import com.gitggal.clothesplz.dto.weather.DailyWeatherForecastDto;
 import com.gitggal.clothesplz.entity.weather.PrecipitationType;
 import com.gitggal.clothesplz.entity.weather.SkyStatus;
+import com.gitggal.clothesplz.service.weather.WeatherParserService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -16,7 +17,7 @@ import java.time.format.DateTimeParseException;
 
 @Slf4j
 @Service
-public class WeatherParserServiceImpl {
+public class WeatherParserServiceImpl implements WeatherParserService {
 
     /**
      * 기상청 응답 데이터를 분석하여 날짜별 요약 예보 리스트로 변환

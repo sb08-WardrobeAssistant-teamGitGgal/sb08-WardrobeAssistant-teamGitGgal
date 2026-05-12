@@ -5,6 +5,7 @@ import com.gitggal.clothesplz.dto.weather.WeatherAPILocationDto;
 import com.gitggal.clothesplz.mapper.weather.WeatherMapper;
 import com.gitggal.clothesplz.service.weather.KakaoLocalApiService;
 import com.gitggal.clothesplz.service.weather.WeatherApiService;
+import com.gitggal.clothesplz.service.weather.WeatherParserService;
 import com.gitggal.clothesplz.service.weather.WeatherService;
 import com.gitggal.clothesplz.util.weather.KmaGridCoordinateConverter;
 import com.gitggal.clothesplz.util.weather.KmaGridCoordinateConverter.KmaGridPoint;
@@ -21,7 +22,7 @@ import java.util.List;
 public class WeatherServiceImpl implements WeatherService {
 
     private final WeatherApiService weatherApiService;
-    private final WeatherParserServiceImpl weatherParserServiceImpl;
+    private final WeatherParserService weatherParserService;
     private final KakaoLocalApiService kakaoLocalApiService;
     private final WeatherMapper weatherMapper;
 
@@ -35,7 +36,7 @@ public class WeatherServiceImpl implements WeatherService {
                         weatherApiService.fetchWeather(grid.nx(), grid.ny()),
                         kakaoLocalApiService.getLocationNames(latitude, longitude))
                 .map(tuple -> {
-                    var daily = weatherParserServiceImpl.parseDailyForecast(tuple.getT1());
+                    var daily = weatherParserService.parseDailyForecast(tuple.getT1());
                     List<WeatherDto> mapped = weatherMapper.toWeatherDtoList(
                             daily, latitude, longitude, grid.nx(), grid.ny(), tuple.getT2());
                     log.info("[Service] 기상청 데이터 가공 완료: 결과 건수={}", mapped.size());

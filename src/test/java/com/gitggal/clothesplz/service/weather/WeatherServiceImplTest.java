@@ -7,7 +7,7 @@ import com.gitggal.clothesplz.dto.weather.WeatherAPILocationDto;
 import com.gitggal.clothesplz.mapper.weather.WeatherMapper;
 import com.gitggal.clothesplz.service.weather.KakaoLocalApiService;
 import com.gitggal.clothesplz.service.weather.WeatherApiService;
-import com.gitggal.clothesplz.service.weather.impl.WeatherParserServiceImpl;
+import com.gitggal.clothesplz.service.weather.WeatherParserService;
 import com.gitggal.clothesplz.service.weather.impl.WeatherServiceImpl;
 import com.gitggal.clothesplz.util.weather.KmaGridCoordinateConverter;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,7 +37,7 @@ class WeatherServiceImplTest {
     private WeatherApiService weatherApiService;
 
     @MockitoBean
-    private WeatherParserServiceImpl weatherParserServiceImpl;
+    private WeatherParserService weatherParserService;
 
     @MockitoBean
     private KakaoLocalApiService kakaoLocalApiService;
@@ -79,7 +79,7 @@ class WeatherServiceImplTest {
 
         when(weatherApiService.fetchWeather(point.nx(), point.ny())).thenReturn(Mono.just(apiResponse));
         when(kakaoLocalApiService.getLocationNames(latitude, longitude)).thenReturn(Mono.just(List.of()));
-        when(weatherParserServiceImpl.parseDailyForecast(apiResponse)).thenReturn(parsed);
+        when(weatherParserService.parseDailyForecast(apiResponse)).thenReturn(parsed);
         when(weatherMapper.toWeatherDtoList(parsed, latitude, longitude, point.nx(), point.ny(), List.of())).thenReturn(mapped);
 
         // when & then
@@ -88,7 +88,7 @@ class WeatherServiceImplTest {
         assertThat(result).isEqualTo(mapped);
 
         verify(weatherApiService).fetchWeather(point.nx(), point.ny());
-        verify(weatherParserServiceImpl).parseDailyForecast(apiResponse);
+        verify(weatherParserService).parseDailyForecast(apiResponse);
         verify(weatherMapper).toWeatherDtoList(parsed, latitude, longitude, point.nx(), point.ny(), List.of());
     }
 
