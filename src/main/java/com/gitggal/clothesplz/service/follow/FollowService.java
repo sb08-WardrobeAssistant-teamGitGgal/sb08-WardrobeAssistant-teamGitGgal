@@ -1,5 +1,7 @@
 package com.gitggal.clothesplz.service.follow;
 
+import com.gitggal.clothesplz.dto.follow.FollowCreateRequest;
+import com.gitggal.clothesplz.dto.follow.FollowDto;
 import com.gitggal.clothesplz.dto.follow.FollowListResponse;
 import com.gitggal.clothesplz.dto.follow.FollowSummaryDto;
 import java.util.UUID;
@@ -8,6 +10,11 @@ import java.util.UUID;
  * 팔로우 서비스 인터페이스
  */
 public interface FollowService {
+
+  /**
+   * 팔로우 생성 - 팔로우 대상에게 알림 발송
+   */
+  FollowDto createFollow(FollowCreateRequest request);
 
   /**
    * 팔로잉(우) 목록 - 내가 팔로우 하는 목록

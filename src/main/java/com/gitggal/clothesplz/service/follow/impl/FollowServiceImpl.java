@@ -1,15 +1,21 @@
 package com.gitggal.clothesplz.service.follow.impl;
 
+import com.gitggal.clothesplz.dto.follow.FollowCreateRequest;
 import com.gitggal.clothesplz.dto.follow.FollowDto;
 import com.gitggal.clothesplz.dto.follow.FollowListResponse;
 import com.gitggal.clothesplz.dto.follow.FollowSummaryDto;
+import com.gitggal.clothesplz.dto.notification.NotificationRequest;
 import com.gitggal.clothesplz.entity.base.BaseEntity;
 import com.gitggal.clothesplz.entity.follow.Follow;
+import com.gitggal.clothesplz.entity.notification.NotificationLevel;
+import com.gitggal.clothesplz.entity.user.User;
 import com.gitggal.clothesplz.exception.BusinessException;
 import com.gitggal.clothesplz.exception.code.FollowErrorCode;
 import com.gitggal.clothesplz.mapper.follow.FollowMapper;
 import com.gitggal.clothesplz.repository.follow.FollowRepository;
+import com.gitggal.clothesplz.repository.user.UserRepository;
 import com.gitggal.clothesplz.service.follow.FollowService;
+import com.gitggal.clothesplz.service.notification.NotificationService;
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
 import java.util.List;
@@ -29,10 +35,63 @@ public class FollowServiceImpl implements FollowService {
 
   private static final String SORT_BY = "createdAt";
   private static final String SORT_DIRECTION = "DESCENDING";
-  private final FollowRepository followRepository;
-  private final FollowMapper followMapper;
 
-  enum FollowListType { FOLLOWINGS, FOLLOWERS }
+  private final NotificationService notificationService;
+  private final FollowMapper followMapper;
+  private final FollowRepository followRepository;
+  private final UserRepository userRepository;
+
+  enum FollowListType {FOLLOWINGS, FOLLOWERS}
+
+  /**
+   * 팔로우 생성
+   *
+   * @param request - 팔로우 생성 요청
+   */
+  @Override
+  @Transactional
+  public FollowDto createFollow(FollowCreateRequest request) {
+
+    log.info("[Service] 팔로우 생성 요청 시작: followerId={}, followeeId={}", request.followerId(), request.followeeId());
+
+    UUID followerId = request.followerId();
+
+    UUID followeeId = request.followeeId();
+
+    // 자기 자신은 팔로우 막기
+    if (followerId.equals(followeeId)) {
+      throw new BusinessException(FollowErrorCode.SELF_FOLLOW_NOT_ALLOWED);
+    }
+
+    // 이미 팔로우 중인지 확인
+    if (followRepository.existsByFollower_IdAndFollowee_Id(followerId, followeeId)) {
+      throw new BusinessException(FollowErrorCode.FOLLOW_ALREADY_EXISTS);
+    }
+
+    // FK 설정용 User 프록시
+    User follower = userRepository.getReferenceById(followerId);
+
+    User followee = userRepository.getReferenceById(followeeId);
+
+    Follow follow = Follow.builder()
+        .follower(follower)
+        .followee(followee)
+        .build();
+
+    Follow savedFollow = followRepository.save(follow);
+
+    // 팔로우 알림 발송
+    notificationService.send(new NotificationRequest(
+        followeeId,                    // 알림 수신자 -> 팔로우 받은 사람
+        savedFollow.getFollower().getName() + "님이 나를 팔로우했어요.",
+        null,
+        NotificationLevel.INFO
+    ));
+
+    log.info("[Service] 팔로우 생성 요청 완료: followerId={}, followeeId={}", followerId, followeeId);
+
+    return followMapper.toDto(savedFollow);
+  }
 
   /**
    * 팔로잉(우) 목록 - 내가 팔로우 하는 목록
@@ -58,7 +117,8 @@ public class FollowServiceImpl implements FollowService {
     List<Follow> followings =
         followRepository.findFollowings(followerId, nameLike, cursorInstant, idAfter, limit + 1);
 
-    return getFollowListResponse(FollowListType.FOLLOWINGS, followerId, nameLike, limit, followings);
+    return getFollowListResponse(FollowListType.FOLLOWINGS, followerId, nameLike, limit,
+        followings);
   }
 
   /**
@@ -96,7 +156,9 @@ public class FollowServiceImpl implements FollowService {
 
     log.info("[Service] 팔로우 요약 조회 요청 시작: userId={}", userId);
 
-    if (requesterId == null) return null;
+    if (requesterId == null) {
+      return null;
+    }
 
     // 나를 팔로우하고 있는 사람 수
     long followerCount = followRepository.countByFollowee_Id(userId);
@@ -130,7 +192,7 @@ public class FollowServiceImpl implements FollowService {
   /**
    * 공통 팔로우 리스트 메서드 (다음 페이지 여부 및 카운트 확인)
    */
-  private @NonNull FollowListResponse getFollowListResponse(
+  private FollowListResponse getFollowListResponse(
       FollowListType type,
       UUID targetId,
       String nameLike,

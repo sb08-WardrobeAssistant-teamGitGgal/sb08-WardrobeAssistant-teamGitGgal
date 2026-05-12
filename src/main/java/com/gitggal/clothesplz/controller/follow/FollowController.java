@@ -1,5 +1,7 @@
 package com.gitggal.clothesplz.controller.follow;
 
+import com.gitggal.clothesplz.dto.follow.FollowCreateRequest;
+import com.gitggal.clothesplz.dto.follow.FollowDto;
 import com.gitggal.clothesplz.dto.follow.FollowListResponse;
 import com.gitggal.clothesplz.dto.follow.FollowSummaryDto;
 import com.gitggal.clothesplz.service.follow.FollowService;
@@ -7,9 +9,12 @@ import jakarta.validation.constraints.Positive;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -25,6 +30,19 @@ import org.springframework.web.bind.annotation.RestController;
 public class FollowController {
 
   private final FollowService followService;
+
+  @PostMapping
+  public ResponseEntity<FollowDto> createFollow(
+      @RequestBody FollowCreateRequest request) {
+
+    log.info("[Controller] 팔로우 생성 요청 시작: followerId={}, followeeId={}", request.followerId(), request.followeeId());
+
+    FollowDto response = followService.createFollow(request);
+
+    log.info("[Controller] 팔로우 생성 요청 완료: followerId={}, followeeId={}", request.followerId(), request.followeeId());
+
+    return ResponseEntity.status(HttpStatus.CREATED).body(response);
+  }
 
   @GetMapping("/followings")
   public ResponseEntity<FollowListResponse> getFollowings(
