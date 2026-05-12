@@ -2,10 +2,12 @@ package com.gitggal.clothesplz.service.user;
 
 import com.gitggal.clothesplz.dto.user.UserCreateRequest;
 import com.gitggal.clothesplz.dto.user.UserDto;
+import com.gitggal.clothesplz.entity.profile.Profile;
 import com.gitggal.clothesplz.entity.user.User;
 import com.gitggal.clothesplz.exception.BusinessException;
 import com.gitggal.clothesplz.exception.code.UserErrorCode;
 import com.gitggal.clothesplz.mapper.user.UserMapper;
+import com.gitggal.clothesplz.repository.profile.ProfileRepository;
 import com.gitggal.clothesplz.repository.user.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +22,7 @@ import org.springframework.stereotype.Service;
 public class UserServiceImpl implements UserService {
 
   private final UserRepository userRepository;
+  private final ProfileRepository profileRepository;
   private final UserMapper userMapper;
   private final PasswordEncoder passwordEncoder;
 
@@ -41,6 +44,12 @@ public class UserServiceImpl implements UserService {
 
     try {
       User savedUser = userRepository.save(user);
+
+      Profile profile = Profile.builder()
+          .user(savedUser)
+          .build();
+      profileRepository.save(profile);
+
       log.info("[Service] 회원가입 요청 완료 : userId = {}", user.getId());
       return userMapper.toDto(savedUser);
     } catch (DataIntegrityViolationException e) {
