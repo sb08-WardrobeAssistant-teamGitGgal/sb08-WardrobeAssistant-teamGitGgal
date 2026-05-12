@@ -1,4 +1,4 @@
-package com.gitggal.clothesplz.service.weather;
+package com.gitggal.clothesplz.service.weather.impl;
 
 import com.gitggal.clothesplz.dto.weather.WeatherApiResponseDto;
 import com.gitggal.clothesplz.dto.weather.WeatherApiResponseDto.WeatherItem;
@@ -16,7 +16,7 @@ import java.time.format.DateTimeParseException;
 
 @Slf4j
 @Service
-public class WeatherParserService {
+public class WeatherParserServiceImpl {
 
     /**
      * 기상청 응답 데이터를 분석하여 날짜별 요약 예보 리스트로 변환

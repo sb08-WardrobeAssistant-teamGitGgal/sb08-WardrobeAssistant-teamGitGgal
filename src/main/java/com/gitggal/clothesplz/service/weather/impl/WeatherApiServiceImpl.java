@@ -1,4 +1,4 @@
-package com.gitggal.clothesplz.service.weather;
+package com.gitggal.clothesplz.service.weather.impl;
 
 import com.gitggal.clothesplz.dto.weather.WeatherApiResponseDto;
 import com.gitggal.clothesplz.exception.BusinessException;
@@ -20,7 +20,7 @@ import java.time.format.DateTimeFormatter;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class WeatherApiService {
+public class WeatherApiServiceImpl {
 
     private final WebClient webClient;
 
