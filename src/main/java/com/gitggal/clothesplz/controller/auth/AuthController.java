@@ -58,9 +58,9 @@ public class AuthController {
 
   @PostMapping("/reset-password")
   public ResponseEntity<Void> sendTempPassword(@Validated @RequestBody ResetPasswordRequest request){
-    log.info("[Controller] 임시 비밀번호 발급 요청");
+    log.info("[Controller] 임시 비밀번호 발급 요청 시작");
     authService.sendTempPassword(request);
-    log.info("[Controller] 임시 비밀번호 발급 완료");
+    log.info("[Controller] 임시 비밀번호 발급 요청 완료");
     return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
   }
 }
