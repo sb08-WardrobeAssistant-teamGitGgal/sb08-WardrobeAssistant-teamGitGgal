@@ -6,6 +6,7 @@ import com.gitggal.clothesplz.dto.clothes.ClothesDtoCursorResponse;
 import com.gitggal.clothesplz.dto.clothes.ClothesGetRequest;
 import com.gitggal.clothesplz.dto.clothes.ClothesUpdateRequest;
 import com.gitggal.clothesplz.exception.ErrorResponse;
+import com.gitggal.clothesplz.security.ClothesUserDetails;
 import org.springdoc.core.annotations.ParameterObject;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -16,6 +17,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.UUID;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.multipart.MultipartFile;
 
 @Tag(name = "의상 관리", description = "의상 관련 API")
@@ -66,7 +68,8 @@ public interface ClothesControllerApi {
   )
   ResponseEntity<Void> deleteClothes(
       @Parameter(description = "의상 ID", required = true)
-      UUID clothesId
+      UUID clothesId,
+      @AuthenticationPrincipal ClothesUserDetails userDetails
   );
 
   @Operation(summary = "옷 수정", description = "옷 정보를 수정합니다.")

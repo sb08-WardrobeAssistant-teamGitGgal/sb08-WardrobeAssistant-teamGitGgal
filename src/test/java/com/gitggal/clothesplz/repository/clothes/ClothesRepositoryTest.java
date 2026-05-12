@@ -83,4 +83,33 @@ class ClothesRepositoryTest extends RepositoryTestSupport {
 
     assertThat(result).isEqualTo(2L);
   }
+
+  @Test
+  @DisplayName("existsByIdAndOwnerId는 의상과 소유자가 일치하면 true를 반환한다")
+  void existsByIdAndOwnerId_returnsTrueWhenOwnerMatches() {
+    User owner = em.persistAndFlush(new User("owner4", "owner4@test.com", "pw"));
+    User other = em.persistAndFlush(new User("other4", "other4@test.com", "pw"));
+    Clothes clothes = persistClothes(owner, "coat", ClothesType.OUTER);
+
+    boolean matched = clothesRepository.existsByIdAndOwnerId(clothes.getId(), owner.getId());
+    boolean unmatched = clothesRepository.existsByIdAndOwnerId(clothes.getId(), other.getId());
+
+    assertThat(matched).isTrue();
+    assertThat(unmatched).isFalse();
+  }
+
+  @Test
+  @DisplayName("의상 삭제 후에는 existsByIdAndOwnerId가 false를 반환한다")
+  void existsByIdAndOwnerId_returnsFalseAfterDelete() {
+    User owner = em.persistAndFlush(new User("owner5", "owner5@test.com", "pw"));
+    Clothes clothes = persistClothes(owner, "target", ClothesType.TOP);
+    UUID clothesId = clothes.getId();
+    UUID ownerId = owner.getId();
+
+    clothesRepository.delete(clothes);
+    em.flush();
+    em.clear();
+
+    assertThat(clothesRepository.existsByIdAndOwnerId(clothesId, ownerId)).isFalse();
+  }
 }

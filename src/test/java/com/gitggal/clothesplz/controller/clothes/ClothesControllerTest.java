@@ -5,7 +5,9 @@ import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.mockito.Mockito.verify;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -21,7 +23,12 @@ import com.gitggal.clothesplz.entity.clothes.ClothesType;
 import com.gitggal.clothesplz.exception.BusinessException;
 import com.gitggal.clothesplz.exception.code.ClothesErrorCode;
 import com.gitggal.clothesplz.exception.GlobalExceptionHandler;
+import com.gitggal.clothesplz.dto.user.UserDto;
+import com.gitggal.clothesplz.entity.user.UserRole;
+import com.gitggal.clothesplz.repository.clothes.ClothesRepository;
+import com.gitggal.clothesplz.security.ClothesUserDetails;
 import com.gitggal.clothesplz.security.jwt.JwtAuthenticationFilter;
+import java.time.Instant;
 import com.gitggal.clothesplz.service.clothes.ClothesService;
 import java.util.List;
 import java.util.UUID;
@@ -57,6 +64,8 @@ class ClothesControllerTest {
 
   @MockitoBean
   private ClothesService clothesService;
+  @MockitoBean
+  private ClothesRepository clothesRepository;
 
   @Autowired
   private MockMvc mockMvc;
@@ -239,5 +248,29 @@ class ClothesControllerTest {
               .with(csrf()))
           .andExpect(status().isBadRequest());
     }
+  }
+
+  @Nested
+  @DisplayName("의상 삭제 관련 테스트")
+  class DeleteClothesTests {
+
+    @Test
+    @DisplayName("성공 - 본인 소유 의상을 삭제하면 204를 반환한다")
+    void deleteClothes_asOwner_returns204() throws Exception {
+      UUID clothesId = UUID.randomUUID();
+      ClothesUserDetails userDetails = new ClothesUserDetails(
+          new UserDto(ownerId, Instant.now(), "owner@test.com", "owner", UserRole.USER, false),
+          "pw"
+      );
+      given(clothesRepository.existsByIdAndOwnerId(clothesId, ownerId)).willReturn(true);
+
+      mockMvc.perform(delete("/api/clothes/{clothesId}", clothesId)
+              .with(user(userDetails))
+              .with(csrf()))
+          .andExpect(status().isNoContent());
+
+      verify(clothesService).deleteClothes(clothesId);
+    }
+
   }
 }

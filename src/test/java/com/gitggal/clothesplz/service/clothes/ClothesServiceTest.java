@@ -192,4 +192,60 @@ class ClothesServiceTest extends ServiceTestSupport {
 
     verify(imageUploader).delete(imageUrl);
   }
+
+  @Test
+  @DisplayName("의상 삭제에 성공하면 속성과 의상을 삭제한다")
+  void deleteClothes_success_deletesAttributesAndClothes() {
+    UUID clothesId = UUID.randomUUID();
+    Clothes clothes = new Clothes(owner, "흰 티셔츠", ClothesType.TOP, null, null);
+    given(clothesRepository.findById(clothesId)).willReturn(Optional.of(clothes));
+
+    clothesService.deleteClothes(clothesId);
+
+    verify(clothesAttributeRepository).deleteAllByClothesId(clothesId);
+    verify(clothesRepository).delete(clothes);
+    verify(imageUploader, never()).delete(any());
+  }
+
+  @Test
+  @DisplayName("이미지가 있는 의상 삭제 시 이미지도 삭제한다")
+  void deleteClothes_withImage_deletesImage() {
+    UUID clothesId = UUID.randomUUID();
+    Clothes clothes = new Clothes(owner, "흰 티셔츠", ClothesType.TOP, "http://s3.example.com/shirt.jpg", null);
+    given(clothesRepository.findById(clothesId)).willReturn(Optional.of(clothes));
+
+    clothesService.deleteClothes(clothesId);
+
+    verify(imageUploader).delete("http://s3.example.com/shirt.jpg");
+    verify(clothesAttributeRepository).deleteAllByClothesId(clothesId);
+    verify(clothesRepository).delete(clothes);
+  }
+
+  @Test
+  @DisplayName("이미지 URL이 공백이면 이미지를 삭제하지 않는다")
+  void deleteClothes_withBlankImageUrl_doesNotDeleteImage() {
+    UUID clothesId = UUID.randomUUID();
+    Clothes clothes = new Clothes(owner, "흰 티셔츠", ClothesType.TOP, "   ", null);
+    given(clothesRepository.findById(clothesId)).willReturn(Optional.of(clothes));
+
+    clothesService.deleteClothes(clothesId);
+
+    verify(imageUploader, never()).delete(any());
+    verify(clothesAttributeRepository).deleteAllByClothesId(clothesId);
+    verify(clothesRepository).delete(clothes);
+  }
+
+  @Test
+  @DisplayName("삭제 대상 의상이 없으면 CLOTHES_NOT_FOUND 예외가 발생한다")
+  void deleteClothes_notFound_throwsException() {
+    UUID clothesId = UUID.randomUUID();
+    given(clothesRepository.findById(clothesId)).willReturn(Optional.empty());
+
+    Throwable thrown = catchThrowable(() -> clothesService.deleteClothes(clothesId));
+
+    assertThat(thrown).isInstanceOf(BusinessException.class);
+    assertThat(((BusinessException) thrown).getErrorCode()).isEqualTo(ClothesErrorCode.CLOTHES_NOT_FOUND);
+    verify(clothesAttributeRepository, never()).deleteAllByClothesId(any());
+    verify(clothesRepository, never()).delete(any());
+  }
 }

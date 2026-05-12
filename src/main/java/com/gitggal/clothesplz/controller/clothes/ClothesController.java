@@ -6,6 +6,7 @@ import com.gitggal.clothesplz.dto.clothes.ClothesDto;
 import com.gitggal.clothesplz.dto.clothes.ClothesDtoCursorResponse;
 import com.gitggal.clothesplz.dto.clothes.ClothesGetRequest;
 import com.gitggal.clothesplz.dto.clothes.ClothesUpdateRequest;
+import com.gitggal.clothesplz.security.ClothesUserDetails;
 import com.gitggal.clothesplz.service.clothes.ClothesService;
 import jakarta.validation.Valid;
 import java.util.UUID;
@@ -13,6 +14,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -63,8 +66,10 @@ public class ClothesController implements ClothesControllerApi {
 
   @Override
   @DeleteMapping("/{clothesId}")
+  @PreAuthorize("hasRole('ADMIN') or @clothesRepository.existsByIdAndOwnerId(#clothesId, #userDetails?.userDto?.id)")
   public ResponseEntity<Void> deleteClothes(
-      @PathVariable UUID clothesId
+      @PathVariable UUID clothesId,
+      @AuthenticationPrincipal ClothesUserDetails userDetails
   ) {
     log.info("[Controller] 의상 삭제 요청 시작: clothesId = {}", clothesId);
 
