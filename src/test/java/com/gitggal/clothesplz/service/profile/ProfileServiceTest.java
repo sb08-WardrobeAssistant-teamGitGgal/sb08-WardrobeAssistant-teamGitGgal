@@ -210,7 +210,16 @@ class ProfileServiceTest extends ServiceTestSupport {
     // given
     UUID userId = UUID.randomUUID();
     User user = new User("홍길동", "hong@test.com", "hong_password");
-    Profile profile = profile(user);
+    // 기존 프로필은 다른 좌표(50, 100)로 설정해 요청 위치(60, 127)와 구별
+    Profile profile = Profile.builder()
+        .user(user)
+        .gender(Gender.MALE)
+        .birthDate(LocalDate.of(1995, 1, 1))
+        .latitude(37.0)
+        .longitude(126.0)
+        .gridX(50)
+        .gridY(100)
+        .build();
     ProfileUpdateRequest request = request();
     MockMultipartFile image = new MockMultipartFile(
         "image",
@@ -223,9 +232,8 @@ class ProfileServiceTest extends ServiceTestSupport {
     given(userRepository.findById(userId)).willReturn(Optional.of(user));
     given(profileRepository.findByUser(user)).willReturn(Optional.of(profile));
     given(imageUploader.upload(image)).willReturn(newImageUrl);
-    given(locationRepository.findByGridXAndGridY(60, 127))
-        .willReturn(Optional.of(location()))   // findLocationOrNull 호출
-        .willThrow(new RuntimeException("DB 오류"));  // updateProfile 내 두 번째 호출
+    given(locationRepository.findByGridXAndGridY(50, 100)).willReturn(Optional.of(location())); // findLocationOrNull
+    given(locationRepository.findByGridXAndGridY(60, 127)).willThrow(new RuntimeException("DB 오류")); // 요청 위치 조회
 
     // when
     Throwable thrown = catchThrowable(() -> profileService.updateProfile(userId, request, image));
