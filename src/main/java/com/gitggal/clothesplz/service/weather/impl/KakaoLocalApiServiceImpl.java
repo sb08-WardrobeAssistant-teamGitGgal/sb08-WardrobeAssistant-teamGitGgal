@@ -24,8 +24,6 @@ public class KakaoLocalApiServiceImpl implements KakaoLocalApiService {
     @Value("${kakao.api.rest-key}")
     private String restApiKey;
 
-    private static final String KAKAO_COORD2REGION_URL = "https://dapi.kakao.com/v2/local/geo/coord2regioncode.json";
-
     public Mono<List<String>> getLocationNames(double latitude, double longitude) {
         log.info("[Service] 카카오 좌표 → 행정구역 변환 시작: lat={}, lon={}", latitude, longitude);
         return webClient.get()
