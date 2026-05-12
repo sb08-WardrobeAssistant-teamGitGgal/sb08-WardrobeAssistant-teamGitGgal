@@ -222,6 +222,20 @@ class ClothesServiceTest extends ServiceTestSupport {
   }
 
   @Test
+  @DisplayName("이미지 URL이 공백이면 이미지를 삭제하지 않는다")
+  void deleteClothes_withBlankImageUrl_doesNotDeleteImage() {
+    UUID clothesId = UUID.randomUUID();
+    Clothes clothes = new Clothes(owner, "흰 티셔츠", ClothesType.TOP, "   ", null);
+    given(clothesRepository.findById(clothesId)).willReturn(Optional.of(clothes));
+
+    clothesService.deleteClothes(clothesId);
+
+    verify(imageUploader, never()).delete(any());
+    verify(clothesAttributeRepository).deleteAllByClothesId(clothesId);
+    verify(clothesRepository).delete(clothes);
+  }
+
+  @Test
   @DisplayName("삭제 대상 의상이 없으면 CLOTHES_NOT_FOUND 예외가 발생한다")
   void deleteClothes_notFound_throwsException() {
     UUID clothesId = UUID.randomUUID();

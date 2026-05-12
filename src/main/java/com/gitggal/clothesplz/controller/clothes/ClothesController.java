@@ -66,7 +66,7 @@ public class ClothesController implements ClothesControllerApi {
 
   @Override
   @DeleteMapping("/{clothesId}")
-  @PreAuthorize("@clothesRepository.existsByIdAndOwnerId(#clothesId, #userDetails.userDto.id) or hasRole('ADMIN')")
+  @PreAuthorize("hasRole('ADMIN') or @clothesRepository.existsByIdAndOwnerId(#clothesId, #userDetails?.userDto?.id)")
   public ResponseEntity<Void> deleteClothes(
       @PathVariable UUID clothesId,
       @AuthenticationPrincipal ClothesUserDetails userDetails
