@@ -38,6 +38,9 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class FeedServiceImpl implements FeedService {
 
+  private static final String COMMENT_SORT_BY = "createdAt";
+  private static final String COMMENT_SORT_DIRECTION = "DESCENDING";
+
   private final UserRepository userRepository;
   private final WeatherRepository weatherRepository;
   private final FeedRepository feedRepository;
@@ -203,8 +206,8 @@ public class FeedServiceImpl implements FeedService {
         nextIdAfter,
         hasNext,
         totalCount,
-        "createdAt",
-        "DESCENDING"
+        COMMENT_SORT_BY,
+        COMMENT_SORT_DIRECTION
     );
   }
 }
