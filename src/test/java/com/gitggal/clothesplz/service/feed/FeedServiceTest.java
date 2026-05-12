@@ -389,7 +389,7 @@ public class FeedServiceTest extends ServiceTestSupport {
     @DisplayName("댓글 목록 조회 성공 - 다음 페이지 없는 경우")
     void findAll_Success_NoNextPage() {
       // given
-      given(feedRepository.findWithDetailsById(eq(feedId))).willReturn(Optional.of(mockFeed));
+      given(feedRepository.findById(eq(feedId))).willReturn(Optional.of(mockFeed));
       given(feedCommentRepository.findAllByCursor(eq(feedId), eq(pageRequest)))
           .willReturn(List.of(commentDto1));
       given(mockFeed.getCommentCount()).willReturn(1L);
@@ -413,7 +413,7 @@ public class FeedServiceTest extends ServiceTestSupport {
           UUID.randomUUID(), Instant.now(), feedId,
           new AuthorDto(authorId, "작성자3", "url3"), "댓글3"
       );
-      given(feedRepository.findWithDetailsById(eq(feedId))).willReturn(Optional.of(mockFeed));
+      given(feedRepository.findById(eq(feedId))).willReturn(Optional.of(mockFeed));
       given(feedCommentRepository.findAllByCursor(eq(feedId), eq(pageRequest)))
           .willReturn(List.of(commentDto1, commentDto2, commentDto3));
       given(mockFeed.getCommentCount()).willReturn(3L);
@@ -433,7 +433,7 @@ public class FeedServiceTest extends ServiceTestSupport {
     @DisplayName("피드에 댓글이 없어 빈 목록 반환하는 경우")
     void findAll_EmptyComments() {
       // given
-      given(feedRepository.findWithDetailsById(eq(feedId))).willReturn(Optional.of(mockFeed));
+      given(feedRepository.findById(eq(feedId))).willReturn(Optional.of(mockFeed));
       given(feedCommentRepository.findAllByCursor(eq(feedId), eq(pageRequest)))
           .willReturn(List.of());
       given(mockFeed.getCommentCount()).willReturn(0L);
