@@ -1,6 +1,7 @@
 package com.gitggal.clothesplz.security;
 
 import com.gitggal.clothesplz.dto.user.UserDto;
+import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import lombok.Getter;
@@ -15,6 +16,8 @@ public class ClothesUserDetails implements UserDetails {
 
   private final UserDto userDto;
   private final String password;
+  private final String tempPassword;
+  private final Instant tempPasswordExpiresAt;
 
   @Override
   public Collection<? extends GrantedAuthority> getAuthorities() {
@@ -23,6 +26,11 @@ public class ClothesUserDetails implements UserDetails {
 
   @Override
   public String getPassword() {
+    if (tempPassword != null
+        && tempPasswordExpiresAt != null
+        && Instant.now().isBefore(tempPasswordExpiresAt)) {
+      return tempPassword;
+    }
     return password;
   }
 

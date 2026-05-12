@@ -19,22 +19,32 @@ public class ClothesUserDetailsService implements UserDetailsService {
   private final UserRepository userRepository;
   private final UserMapper userMapper;
 
-  @Transactional(readOnly=true)
+  @Transactional
   @Override
-  public UserDetails loadUserByUsername(String email) throws BusinessException{
+  public UserDetails loadUserByUsername(String email) throws BusinessException {
     User user = userRepository.findByEmail(email)
-        .orElseThrow(()-> new BusinessException(UserErrorCode.USER_NOT_FOUND));
+        .orElseThrow(() -> new BusinessException(UserErrorCode.USER_NOT_FOUND));
 
-    return new ClothesUserDetails(userMapper.toDto(user),user.getPassword());
+    return new ClothesUserDetails(
+        userMapper.toDto(user),
+        user.getPassword(),
+        user.getTempPassword(),
+        user.getTempPasswordExpiresAt()
+    );
 
   }
 
-  @Transactional(readOnly=true)
-  public UserDetails loadUserById(UUID userId) throws BusinessException{
+  @Transactional(readOnly = true)
+  public UserDetails loadUserById(UUID userId) throws BusinessException {
     User user = userRepository.findById(userId)
-        .orElseThrow(()-> new BusinessException(UserErrorCode.USER_NOT_FOUND));
+        .orElseThrow(() -> new BusinessException(UserErrorCode.USER_NOT_FOUND));
 
-    return new ClothesUserDetails(userMapper.toDto(user),user.getPassword());
+    return new ClothesUserDetails(
+        userMapper.toDto(user),
+        user.getPassword(),
+        user.getTempPassword(),
+        user.getTempPasswordExpiresAt()
+    );
 
   }
 }

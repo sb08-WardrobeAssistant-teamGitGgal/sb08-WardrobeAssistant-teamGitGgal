@@ -6,6 +6,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
+import java.time.Duration;
 import java.time.Instant;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -51,6 +52,11 @@ public class User extends BaseUpdatableEntity {
 
   public void updateTempPassword(String password){
     this.tempPassword = password;
-    this.tempPasswordExpiresAt = Instant.now();
+    this.tempPasswordExpiresAt = Instant.now().plus(Duration.ofMinutes(3));;
+  }
+
+  public void clearTempPassword(){
+    this.tempPassword = null;
+    this.tempPasswordExpiresAt = null;
   }
 }
