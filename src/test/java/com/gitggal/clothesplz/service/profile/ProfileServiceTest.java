@@ -189,6 +189,58 @@ class ProfileServiceTest extends ServiceTestSupport {
   }
 
   @Test
+  @DisplayName("위치 정보 없는 프로필 조회 시 location이 null로 반환된다")
+  void getProfile_withNoLocation_returnsNullLocation() {
+    // given
+    UUID userId = UUID.randomUUID();
+    User user = new User("홍길동", "hong@test.com", "hong_password");
+    Profile profileNoLocation = Profile.builder()
+        .user(user)
+        .gender(Gender.MALE)
+        .build();
+
+    given(userRepository.findById(userId)).willReturn(Optional.of(user));
+    given(profileRepository.findByUser(user)).willReturn(Optional.of(profileNoLocation));
+
+    // when
+    ProfileDto result = profileService.getProfile(userId);
+
+    // then
+    assertThat(result.location()).isNull();
+  }
+
+  @Test
+  @DisplayName("프로필 수정 중 예외 발생 시 업로드된 이미지가 삭제된다")
+  void updateProfile_onException_deletesUploadedImage() {
+    // given
+    UUID userId = UUID.randomUUID();
+    User user = new User("홍길동", "hong@test.com", "hong_password");
+    Profile profile = profile(user);
+    ProfileUpdateRequest request = request();
+    MockMultipartFile image = new MockMultipartFile(
+        "image",
+        "profile.jpg",
+        "image/jpeg",
+        "img".getBytes()
+    );
+    String newImageUrl = "http://localhost:8080/files/new.png";
+
+    given(userRepository.findById(userId)).willReturn(Optional.of(user));
+    given(profileRepository.findByUser(user)).willReturn(Optional.of(profile));
+    given(imageUploader.upload(image)).willReturn(newImageUrl);
+    given(locationRepository.findByGridXAndGridY(60, 127))
+        .willReturn(Optional.of(location()))   // findLocationOrNull 호출
+        .willThrow(new RuntimeException("DB 오류"));  // updateProfile 내 두 번째 호출
+
+    // when
+    Throwable thrown = catchThrowable(() -> profileService.updateProfile(userId, request, image));
+
+    // then
+    assertThat(thrown).isInstanceOf(RuntimeException.class);
+    verify(imageUploader).delete(newImageUrl);
+  }
+
+  @Test
   @DisplayName("없는 사용자로 조회하면 USER_NOT_FOUND 예외가 발생한다")
   void getProfile_userNotFound_throwsException() {
     // given
