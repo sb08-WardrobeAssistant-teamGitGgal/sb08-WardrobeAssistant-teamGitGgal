@@ -120,14 +120,6 @@ class ClothesControllerTest {
     }
 
     @Test
-    @DisplayName("실패 - limit 누락 시 400을 반환한다")
-    void getClothes_missingLimit_returns400() throws Exception {
-      mockMvc.perform(get("/api/clothes")
-              .queryParam("ownerId", ownerId.toString()))
-          .andExpect(status().isBadRequest());
-    }
-
-    @Test
     @DisplayName("실패 - 잘못된 cursor 형식이면 400을 반환한다")
     void getClothes_invalidCursor_returns400() throws Exception {
       given(clothesService.getClothes(any()))

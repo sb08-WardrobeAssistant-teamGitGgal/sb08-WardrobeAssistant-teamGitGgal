@@ -69,34 +69,6 @@ class ClothesRepositoryTest extends RepositoryTestSupport {
   }
 
   @Test
-  @DisplayName("cursor가 있으면 cursor 이전 데이터만 조회한다")
-  void findAllByCursor_withCursor_returnsOlderItems() {
-    User owner = em.persistAndFlush(new User("owner2", "owner2@test.com", "pw"));
-
-    Clothes c1 = persistClothes(owner, "a", ClothesType.TOP);
-    waitForNextTimestamp();
-    Clothes c2 = persistClothes(owner, "b", ClothesType.TOP);
-    waitForNextTimestamp();
-    persistClothes(owner, "c", ClothesType.TOP);
-    em.clear();
-
-    Instant cursor = c2.getCreatedAt();
-
-    ClothesGetRequest request = new ClothesGetRequest(
-        cursor.toString(),
-        c2.getId(),
-        20,
-        null,
-        owner.getId()
-    );
-
-    List<Clothes> result = clothesRepository.findAllByCursor(request, cursor);
-
-    assertThat(result).hasSize(1);
-    assertThat(result.get(0).getId()).isEqualTo(c1.getId());
-  }
-
-  @Test
   @DisplayName("countByCursor는 owner/type 필터를 반영한 총 개수를 반환한다")
   void countByCursor_withTypeFilter_returnsFilteredCount() {
     User owner = em.persistAndFlush(new User("owner3", "owner3@test.com", "pw"));

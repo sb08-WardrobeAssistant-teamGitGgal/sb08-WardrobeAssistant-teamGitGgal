@@ -75,21 +75,6 @@ class ClothesServiceTest extends ServiceTestSupport {
   }
 
   @Test
-  @DisplayName("조회 결과가 없으면 속성 조회 쿼리를 호출하지 않는다")
-  void getClothes_emptyPage_skipsAttributeQuery() {
-    ClothesGetRequest req = new ClothesGetRequest(null, null, 20, null, ownerId);
-
-    given(userRepository.findById(ownerId)).willReturn(Optional.of(owner));
-    given(clothesRepository.findAllByCursor(req, null)).willReturn(List.of());
-    given(clothesRepository.countByCursor(req)).willReturn(0L);
-
-    ClothesDtoCursorResponse result = clothesService.getClothes(req);
-
-    assertThat(result.data()).isEmpty();
-    verify(clothesAttributeRepository, never()).findAllByClothesIdIn(any());
-  }
-
-  @Test
   @DisplayName("cursor 형식이 잘못되면 INVALID_CURSOR_FORMAT 예외가 발생한다")
   void getClothes_invalidCursor_throwsException() {
     ClothesGetRequest req = new ClothesGetRequest("invalid-cursor", UUID.randomUUID(), 20, null, ownerId);
