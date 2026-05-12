@@ -25,6 +25,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -98,6 +99,7 @@ class WeatherServiceImplTest {
         // given
         RuntimeException expected = new RuntimeException("api failed");
         when(weatherApiService.fetchWeather(anyInt(), anyInt())).thenReturn(Mono.error(expected));
+        when(kakaoLocalApiService.getLocationNames(anyDouble(), anyDouble())).thenReturn(Mono.just(List.of()));
 
         // when & then
         assertThatThrownBy(() -> weatherServiceImpl.getWeatherForecast(37.5665, 126.9780).block())
