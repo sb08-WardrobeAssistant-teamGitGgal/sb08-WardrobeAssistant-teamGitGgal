@@ -119,12 +119,12 @@ public class FeedController {
   }
 
   @GetMapping("/{feedId}/comments")
-  public ResponseEntity<CommentDtoCursorResponse> findComments(
+  public ResponseEntity<CommentDtoCursorResponse> getComments(
       @PathVariable UUID feedId,
       @Valid @ModelAttribute CommentPageRequest commentPageRequest
   ) {
     log.info("[Controller] 피드 댓글 목록 조회 요청 시작");
-    CommentDtoCursorResponse commentDtoCursorResponse = feedService.findAll(feedId, commentPageRequest);
+    CommentDtoCursorResponse commentDtoCursorResponse = feedService.getComments(feedId, commentPageRequest);
 
 
     log.info("[Controller] 피드 댓글 목록 조회 요청 완료");
@@ -132,4 +132,6 @@ public class FeedController {
         .status(HttpStatus.OK)
         .body(commentDtoCursorResponse);
   }
+
+
 }

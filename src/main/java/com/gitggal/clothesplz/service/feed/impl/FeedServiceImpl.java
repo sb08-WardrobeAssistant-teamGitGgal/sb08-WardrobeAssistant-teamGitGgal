@@ -176,7 +176,7 @@ public class FeedServiceImpl implements FeedService {
   }
 
   @Override
-  public CommentDtoCursorResponse findAll(UUID feedId, CommentPageRequest commentPageRequest) {
+  public CommentDtoCursorResponse getComments(UUID feedId, CommentPageRequest commentPageRequest) {
     log.info("[Service] 피드 댓글 목록 조회 요청 시작 - feedId: {}", feedId);
 
     Feed feed = feedRepository.findById(feedId)

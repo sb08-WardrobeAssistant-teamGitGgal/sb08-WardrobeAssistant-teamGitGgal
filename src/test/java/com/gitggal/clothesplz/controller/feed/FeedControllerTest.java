@@ -375,7 +375,7 @@ public class FeedControllerTest {
           "DESCENDING"
       );
 
-      given(feedService.findAll(eq(feedId), eq(commentPageRequest))).willReturn(response);
+      given(feedService.getComments(eq(feedId), eq(commentPageRequest))).willReturn(response);
 
       mockMvc.perform(get("/api/feeds/{feedId}/comments", feedId)
               .param("limit", "2"))

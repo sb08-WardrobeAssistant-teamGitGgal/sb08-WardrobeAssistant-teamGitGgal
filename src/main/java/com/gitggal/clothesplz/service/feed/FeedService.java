@@ -30,7 +30,7 @@ public interface FeedService {
   CommentDto createComment(UUID feedId ,CommentCreateRequest commentCreateRequest);
 
   // 댓글 목록 조회
-  CommentDtoCursorResponse findAll(UUID feedId, CommentPageRequest commentPageRequest);
+  CommentDtoCursorResponse getComments(UUID feedId, CommentPageRequest commentPageRequest);
 
   // 피드 목록 조회
 }

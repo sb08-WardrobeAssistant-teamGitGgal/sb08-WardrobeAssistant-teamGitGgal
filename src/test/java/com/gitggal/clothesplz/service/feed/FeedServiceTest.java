@@ -387,7 +387,7 @@ public class FeedServiceTest extends ServiceTestSupport {
 
     @Test
     @DisplayName("댓글 목록 조회 성공 - 다음 페이지 없는 경우")
-    void findAll_Success_NoNextPage() {
+    void getComments_Success_NoNextPage() {
       // given
       given(feedRepository.findById(eq(feedId))).willReturn(Optional.of(mockFeed));
       given(feedCommentRepository.findAllByCursor(eq(feedId), eq(pageRequest)))
@@ -395,7 +395,7 @@ public class FeedServiceTest extends ServiceTestSupport {
       given(mockFeed.getCommentCount()).willReturn(1L);
 
       // when
-      CommentDtoCursorResponse result = feedService.findAll(feedId, pageRequest);
+      CommentDtoCursorResponse result = feedService.getComments(feedId, pageRequest);
 
       // then
       assertThat(result.hasNext()).isFalse();
@@ -407,7 +407,7 @@ public class FeedServiceTest extends ServiceTestSupport {
 
     @Test
     @DisplayName("댓글 목록 조회 성공 - 다음 페이지 있는 경우")
-    void findAll_Success_HasNextPage() {
+    void getComments_Success_HasNextPage() {
       // given
       CommentDto commentDto3 = new CommentDto(
           UUID.randomUUID(), Instant.now(), feedId,
@@ -419,7 +419,7 @@ public class FeedServiceTest extends ServiceTestSupport {
       given(mockFeed.getCommentCount()).willReturn(3L);
 
       // when
-      CommentDtoCursorResponse result = feedService.findAll(feedId, pageRequest);
+      CommentDtoCursorResponse result = feedService.getComments(feedId, pageRequest);
 
       // then
       assertThat(result.hasNext()).isTrue();
@@ -431,7 +431,7 @@ public class FeedServiceTest extends ServiceTestSupport {
 
     @Test
     @DisplayName("피드에 댓글이 없어 빈 목록 반환하는 경우")
-    void findAll_EmptyComments() {
+    void getComments_EmptyComments() {
       // given
       given(feedRepository.findById(eq(feedId))).willReturn(Optional.of(mockFeed));
       given(feedCommentRepository.findAllByCursor(eq(feedId), eq(pageRequest)))
@@ -439,7 +439,7 @@ public class FeedServiceTest extends ServiceTestSupport {
       given(mockFeed.getCommentCount()).willReturn(0L);
 
       // when
-      CommentDtoCursorResponse result = feedService.findAll(feedId, pageRequest);
+      CommentDtoCursorResponse result = feedService.getComments(feedId, pageRequest);
 
       // then
       assertThat(result.hasNext()).isFalse();
@@ -449,12 +449,12 @@ public class FeedServiceTest extends ServiceTestSupport {
 
     @Test
     @DisplayName("피드 정보를 찾을 수 없는 경우 예외 발생")
-    void findAll_FeedNotFound_ThrowsException() {
+    void getComments_FeedNotFound_ThrowsException() {
       // given
-      given(feedRepository.findWithDetailsById(eq(feedId))).willReturn(Optional.empty());
+      given(feedRepository.findById(eq(feedId))).willReturn(Optional.empty());
 
       // when & then
-      assertThatThrownBy(() -> feedService.findAll(feedId, pageRequest))
+      assertThatThrownBy(() -> feedService.getComments(feedId, pageRequest))
           .isInstanceOf(BusinessException.class);
     }
   }
