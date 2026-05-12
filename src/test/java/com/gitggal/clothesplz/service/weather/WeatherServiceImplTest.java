@@ -5,7 +5,7 @@ import com.gitggal.clothesplz.dto.weather.WeatherApiResponseDto;
 import com.gitggal.clothesplz.dto.weather.WeatherDto;
 import com.gitggal.clothesplz.dto.weather.WeatherAPILocationDto;
 import com.gitggal.clothesplz.mapper.weather.WeatherMapper;
-import com.gitggal.clothesplz.service.weather.impl.KakaoLocalApiServiceImpl;
+import com.gitggal.clothesplz.service.weather.KakaoLocalApiService;
 import com.gitggal.clothesplz.service.weather.impl.WeatherApiServiceImpl;
 import com.gitggal.clothesplz.service.weather.impl.WeatherParserServiceImpl;
 import com.gitggal.clothesplz.service.weather.impl.WeatherServiceImpl;
@@ -40,7 +40,7 @@ class WeatherServiceImplTest {
     private WeatherParserServiceImpl weatherParserServiceImpl;
 
     @MockitoBean
-    private KakaoLocalApiServiceImpl kakaoLocalApiServiceImpl;
+    private KakaoLocalApiService kakaoLocalApiService;
 
     @MockitoBean
     private WeatherMapper weatherMapper;
@@ -78,7 +78,7 @@ class WeatherServiceImplTest {
         KmaGridCoordinateConverter.KmaGridPoint point = KmaGridCoordinateConverter.toGrid(latitude, longitude);
 
         when(weatherApiimplServiceImpl.fetchWeather(point.nx(), point.ny())).thenReturn(Mono.just(apiResponse));
-        when(kakaoLocalApiServiceImpl.getLocationNames(latitude, longitude)).thenReturn(Mono.just(List.of()));
+        when(kakaoLocalApiService.getLocationNames(latitude, longitude)).thenReturn(Mono.just(List.of()));
         when(weatherParserServiceImpl.parseDailyForecast(apiResponse)).thenReturn(parsed);
         when(weatherMapper.toWeatherDtoList(parsed, latitude, longitude, point.nx(), point.ny(), List.of())).thenReturn(mapped);
 
@@ -114,7 +114,7 @@ class WeatherServiceImplTest {
         KmaGridCoordinateConverter.KmaGridPoint point = KmaGridCoordinateConverter.toGrid(latitude, longitude);
         WeatherAPILocationDto locationDto = new WeatherAPILocationDto(latitude, longitude, point.nx(), point.ny(), List.of());
 
-        when(kakaoLocalApiServiceImpl.getLocationNames(latitude, longitude)).thenReturn(Mono.just(List.of()));
+        when(kakaoLocalApiService.getLocationNames(latitude, longitude)).thenReturn(Mono.just(List.of()));
         when(weatherMapper.toLocationDto(latitude, longitude, point.nx(), point.ny(), List.of())).thenReturn(locationDto);
 
         // when

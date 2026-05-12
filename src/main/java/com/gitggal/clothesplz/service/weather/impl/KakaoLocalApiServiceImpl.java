@@ -3,6 +3,7 @@ package com.gitggal.clothesplz.service.weather.impl;
 import com.gitggal.clothesplz.dto.weather.KakaoCoord2RegionResponseDto;
 import com.gitggal.clothesplz.exception.BusinessException;
 import com.gitggal.clothesplz.exception.code.WeatherErrorCode;
+import com.gitggal.clothesplz.service.weather.KakaoLocalApiService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -16,7 +17,7 @@ import java.util.List;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class KakaoLocalApiServiceImpl {
+public class KakaoLocalApiServiceImpl implements KakaoLocalApiService {
 
     private final WebClient webClient;
 

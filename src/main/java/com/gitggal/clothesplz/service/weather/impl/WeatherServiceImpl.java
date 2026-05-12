@@ -3,6 +3,7 @@ package com.gitggal.clothesplz.service.weather.impl;
 import com.gitggal.clothesplz.dto.weather.WeatherDto;
 import com.gitggal.clothesplz.dto.weather.WeatherAPILocationDto;
 import com.gitggal.clothesplz.mapper.weather.WeatherMapper;
+import com.gitggal.clothesplz.service.weather.KakaoLocalApiService;
 import com.gitggal.clothesplz.service.weather.WeatherService;
 import com.gitggal.clothesplz.util.weather.KmaGridCoordinateConverter;
 import com.gitggal.clothesplz.util.weather.KmaGridCoordinateConverter.KmaGridPoint;
@@ -20,7 +21,7 @@ public class WeatherServiceImpl implements WeatherService {
 
     private final WeatherApiServiceImpl weatherApiimplServiceImpl;
     private final WeatherParserServiceImpl weatherParserServiceImpl;
-    private final KakaoLocalApiServiceImpl kakaoLocalApiServiceImpl;
+    private final KakaoLocalApiService kakaoLocalApiService;
     private final WeatherMapper weatherMapper;
 
     public Mono<List<WeatherDto>> getWeatherForecast(double latitude, double longitude) {
@@ -31,7 +32,7 @@ public class WeatherServiceImpl implements WeatherService {
 
         return Mono.zip(
                         weatherApiimplServiceImpl.fetchWeather(grid.nx(), grid.ny()),
-                        kakaoLocalApiServiceImpl.getLocationNames(latitude, longitude))
+                        kakaoLocalApiService.getLocationNames(latitude, longitude))
                 .map(tuple -> {
                     var daily = weatherParserServiceImpl.parseDailyForecast(tuple.getT1());
                     List<WeatherDto> mapped = weatherMapper.toWeatherDtoList(
@@ -44,7 +45,7 @@ public class WeatherServiceImpl implements WeatherService {
 
     public Mono<WeatherAPILocationDto> getWeatherLocation(double latitude, double longitude) {
         KmaGridPoint grid = KmaGridCoordinateConverter.toGrid(latitude, longitude);
-        return kakaoLocalApiServiceImpl.getLocationNames(latitude, longitude)
+        return kakaoLocalApiService.getLocationNames(latitude, longitude)
                 .map(names -> weatherMapper.toLocationDto(latitude, longitude, grid.nx(), grid.ny(), names));
     }
 }
