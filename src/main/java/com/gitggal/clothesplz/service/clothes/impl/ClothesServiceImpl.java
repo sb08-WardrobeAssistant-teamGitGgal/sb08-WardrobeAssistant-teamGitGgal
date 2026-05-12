@@ -170,12 +170,12 @@ public class ClothesServiceImpl implements ClothesService {
     Clothes clothes = clothesRepository.findById(clothesId)
         .orElseThrow(() -> new BusinessException(ClothesErrorCode.CLOTHES_NOT_FOUND));
 
+    clothesAttributeRepository.deleteAllByClothesId(clothesId);
+    clothesRepository.delete(clothes);
+
     if (clothes.getImageUrl() != null && !clothes.getImageUrl().isBlank()) {
       imageUploader.delete(clothes.getImageUrl());
     }
-
-    clothesAttributeRepository.deleteAllByClothesId(clothesId);
-    clothesRepository.delete(clothes);
 
     log.info("[Service] 의상 삭제 요청 완료: clothesId = {}", clothesId);
   }
