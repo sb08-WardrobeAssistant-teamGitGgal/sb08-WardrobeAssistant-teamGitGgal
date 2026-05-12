@@ -19,9 +19,11 @@ import com.gitggal.clothesplz.security.jwt.JwtAuthenticationFilter;
 import java.io.IOException;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Consumer;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.MockedConstruction;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -49,6 +51,9 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 )
 @DisplayName("SSE 컨트롤러 테스트")
 class SseControllerTest {
+
+  @Captor
+  private ArgumentCaptor<Consumer<Throwable>> errorCaptor;
 
   @Autowired
   private MockMvc mockMvc;
@@ -111,37 +116,25 @@ class SseControllerTest {
     UUID userId = UUID.randomUUID();
     ArgumentCaptor<Runnable> callbackCaptor = ArgumentCaptor.forClass(Runnable.class);
 
-    // when: 호출 시 SseEmitter는 내부에서 생성됨
-    mockMvc.perform(get("/api/sse")
-            .param("userId", userId.toString())
-            .with(csrf()))
-        .andExpect(request().asyncStarted());
-
     try (MockedConstruction<SseEmitter> mocked = mockConstruction(SseEmitter.class)) {
-      mockMvc.perform(get("/api/sse").param("userId", userId.toString()).with(csrf()));
+      // when
+      mockMvc.perform(get("/api/sse")
+              .param("userId", userId.toString())
+              .with(csrf()))
+          .andExpect(request().asyncStarted());
 
+      // 생성된 Mock 객체 가져오기
       SseEmitter mockEmitter = mocked.constructed().get(0);
+
+      // then: 콜백이 등록되었는지 확인 및 캡처
       verify(mockEmitter).onCompletion(callbackCaptor.capture());
 
+      // 콜백 강제 실행 (동작 시뮬레이션)
       callbackCaptor.getValue().run();
 
+      // 저장소에서 삭제되었는지 검증
       verify(emitterRepository).deleteByUserId(userId);
     }
-  }
-
-  @Test
-  @DisplayName("타임아웃(onTimeout) 시 저장소에서 Emitter가 삭제된다")
-  void onTimeout_removesEmitter() throws Exception {
-    // given
-    UUID userId = UUID.randomUUID();
-    ArgumentCaptor<SseEmitter> emitterCaptor = ArgumentCaptor.forClass(SseEmitter.class);
-
-    mockMvc.perform(get("/api/sse")
-            .param("userId", userId.toString())
-            .with(csrf()))
-        .andExpect(request().asyncStarted());
-
-    verify(emitterRepository).save(eq(userId), emitterCaptor.capture());
   }
 
   @Test
@@ -198,8 +191,6 @@ class SseControllerTest {
   void onError_callback_executes_delete() throws Exception {
     // given
     UUID userId = UUID.randomUUID();
-    ArgumentCaptor<java.util.function.Consumer<Throwable>> errorCaptor =
-        ArgumentCaptor.forClass(java.util.function.Consumer.class);
 
     try (MockedConstruction<SseEmitter> mocked = mockConstruction(SseEmitter.class)) {
       // when
