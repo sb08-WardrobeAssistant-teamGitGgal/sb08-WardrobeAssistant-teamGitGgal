@@ -49,5 +49,5 @@ public abstract class ServiceTestSupport extends IntegrationTestSupport {
   @MockitoBean
   protected LocationRepository locationRepository;
   @MockitoBean
-  protected WeatherApiServiceImpl weatherApiimplServiceImpl;
+  protected WeatherApiServiceImpl weatherApiServiceImpl;
 }
