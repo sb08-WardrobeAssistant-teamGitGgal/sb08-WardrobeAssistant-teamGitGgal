@@ -1,5 +1,6 @@
 package com.gitggal.clothesplz.controller.auth;
 
+import com.gitggal.clothesplz.dto.user.ResetPasswordRequest;
 import com.gitggal.clothesplz.exception.BusinessException;
 import com.gitggal.clothesplz.exception.code.UserErrorCode;
 import com.gitggal.clothesplz.security.jwt.JwtDto;
@@ -17,6 +18,7 @@ import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -51,5 +53,12 @@ public class AuthController {
 
     JwtDto jwtDto = new JwtDto(jwtInformation.userDto(), jwtInformation.accessToken());
     return ResponseEntity.status(HttpStatus.OK).body(jwtDto);
+  }
+
+  @PostMapping("/reset-password")
+  public ResponseEntity<Void> sendTempPassword(@RequestBody ResetPasswordRequest request){
+    log.info("이메일 전송 시작");
+    authService.sendTempPassword(request);
+    return ResponseEntity.status(HttpStatus.OK).build();
   }
 }
