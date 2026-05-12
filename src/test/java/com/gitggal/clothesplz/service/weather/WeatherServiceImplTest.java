@@ -6,7 +6,7 @@ import com.gitggal.clothesplz.dto.weather.WeatherDto;
 import com.gitggal.clothesplz.dto.weather.WeatherAPILocationDto;
 import com.gitggal.clothesplz.mapper.weather.WeatherMapper;
 import com.gitggal.clothesplz.service.weather.KakaoLocalApiService;
-import com.gitggal.clothesplz.service.weather.impl.WeatherApiServiceImpl;
+import com.gitggal.clothesplz.service.weather.WeatherApiService;
 import com.gitggal.clothesplz.service.weather.impl.WeatherParserServiceImpl;
 import com.gitggal.clothesplz.service.weather.impl.WeatherServiceImpl;
 import com.gitggal.clothesplz.util.weather.KmaGridCoordinateConverter;
@@ -34,7 +34,7 @@ import static org.mockito.Mockito.when;
 class WeatherServiceImplTest {
 
     @MockitoBean
-    private WeatherApiServiceImpl weatherApiimplServiceImpl;
+    private WeatherApiService weatherApiService;
 
     @MockitoBean
     private WeatherParserServiceImpl weatherParserServiceImpl;
@@ -77,7 +77,7 @@ class WeatherServiceImplTest {
 
         KmaGridCoordinateConverter.KmaGridPoint point = KmaGridCoordinateConverter.toGrid(latitude, longitude);
 
-        when(weatherApiimplServiceImpl.fetchWeather(point.nx(), point.ny())).thenReturn(Mono.just(apiResponse));
+        when(weatherApiService.fetchWeather(point.nx(), point.ny())).thenReturn(Mono.just(apiResponse));
         when(kakaoLocalApiService.getLocationNames(latitude, longitude)).thenReturn(Mono.just(List.of()));
         when(weatherParserServiceImpl.parseDailyForecast(apiResponse)).thenReturn(parsed);
         when(weatherMapper.toWeatherDtoList(parsed, latitude, longitude, point.nx(), point.ny(), List.of())).thenReturn(mapped);
@@ -87,7 +87,7 @@ class WeatherServiceImplTest {
 
         assertThat(result).isEqualTo(mapped);
 
-        verify(weatherApiimplServiceImpl).fetchWeather(point.nx(), point.ny());
+        verify(weatherApiService).fetchWeather(point.nx(), point.ny());
         verify(weatherParserServiceImpl).parseDailyForecast(apiResponse);
         verify(weatherMapper).toWeatherDtoList(parsed, latitude, longitude, point.nx(), point.ny(), List.of());
     }
@@ -97,7 +97,7 @@ class WeatherServiceImplTest {
     void getWeatherForecast_propagatesError() {
         // given
         RuntimeException expected = new RuntimeException("api failed");
-        when(weatherApiimplServiceImpl.fetchWeather(anyInt(), anyInt())).thenReturn(Mono.error(expected));
+        when(weatherApiService.fetchWeather(anyInt(), anyInt())).thenReturn(Mono.error(expected));
 
         // when & then
         assertThatThrownBy(() -> weatherServiceImpl.getWeatherForecast(37.5665, 126.9780).block())

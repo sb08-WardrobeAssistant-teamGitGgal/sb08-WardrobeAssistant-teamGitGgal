@@ -3,6 +3,7 @@ package com.gitggal.clothesplz.service.weather.impl;
 import com.gitggal.clothesplz.dto.weather.WeatherApiResponseDto;
 import com.gitggal.clothesplz.exception.BusinessException;
 import com.gitggal.clothesplz.exception.code.WeatherErrorCode;
+import com.gitggal.clothesplz.service.weather.WeatherApiService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,7 +21,7 @@ import java.time.format.DateTimeFormatter;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class WeatherApiServiceImpl {
+public class WeatherApiServiceImpl implements WeatherApiService {
 
     private final WebClient webClient;
 

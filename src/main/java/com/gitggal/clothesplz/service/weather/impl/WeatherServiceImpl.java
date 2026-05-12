@@ -4,6 +4,7 @@ import com.gitggal.clothesplz.dto.weather.WeatherDto;
 import com.gitggal.clothesplz.dto.weather.WeatherAPILocationDto;
 import com.gitggal.clothesplz.mapper.weather.WeatherMapper;
 import com.gitggal.clothesplz.service.weather.KakaoLocalApiService;
+import com.gitggal.clothesplz.service.weather.WeatherApiService;
 import com.gitggal.clothesplz.service.weather.WeatherService;
 import com.gitggal.clothesplz.util.weather.KmaGridCoordinateConverter;
 import com.gitggal.clothesplz.util.weather.KmaGridCoordinateConverter.KmaGridPoint;
@@ -19,7 +20,7 @@ import java.util.List;
 @Slf4j
 public class WeatherServiceImpl implements WeatherService {
 
-    private final WeatherApiServiceImpl weatherApiimplServiceImpl;
+    private final WeatherApiService weatherApiService;
     private final WeatherParserServiceImpl weatherParserServiceImpl;
     private final KakaoLocalApiService kakaoLocalApiService;
     private final WeatherMapper weatherMapper;
@@ -31,7 +32,7 @@ public class WeatherServiceImpl implements WeatherService {
                 latitude, longitude, grid.nx(), grid.ny());
 
         return Mono.zip(
-                        weatherApiimplServiceImpl.fetchWeather(grid.nx(), grid.ny()),
+                        weatherApiService.fetchWeather(grid.nx(), grid.ny()),
                         kakaoLocalApiService.getLocationNames(latitude, longitude))
                 .map(tuple -> {
                     var daily = weatherParserServiceImpl.parseDailyForecast(tuple.getT1());
