@@ -5,6 +5,10 @@ import com.gitggal.clothesplz.dto.weather.WeatherApiResponseDto;
 import com.gitggal.clothesplz.dto.weather.WeatherDto;
 import com.gitggal.clothesplz.dto.weather.WeatherAPILocationDto;
 import com.gitggal.clothesplz.mapper.weather.WeatherMapper;
+import com.gitggal.clothesplz.service.weather.impl.KakaoLocalApiServiceImpl;
+import com.gitggal.clothesplz.service.weather.impl.WeatherApiServiceImpl;
+import com.gitggal.clothesplz.service.weather.impl.WeatherParserServiceImpl;
+import com.gitggal.clothesplz.service.weather.impl.WeatherServiceImpl;
 import com.gitggal.clothesplz.util.weather.KmaGridCoordinateConverter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.junit.jupiter.api.DisplayName;
@@ -25,21 +29,24 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-@SpringBootTest(classes = WeatherService.class)
+@SpringBootTest(classes = WeatherServiceImpl.class)
 @ActiveProfiles("test")
-class WeatherServiceTest {
+class WeatherServiceImplTest {
 
     @MockitoBean
-    private WeatherApiService weatherApiService;
+    private WeatherApiServiceImpl weatherApiimplServiceImpl;
 
     @MockitoBean
-    private WeatherParserService weatherParserService;
+    private WeatherParserServiceImpl weatherParserServiceImpl;
+
+    @MockitoBean
+    private KakaoLocalApiServiceImpl kakaoLocalApiServiceImpl;
 
     @MockitoBean
     private WeatherMapper weatherMapper;
 
     @Autowired
-    private WeatherService weatherService;
+    private WeatherServiceImpl weatherServiceImpl;
 
     @Test
     @DisplayName("날씨 예보 조회 시 API 응답을 파싱/매핑해 반환한다")
@@ -70,18 +77,19 @@ class WeatherServiceTest {
 
         KmaGridCoordinateConverter.KmaGridPoint point = KmaGridCoordinateConverter.toGrid(latitude, longitude);
 
-        when(weatherApiService.fetchWeather(point.nx(), point.ny())).thenReturn(Mono.just(apiResponse));
-        when(weatherParserService.parseDailyForecast(apiResponse)).thenReturn(parsed);
-        when(weatherMapper.toWeatherDtoList(parsed, latitude, longitude, point.nx(), point.ny())).thenReturn(mapped);
+        when(weatherApiimplServiceImpl.fetchWeather(point.nx(), point.ny())).thenReturn(Mono.just(apiResponse));
+        when(kakaoLocalApiServiceImpl.getLocationNames(latitude, longitude)).thenReturn(Mono.just(List.of()));
+        when(weatherParserServiceImpl.parseDailyForecast(apiResponse)).thenReturn(parsed);
+        when(weatherMapper.toWeatherDtoList(parsed, latitude, longitude, point.nx(), point.ny(), List.of())).thenReturn(mapped);
 
         // when & then
-        List<WeatherDto> result = weatherService.getWeatherForecast(latitude, longitude).block();
+        List<WeatherDto> result = weatherServiceImpl.getWeatherForecast(latitude, longitude).block();
 
         assertThat(result).isEqualTo(mapped);
 
-        verify(weatherApiService).fetchWeather(point.nx(), point.ny());
-        verify(weatherParserService).parseDailyForecast(apiResponse);
-        verify(weatherMapper).toWeatherDtoList(parsed, latitude, longitude, point.nx(), point.ny());
+        verify(weatherApiimplServiceImpl).fetchWeather(point.nx(), point.ny());
+        verify(weatherParserServiceImpl).parseDailyForecast(apiResponse);
+        verify(weatherMapper).toWeatherDtoList(parsed, latitude, longitude, point.nx(), point.ny(), List.of());
     }
 
     @Test
@@ -89,10 +97,10 @@ class WeatherServiceTest {
     void getWeatherForecast_propagatesError() {
         // given
         RuntimeException expected = new RuntimeException("api failed");
-        when(weatherApiService.fetchWeather(anyInt(), anyInt())).thenReturn(Mono.error(expected));
+        when(weatherApiimplServiceImpl.fetchWeather(anyInt(), anyInt())).thenReturn(Mono.error(expected));
 
         // when & then
-        assertThatThrownBy(() -> weatherService.getWeatherForecast(37.5665, 126.9780).block())
+        assertThatThrownBy(() -> weatherServiceImpl.getWeatherForecast(37.5665, 126.9780).block())
                 .isInstanceOf(RuntimeException.class)
                 .hasMessage("api failed");
     }
@@ -106,14 +114,15 @@ class WeatherServiceTest {
         KmaGridCoordinateConverter.KmaGridPoint point = KmaGridCoordinateConverter.toGrid(latitude, longitude);
         WeatherAPILocationDto locationDto = new WeatherAPILocationDto(latitude, longitude, point.nx(), point.ny(), List.of());
 
-        when(weatherMapper.toLocationDto(latitude, longitude, point.nx(), point.ny())).thenReturn(locationDto);
+        when(kakaoLocalApiServiceImpl.getLocationNames(latitude, longitude)).thenReturn(Mono.just(List.of()));
+        when(weatherMapper.toLocationDto(latitude, longitude, point.nx(), point.ny(), List.of())).thenReturn(locationDto);
 
         // when
-        WeatherAPILocationDto result = weatherService.getWeatherLocation(latitude, longitude);
+        WeatherAPILocationDto result = weatherServiceImpl.getWeatherLocation(latitude, longitude).block();
 
         // then
         assertThat(result).isEqualTo(locationDto);
-        verify(weatherMapper).toLocationDto(latitude, longitude, point.nx(), point.ny());
+        verify(weatherMapper).toLocationDto(latitude, longitude, point.nx(), point.ny(), List.of());
     }
 }
 
