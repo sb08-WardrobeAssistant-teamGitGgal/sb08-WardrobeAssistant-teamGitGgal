@@ -10,6 +10,9 @@ import static org.mockito.Mockito.verify;
 import com.gitggal.clothesplz.dto.clothes.ClothesAttributeDto;
 import com.gitggal.clothesplz.dto.clothes.ClothesCreateRequest;
 import com.gitggal.clothesplz.dto.clothes.ClothesDto;
+import com.gitggal.clothesplz.dto.clothes.ClothesDtoCursorResponse;
+import com.gitggal.clothesplz.dto.clothes.ClothesGetRequest;
+import com.gitggal.clothesplz.entity.clothes.Clothes;
 import com.gitggal.clothesplz.entity.clothes.ClothesAttributeDef;
 import com.gitggal.clothesplz.entity.clothes.ClothesType;
 import com.gitggal.clothesplz.entity.user.User;
@@ -49,6 +52,54 @@ class ClothesServiceTest extends ServiceTestSupport {
 
   private ClothesCreateRequest request(List<ClothesAttributeDto> attributes) {
     return new ClothesCreateRequest(ownerId, "흰 티셔츠", ClothesType.TOP, attributes);
+  }
+
+  @Test
+  @DisplayName("의상 목록 조회에 성공한다")
+  void getClothes_success() {
+    ClothesGetRequest req = new ClothesGetRequest(null, null, 20, null, ownerId);
+    Clothes clothes = new Clothes(owner, "흰 티셔츠", ClothesType.TOP, null, null);
+
+    given(userRepository.findById(ownerId)).willReturn(Optional.of(owner));
+    given(clothesRepository.findAllByCursor(req, null)).willReturn(List.of(clothes));
+    given(clothesRepository.countByCursor(req)).willReturn(1L);
+    given(clothesAttributeRepository.findAllWithDefinitionByClothesIdIn(any())).willReturn(List.of());
+
+    ClothesDtoCursorResponse result = clothesService.getClothes(req);
+
+    assertThat(result.data()).hasSize(1);
+    assertThat(result.totalCount()).isEqualTo(1L);
+    assertThat(result.hasNext()).isFalse();
+    assertThat(result.sortBy()).isEqualTo("createdAt");
+    assertThat(result.sortDirection()).isEqualTo("DESCENDING");
+  }
+
+  @Test
+  @DisplayName("조회 결과가 없으면 속성 조회 쿼리를 호출하지 않는다")
+  void getClothes_emptyPage_skipsAttributeQuery() {
+    ClothesGetRequest req = new ClothesGetRequest(null, null, 20, null, ownerId);
+
+    given(userRepository.findById(ownerId)).willReturn(Optional.of(owner));
+    given(clothesRepository.findAllByCursor(req, null)).willReturn(List.of());
+    given(clothesRepository.countByCursor(req)).willReturn(0L);
+
+    ClothesDtoCursorResponse result = clothesService.getClothes(req);
+
+    assertThat(result.data()).isEmpty();
+    verify(clothesAttributeRepository, never()).findAllWithDefinitionByClothesIdIn(any());
+  }
+
+  @Test
+  @DisplayName("cursor 형식이 잘못되면 INVALID_CURSOR_FORMAT 예외가 발생한다")
+  void getClothes_invalidCursor_throwsException() {
+    ClothesGetRequest req = new ClothesGetRequest("invalid-cursor", UUID.randomUUID(), 20, null, ownerId);
+    given(userRepository.findById(ownerId)).willReturn(Optional.of(owner));
+
+    Throwable thrown = catchThrowable(() -> clothesService.getClothes(req));
+
+    assertThat(thrown).isInstanceOf(BusinessException.class);
+    assertThat(((BusinessException) thrown).getErrorCode())
+        .isEqualTo(ClothesErrorCode.INVALID_CURSOR_FORMAT);
   }
 
   @Test
