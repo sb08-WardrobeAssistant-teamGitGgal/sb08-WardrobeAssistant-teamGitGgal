@@ -165,7 +165,19 @@ public class ClothesServiceImpl implements ClothesService {
   @Override
   @Transactional
   public void deleteClothes(UUID clothesId) {
+    log.info("[Service] 의상 삭제 요청 시작: clothesId = {}", clothesId);
 
+    Clothes clothes = clothesRepository.findById(clothesId)
+        .orElseThrow(() -> new BusinessException(ClothesErrorCode.CLOTHES_NOT_FOUND));
+
+    if (clothes.getImageUrl() != null && !clothes.getImageUrl().isBlank()) {
+      imageUploader.delete(clothes.getImageUrl());
+    }
+
+    clothesAttributeRepository.deleteAllByClothesId(clothesId);
+    clothesRepository.delete(clothes);
+
+    log.info("[Service] 의상 삭제 요청 완료: clothesId = {}", clothesId);
   }
 
   @Override

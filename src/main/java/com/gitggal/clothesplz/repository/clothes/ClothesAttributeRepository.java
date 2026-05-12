@@ -9,7 +9,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface ClothesAttributeRepository extends JpaRepository<ClothesAttribute, UUID>, ClothesAttributeRepositoryCustom {
+public interface ClothesAttributeRepository extends JpaRepository<ClothesAttribute, UUID> {
 
   @Query("""
       SELECT ca
@@ -21,4 +21,6 @@ public interface ClothesAttributeRepository extends JpaRepository<ClothesAttribu
   List<ClothesAttribute> findAllByClothesIdIn(
       @Param("clothesIds") List<UUID> clothesIds
   );
+
+  void deleteAllByClothesId(UUID clothesId);
 }
