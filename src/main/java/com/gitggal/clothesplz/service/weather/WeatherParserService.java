@@ -29,20 +29,22 @@ public class WeatherParserService {
     public List<DailyWeatherForecastDto> parseDailyForecast(WeatherApiResponseDto response) {
         log.info("[Service] 기상청 응답 데이터 파싱 시작");
 
-        if (response == null ||
-                response.getResponse() == null ||
-                response.getResponse().getBody() == null ||
-                response.getResponse().getBody().getItems() == null) {
+        if (response == null
+                || response.response() == null
+                || response.response().body() == null
+                || response.response().body().items() == null
+                || response.response().body().items().item() == null) {
             log.error("[Service] 기상청 응답 데이터가 비어있거나 올바르지 않습니다.");
             return Collections.emptyList();
         }
 
-        List<WeatherItem> items = response.getResponse().getBody().getItems().getItem();
+        List<WeatherItem> items = response.response().body().items().item();
 
         // 1. 날짜(fcstDate)별로 아이템들을 그룹화 (오늘, 내일, 모레...)
         Map<String, List<WeatherItem>> groupedByDate = items.stream()
-                .filter(item -> item.getFcstDate() != null && item.getFcstDate().matches("\\d{8}")) // 날짜 형식 검증
-                .collect(Collectors.groupingBy(WeatherItem::getFcstDate));
+                .filter(Objects::nonNull)
+                .filter(item -> item.fcstDate() != null && item.fcstDate().matches("\\d{8}")) // 날짜 형식 검증
+                .collect(Collectors.groupingBy(WeatherItem::fcstDate));
 
         List<DailyWeatherForecastDto> dailyForecasts = new ArrayList<>();
 
@@ -67,38 +69,42 @@ public class WeatherParserService {
             PrecipitationType precipitationType = PrecipitationType.NONE;
 
             for (WeatherItem item : dayItems) {
-                switch (item.getCategory()) {
+                if (item.category() == null) {
+                    log.debug("[Service] category가 null인 항목 스킵: {}", item);
+                    continue;
+                }
+                switch (item.category()) {
                     case "TMP" -> {
                         try{
-                            int val = Integer.parseInt(item.getFcstValue());
+                            int val = Integer.parseInt(item.fcstValue());
                             maxTemp = (maxTemp == null) ? val : Math.max(maxTemp, val);
                             minTemp = (minTemp == null) ? val : Math.min(minTemp, val);
                             sumTemp += val;
                             tempCount++;
                         } catch (NumberFormatException e) {
-                            log.warn("[Service] TMP 값 파싱 실패: {}", item.getFcstValue());
+                            log.warn("[Service] TMP 값 파싱 실패: {}", item.fcstValue());
                         }
                     }
-                    case "REH" -> parseDouble(item.getFcstValue()).ifPresent(humidities::add);
-                    case "POP" -> parseDouble(item.getFcstValue()).ifPresent(pops::add);
-                    case "WSD" -> parseDouble(item.getFcstValue()).ifPresent(winds::add);
+                    case "REH" -> parseDouble(item.fcstValue()).ifPresent(humidities::add);
+                    case "POP" -> parseDouble(item.fcstValue()).ifPresent(pops::add);
+                    case "WSD" -> parseDouble(item.fcstValue()).ifPresent(winds::add);
                     case "PCP" -> {
-                        Optional<Double> pcp = parsePrecipitationAmount(item.getFcstValue());
+                        Optional<Double> pcp = parsePrecipitationAmount(item.fcstValue());
                         if (pcp.isPresent()) {
                             precipitationAmountSum += pcp.get();
                             hasPrecipitationAmount = true;
                         }
                     }
                     case "PTY" -> {
-                        int nextPriority = parsePtyPriority(item.getFcstValue(), item.getFcstTime());
+                        int nextPriority = parsePtyPriority(item.fcstValue(), item.fcstTime());
                         if (nextPriority > precipitationPriority) {
                             precipitationPriority = nextPriority;
-                            precipitationType = convertPrecipitationType(item.getFcstValue());
+                            precipitationType = convertPrecipitationType(item.fcstValue());
                         }
                     }
                     case "SKY" -> {
-                        if (REPRESENTATIVE_TIME.equals(item.getFcstTime())) {
-                            representativeSky = item.getFcstValue();
+                        if (REPRESENTATIVE_TIME.equals(item.fcstTime()) && item.fcstValue() != null) {
+                            representativeSky = item.fcstValue();
                         }
                     }
                     default -> {
@@ -125,20 +131,23 @@ public class WeatherParserService {
             double humidityDiff = previousHumidity == null ? 0.0 : humidityCurrent - previousHumidity;
 
             // DTO 생성 및 리스트 추가
-            dailyForecasts.add(DailyWeatherForecastDto.builder()
-                    .date(localDate)
-                    .avgTemp(avgTemp)
-                    .maxTemp((double) maxTemp)
-                    .minTemp((double) minTemp)
-                    .skyStatus(convertSkyStatus(representativeSky))
-                    .humidityCurrent(humidityCurrent)
-                    .humidityComparedToDayBefore(humidityDiff)
-                    .precipitationType(precipitationType)
-                    .precipitationAmount(hasPrecipitationAmount ? precipitationAmountSum : 0.0)
-                    .precipitationProbability(maxOrZero(pops))
-                    .windSpeed(averageOrZero(winds))
-                    .temperatureComparedToDayBefore(tempDiff)
-                    .build());
+            double minTempDouble = minTemp == null ? 0.0 : (double) minTemp;
+            double maxTempDouble = maxTemp == null ? 0.0 : (double) maxTemp;
+
+            dailyForecasts.add(
+                    new DailyWeatherForecastDto(
+                            localDate,
+                            convertSkyStatus(representativeSky),
+                            avgTemp,
+                            minTempDouble,
+                            maxTempDouble,
+                            humidityCurrent,
+                            humidityDiff,
+                            precipitationType,
+                            hasPrecipitationAmount ? precipitationAmountSum : 0.0,
+                            maxOrZero(pops),
+                            averageOrZero(winds),
+                            tempDiff));
 
             previousAvgTemp = avgTemp;
             previousHumidity = humidityCurrent;

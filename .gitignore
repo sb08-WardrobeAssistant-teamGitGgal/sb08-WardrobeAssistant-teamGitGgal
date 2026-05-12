@@ -53,3 +53,6 @@ api.json
 
 ### generated ###
 src/main/generated/
+
+### MAC ###
+.DS_Store

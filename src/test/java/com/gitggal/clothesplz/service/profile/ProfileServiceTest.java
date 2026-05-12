@@ -17,7 +17,6 @@ import com.gitggal.clothesplz.exception.BusinessException;
 import com.gitggal.clothesplz.exception.code.ProfileErrorCode;
 import com.gitggal.clothesplz.exception.code.UserErrorCode;
 import com.gitggal.clothesplz.service.ServiceTestSupport;
-import com.gitggal.clothesplz.service.image.ImageUploader;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -26,13 +25,9 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mock.web.MockMultipartFile;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 @DisplayName("Profile Service 테스트")
 class ProfileServiceTest extends ServiceTestSupport {
-
-  @MockitoBean
-  private ImageUploader imageUploader;
 
   @Autowired
   private ProfileService profileService;

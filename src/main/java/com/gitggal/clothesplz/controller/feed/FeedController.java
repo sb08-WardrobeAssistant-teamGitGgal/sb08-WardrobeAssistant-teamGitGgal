@@ -1,5 +1,9 @@
 package com.gitggal.clothesplz.controller.feed;
 
+import com.gitggal.clothesplz.dto.feed.CommentCreateRequest;
+import com.gitggal.clothesplz.dto.feed.CommentDto;
+import com.gitggal.clothesplz.dto.feed.CommentDtoCursorResponse;
+import com.gitggal.clothesplz.dto.feed.CommentPageRequest;
 import com.gitggal.clothesplz.dto.feed.FeedCreateRequest;
 import com.gitggal.clothesplz.dto.feed.FeedDto;
 import com.gitggal.clothesplz.dto.feed.FeedUpdateRequest;
@@ -11,6 +15,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -73,8 +79,10 @@ public class FeedController {
       @PathVariable UUID feedId,
       @RequestParam UUID userId
   ) {
+    log.info("[Controller] 피드 좋아요 요청 시작");
     feedService.increaseLikeCount(feedId, userId);
 
+    log.info("[Controller] 피드 좋아요 요청 완료");
     return ResponseEntity
         .status(HttpStatus.NO_CONTENT)
         .build();
@@ -86,10 +94,42 @@ public class FeedController {
       @PathVariable UUID feedId,
       @RequestParam UUID userId
   ) {
+    log.info("[Controller] 피드 좋아요 취소 요청 시작");
     feedService.decreaseLikeCount(feedId, userId);
 
+    log.info("[Controller] 피드 좋아요 취소 요청 완료");
     return ResponseEntity
         .status(HttpStatus.NO_CONTENT)
         .build();
+  }
+
+  @PostMapping("/{feedId}/comments")
+  public ResponseEntity<CommentDto> comment(
+      @PathVariable UUID feedId,
+      @Valid @RequestBody CommentCreateRequest commentCreateRequest
+  ) {
+    log.info("[Controller] 피드 댓글 등록 요청 시작");
+    CommentDto commentDto = feedService.createComment(feedId, commentCreateRequest);
+
+
+    log.info("[Controller] 피드 댓글 등록 요청 완료");
+    return ResponseEntity
+        .status(HttpStatus.CREATED)
+        .body(commentDto);
+  }
+
+  @GetMapping("/{feedId}/comments")
+  public ResponseEntity<CommentDtoCursorResponse> findComments(
+      @PathVariable UUID feedId,
+      @Valid @ModelAttribute CommentPageRequest commentPageRequest
+  ) {
+    log.info("[Controller] 피드 댓글 목록 조회 요청 시작");
+    CommentDtoCursorResponse commentDtoCursorResponse = feedService.findAll(feedId, commentPageRequest);
+
+
+    log.info("[Controller] 피드 댓글 목록 조회 요청 완료");
+    return ResponseEntity
+        .status(HttpStatus.OK)
+        .body(commentDtoCursorResponse);
   }
 }

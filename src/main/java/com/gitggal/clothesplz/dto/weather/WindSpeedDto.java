@@ -1,16 +1,9 @@
 package com.gitggal.clothesplz.dto.weather;
 
-import com.gitggal.clothesplz.entity.weather.WindPhrase; // 방금 만드신 Enum 임포트
-import lombok.*;
+import com.gitggal.clothesplz.entity.weather.WindPhrase;
 
-@Getter
-@Builder
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor
-public class WindSpeedDto {
+public record WindSpeedDto(
+        Double speed,
+        WindPhrase asWord
+) {}
 
-    private Double speed;
-
-    private WindPhrase asWord;
-
-}
