@@ -74,7 +74,7 @@ public class ClothesServiceImpl implements ClothesService {
 
     // 의상 ID별 속성 리스트를 가져오고, Map형태로 변경한다. -> 탐색 O(1)
     if (!ids.isEmpty()) {
-      for (ClothesAttribute attr : clothesAttributeRepository.findAllWithDefinitionByClothesIdIn(ids)) {
+      for (ClothesAttribute attr : clothesAttributeRepository.findAllByClothesIdIn(ids)) {
         attrsMap.computeIfAbsent(
                 attr.getClothes().getId(),
                 k -> new ArrayList<>())

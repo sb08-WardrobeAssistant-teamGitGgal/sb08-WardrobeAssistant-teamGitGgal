@@ -63,7 +63,7 @@ class ClothesServiceTest extends ServiceTestSupport {
     given(userRepository.findById(ownerId)).willReturn(Optional.of(owner));
     given(clothesRepository.findAllByCursor(req, null)).willReturn(List.of(clothes));
     given(clothesRepository.countByCursor(req)).willReturn(1L);
-    given(clothesAttributeRepository.findAllWithDefinitionByClothesIdIn(any())).willReturn(List.of());
+    given(clothesAttributeRepository.findAllByClothesIdIn(any())).willReturn(List.of());
 
     ClothesDtoCursorResponse result = clothesService.getClothes(req);
 
@@ -86,7 +86,7 @@ class ClothesServiceTest extends ServiceTestSupport {
     ClothesDtoCursorResponse result = clothesService.getClothes(req);
 
     assertThat(result.data()).isEmpty();
-    verify(clothesAttributeRepository, never()).findAllWithDefinitionByClothesIdIn(any());
+    verify(clothesAttributeRepository, never()).findAllByClothesIdIn(any());
   }
 
   @Test
