@@ -195,7 +195,7 @@ public class FeedServiceImpl implements FeedService {
 
     long totalCount = feed.getCommentCount();
 
-    log.info("[Service] 피드 댓글 생성 요청 완료 - commentCount: {}", totalCount);
+    log.info("[Service] 피드 댓글 목록 조회 요청 완료 - commentCount: {}", totalCount);
 
     return new CommentDtoCursorResponse(
         data,
