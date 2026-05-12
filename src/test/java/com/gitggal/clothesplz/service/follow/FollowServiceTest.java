@@ -71,7 +71,7 @@ public class FollowServiceTest {
     User mockFollowee = mock(User.class);
     given(mockFollower.getName()).willReturn("팔로워A");
 
-    given(userRepository.getReferenceById(followerId)).willReturn(mockFollower);
+    given(userRepository.findById(followerId)).willReturn(Optional.of(mockFollower));
     given(userRepository.getReferenceById(followeeId)).willReturn(mockFollowee);
 
     // savedFollow는 follower 정보가 있어야 알림 발송 시 이름을 가져올 수 있음
