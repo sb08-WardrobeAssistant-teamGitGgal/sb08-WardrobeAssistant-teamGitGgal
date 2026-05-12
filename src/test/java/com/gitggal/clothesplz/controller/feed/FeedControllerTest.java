@@ -101,12 +101,12 @@ public class FeedControllerTest {
 
     commentDto1 = new CommentDto(
         UUID.randomUUID(), Instant.now(), feedId,
-        new AuthorDto(authorId, "작성자1", "url1"), "댓글1"
+        new AuthorDto(authorId, "작성자1", "url1"), "댓글 내용 테스트"
     );
 
     commentDto2 = new CommentDto(
         UUID.randomUUID(), Instant.now(), feedId,
-        new AuthorDto(authorId, "작성자2", "url2"), "댓글2"
+        new AuthorDto(authorId, "작성자2", "url2"), "댓글 내용 테스트"
     );
   }
 
@@ -382,8 +382,8 @@ public class FeedControllerTest {
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.data").isArray())
           .andExpect(jsonPath("$.data.length()").value(2))
-          .andExpect(jsonPath("$.data[0].content").value("댓글1"))
-          .andExpect(jsonPath("$.data[1].content").value("댓글2"))
+          .andExpect(jsonPath("$.data[0].content").value("댓글 내용 테스트"))
+          .andExpect(jsonPath("$.data[1].content").value("댓글 내용 테스트"))
           .andExpect(jsonPath("$.hasNext").value(false))
           .andExpect(jsonPath("$.totalCount").value(2));
     }
