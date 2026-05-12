@@ -23,7 +23,6 @@ import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.jspecify.annotations.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -92,6 +91,21 @@ public class FollowServiceImpl implements FollowService {
 
     return followMapper.toDto(savedFollow);
   }
+
+  /**
+   * 팔로우 취소
+   * @param followId - 팔로우 ID
+   */
+  @Override
+  @Transactional
+  public void cancelFollow(UUID followId) {
+
+    Follow follow = followRepository.findById(followId)
+        .orElseThrow(() -> new BusinessException(FollowErrorCode.FOLLOW_NOT_FOUND));
+
+    followRepository.delete(follow);
+  }
+
 
   /**
    * 팔로잉(우) 목록 - 내가 팔로우 하는 목록

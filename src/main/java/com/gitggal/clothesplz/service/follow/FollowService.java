@@ -17,6 +17,11 @@ public interface FollowService {
   FollowDto createFollow(FollowCreateRequest request);
 
   /**
+   * 팔로우 취소
+   */
+  void cancelFollow(UUID followId);
+
+  /**
    * 팔로잉(우) 목록 - 내가 팔로우 하는 목록
    */
   FollowListResponse getFollowings(
