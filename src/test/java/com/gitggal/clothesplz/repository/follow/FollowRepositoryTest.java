@@ -243,6 +243,7 @@ public class FollowRepositoryTest extends RepositoryTestSupport {
     Thread.sleep(100);
 
     Follow followAtoC = em.persistAndFlush(follow(userA, userC));
+    em.refresh(followAtoC); // DB 저장 시 마이크로초로 잘린 실제 값을 반영
 
     Instant cursor = followAtoC.getCreatedAt();
     UUID idAfter = followAtoC.getId();

@@ -11,6 +11,7 @@ import com.gitggal.clothesplz.entity.notification.NotificationLevel;
 import com.gitggal.clothesplz.entity.user.User;
 import com.gitggal.clothesplz.exception.BusinessException;
 import com.gitggal.clothesplz.exception.code.FollowErrorCode;
+import com.gitggal.clothesplz.exception.code.UserErrorCode;
 import com.gitggal.clothesplz.mapper.follow.FollowMapper;
 import com.gitggal.clothesplz.repository.follow.FollowRepository;
 import com.gitggal.clothesplz.repository.user.UserRepository;
@@ -67,8 +68,8 @@ public class FollowServiceImpl implements FollowService {
       throw new BusinessException(FollowErrorCode.FOLLOW_ALREADY_EXISTS);
     }
 
-    // FK 설정용 User 프록시
-    User follower = userRepository.getReferenceById(followerId);
+    User follower = userRepository.findById(followerId)
+        .orElseThrow(() -> new BusinessException(UserErrorCode.USER_NOT_FOUND));
 
     User followee = userRepository.getReferenceById(followeeId);
 
@@ -81,7 +82,7 @@ public class FollowServiceImpl implements FollowService {
 
     // 팔로우 알림 발송
     notificationService.send(new NotificationRequest(
-        followeeId,                    // 알림 수신자 -> 팔로우 받은 사람
+        followeeId,                           // 알림 수신자 -> 팔로우 받은 사람
         savedFollow.getFollower().getName() + "님이 나를 팔로우했어요.",
         null,
         NotificationLevel.INFO

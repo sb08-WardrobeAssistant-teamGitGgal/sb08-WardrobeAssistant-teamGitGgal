@@ -23,7 +23,6 @@ import java.util.function.Consumer;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
 import org.mockito.MockedConstruction;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -51,9 +50,6 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 )
 @DisplayName("SSE 컨트롤러 테스트")
 class SseControllerTest {
-
-  @Captor
-  private ArgumentCaptor<Consumer<Throwable>> errorCaptor;
 
   @Autowired
   private MockMvc mockMvc;
@@ -191,6 +187,9 @@ class SseControllerTest {
   void onError_callback_executes_delete() throws Exception {
     // given
     UUID userId = UUID.randomUUID();
+
+    @SuppressWarnings("unchecked")
+    ArgumentCaptor<Consumer<Throwable>> errorCaptor = ArgumentCaptor.forClass((Class) Consumer.class);
 
     try (MockedConstruction<SseEmitter> mocked = mockConstruction(SseEmitter.class)) {
       // when
