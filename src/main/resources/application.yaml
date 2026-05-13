@@ -67,3 +67,7 @@ weather:
     url: ${WEATHER_API_URL}
     service-key: ${WEATHER_API_SERVICE_KEY}
 
+kakao:
+  api:
+    rest-key: ${KAKAO_REST_API_KEY}
+
