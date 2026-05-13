@@ -14,6 +14,8 @@ import com.gitggal.clothesplz.dto.feed.CommentDtoCursorResponse;
 import com.gitggal.clothesplz.dto.feed.CommentPageRequest;
 import com.gitggal.clothesplz.dto.feed.FeedCreateRequest;
 import com.gitggal.clothesplz.dto.feed.FeedDto;
+import com.gitggal.clothesplz.dto.feed.FeedDtoCursorResponse;
+import com.gitggal.clothesplz.dto.feed.FeedPageRequest;
 import com.gitggal.clothesplz.dto.feed.FeedUpdateRequest;
 import com.gitggal.clothesplz.dto.user.AuthorDto;
 import java.time.Instant;
@@ -28,6 +30,7 @@ import com.gitggal.clothesplz.mapper.feed.FeedMapper;
 import com.gitggal.clothesplz.service.ServiceTestSupport;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -66,6 +69,10 @@ public class FeedServiceTest extends ServiceTestSupport {
   private CommentPageRequest pageRequest;
   private CommentDto commentDto1;
   private CommentDto commentDto2;
+  private FeedPageRequest feedPageRequest;
+  private FeedDto feedDto1;
+  private FeedDto feedDto2;
+  private FeedDto feedDto3;
 
   @BeforeEach
   void setUp() {
@@ -98,15 +105,34 @@ public class FeedServiceTest extends ServiceTestSupport {
     );
 
     pageRequest = new CommentPageRequest(null, null, 2);
+    AuthorDto authorDto = new AuthorDto(authorId, "작성자", "url");
 
     commentDto1 = new CommentDto(
-        UUID.randomUUID(), Instant.now(), feedId,
-        new AuthorDto(authorId, "작성자1", "url1"), "댓글1"
+        UUID.randomUUID(), Instant.now(), feedId, authorDto, "댓글1"
     );
 
     commentDto2 = new CommentDto(
-        UUID.randomUUID(), Instant.now(), feedId,
-        new AuthorDto(authorId, "작성자2", "url2"), "댓글2"
+        UUID.randomUUID(), Instant.now(), feedId, authorDto, "댓글2"
+    );
+
+    feedPageRequest = new FeedPageRequest(null, null, 2, "createdAt", "DESCENDING", null, null, null, null);
+
+    feedDto1 = new FeedDto(
+        UUID.randomUUID(), Instant.now(), Instant.now(),
+        authorDto, null, List.of(),
+        "피드1", 10L, 2, false
+    );
+
+    feedDto2 = new FeedDto(
+        UUID.randomUUID(), Instant.now(), Instant.now(),
+        authorDto, null, List.of(),
+        "피드2", 5L, 1, false
+    );
+
+    feedDto3 = new FeedDto(
+        UUID.randomUUID(), Instant.now(), Instant.now(),
+        authorDto, null, List.of(),
+        "피드3", 1L, 0, false
     );
   }
 
@@ -383,7 +409,7 @@ public class FeedServiceTest extends ServiceTestSupport {
 
   @Nested
   @DisplayName("댓글 목록 조회 관련 테스트")
-  class CommentFindAllTests {
+  class GetCommentTests {
 
     @Test
     @DisplayName("댓글 목록 조회 성공 - 다음 페이지 없는 경우")
@@ -456,6 +482,106 @@ public class FeedServiceTest extends ServiceTestSupport {
       // when & then
       assertThatThrownBy(() -> feedService.getComments(feedId, pageRequest))
           .isInstanceOf(BusinessException.class);
+    }
+  }
+
+  @Nested
+  @DisplayName("피드 목록 조회 관련 테스트")
+  class GetFeedTests {
+
+    @Test
+    @DisplayName("피드 목록 조회 성공 - 다음 페이지 없는 경우")
+    void getFeeds_Success_NoNextPage() {
+      // given
+      given(feedRepository.findAllByCursor(eq(feedPageRequest))).willReturn(List.of(feedDto1));
+      given(feedLikeRepository.findFeedIdsByUserId(eq(userId), any())).willReturn(Set.of());
+      given(feedRepository.countByCondition(eq(feedPageRequest))).willReturn(1L);
+
+      // when
+      FeedDtoCursorResponse result = feedService.getFeeds(userId, feedPageRequest);
+
+      // then
+      assertThat(result.hasNext()).isFalse();
+      assertThat(result.nextCursor()).isNull();
+      assertThat(result.nextIdAfter()).isNull();
+      assertThat(result.data().size()).isEqualTo(1);
+      assertThat(result.totalCount()).isEqualTo(1L);
+    }
+
+    @Test
+    @DisplayName("피드 목록 조회 성공 - 다음 페이지 있는 경우 (sortBy=createdAt)")
+    void getFeeds_Success_HasNextPage_SortByCreatedAt() {
+      // given
+      given(feedRepository.findAllByCursor(eq(feedPageRequest)))
+          .willReturn(List.of(feedDto1, feedDto2, feedDto3));
+      given(feedLikeRepository.findFeedIdsByUserId(eq(userId), any())).willReturn(Set.of());
+      given(feedRepository.countByCondition(eq(feedPageRequest))).willReturn(3L);
+
+      // when
+      FeedDtoCursorResponse result = feedService.getFeeds(userId, feedPageRequest);
+
+      // then
+      assertThat(result.hasNext()).isTrue();
+      assertThat(result.data().size()).isEqualTo(2);
+      assertThat(result.nextCursor()).isEqualTo(feedDto2.createdAt().toString());
+      assertThat(result.nextIdAfter()).isEqualTo(feedDto2.id());
+    }
+
+    @Test
+    @DisplayName("피드 목록 조회 성공 - 다음 페이지 있는 경우 (sortBy=likeCount)")
+    void getFeeds_Success_HasNextPage_SortByLikeCount() {
+      // given
+      FeedPageRequest likeCountRequest = new FeedPageRequest(
+          null, null, 2, "likeCount", "DESCENDING", null, null, null, null
+      );
+      given(feedRepository.findAllByCursor(eq(likeCountRequest)))
+          .willReturn(List.of(feedDto1, feedDto2, feedDto3));
+      given(feedLikeRepository.findFeedIdsByUserId(eq(userId), any())).willReturn(Set.of());
+      given(feedRepository.countByCondition(eq(likeCountRequest))).willReturn(3L);
+
+      // when
+      FeedDtoCursorResponse result = feedService.getFeeds(userId, likeCountRequest);
+
+      // then
+      assertThat(result.hasNext()).isTrue();
+      assertThat(result.nextCursor()).isEqualTo(String.valueOf(feedDto2.likeCount()));
+      assertThat(result.nextIdAfter()).isEqualTo(feedDto2.id());
+    }
+
+    @Test
+    @DisplayName("피드 목록이 비어있는 경우")
+    void getFeeds_EmptyList() {
+      // given
+      given(feedRepository.findAllByCursor(eq(feedPageRequest))).willReturn(List.of());
+      given(feedLikeRepository.findFeedIdsByUserId(eq(userId), any())).willReturn(Set.of());
+      given(feedRepository.countByCondition(eq(feedPageRequest))).willReturn(0L);
+
+      // when
+      FeedDtoCursorResponse result = feedService.getFeeds(userId, feedPageRequest);
+
+      // then
+      assertThat(result.data().size()).isEqualTo(0);
+      assertThat(result.hasNext()).isFalse();
+      assertThat(result.nextCursor()).isNull();
+      assertThat(result.nextIdAfter()).isNull();
+    }
+
+    @Test
+    @DisplayName("사용자가 좋아요한 피드에만 likedByMe가 true로 매핑되는 경우")
+    void getFeeds_LikedByMe_MappedCorrectly() {
+      // given
+      given(feedRepository.findAllByCursor(eq(feedPageRequest)))
+          .willReturn(List.of(feedDto1, feedDto2));
+      given(feedLikeRepository.findFeedIdsByUserId(eq(userId), any()))
+          .willReturn(Set.of(feedDto1.id()));
+      given(feedRepository.countByCondition(eq(feedPageRequest))).willReturn(2L);
+
+      // when
+      FeedDtoCursorResponse result = feedService.getFeeds(userId, feedPageRequest);
+
+      // then
+      assertThat(result.data().get(0).likedByMe()).isTrue();
+      assertThat(result.data().get(1).likedByMe()).isFalse();
     }
   }
 }
