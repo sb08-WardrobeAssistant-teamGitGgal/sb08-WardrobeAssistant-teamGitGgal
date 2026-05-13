@@ -11,7 +11,6 @@ import com.gitggal.clothesplz.entity.weather.SkyStatus;
 import com.gitggal.clothesplz.entity.weather.WindPhrase;
 import com.gitggal.clothesplz.config.TestSecurityConfig;
 import com.gitggal.clothesplz.exception.GlobalExceptionHandler;
-import com.gitggal.clothesplz.exception.BusinessException;
 import com.gitggal.clothesplz.exception.code.WeatherErrorCode;
 import com.gitggal.clothesplz.security.jwt.JwtAuthenticationFilter;
 import com.gitggal.clothesplz.service.weather.WeatherService;
@@ -33,7 +32,6 @@ import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.BDDMockito.willThrow;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
@@ -140,7 +138,7 @@ class WeatherControllerTest {
         // given
         WeatherAPILocationDto response = new WeatherAPILocationDto(
                 37.5665, 126.9780, 60, 127, List.of("서울특별시", "중구"));
-        given(weatherService.getWeatherLocation(anyDouble(), anyDouble())).willReturn(response);
+        given(weatherService.getWeatherLocation(anyDouble(), anyDouble())).willReturn(Mono.just(response));
 
         // when & then
         MvcResult mvcResult = mockMvc.perform(get("/api/weathers/location")
@@ -160,8 +158,8 @@ class WeatherControllerTest {
     @DisplayName("날씨 위치 조회 중 서비스 오류가 발생하면 500을 반환한다")
     void getWeatherLocation_serviceError_returns500() throws Exception {
         // given
-        willThrow(new RuntimeException("location error"))
-                .given(weatherService).getWeatherLocation(anyDouble(), anyDouble());
+        given(weatherService.getWeatherLocation(anyDouble(), anyDouble()))
+                .willReturn(Mono.error(new RuntimeException("location error")));
 
         // when & then
         MvcResult mvcResult = mockMvc.perform(get("/api/weathers/location")

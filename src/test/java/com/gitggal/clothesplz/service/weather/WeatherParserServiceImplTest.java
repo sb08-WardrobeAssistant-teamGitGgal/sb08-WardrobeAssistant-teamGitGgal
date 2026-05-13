@@ -5,6 +5,7 @@ import com.gitggal.clothesplz.dto.weather.WeatherApiResponseDto;
 import com.gitggal.clothesplz.dto.weather.WeatherApiResponseDto.WeatherItem;
 import com.gitggal.clothesplz.entity.weather.PrecipitationType;
 import com.gitggal.clothesplz.entity.weather.SkyStatus;
+import com.gitggal.clothesplz.service.weather.impl.WeatherParserServiceImpl;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -18,10 +19,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @DisplayName("WeatherParserService 단위 테스트")
 @ExtendWith(MockitoExtension.class)
-class WeatherParserServiceTest {
+class WeatherParserServiceImplTest {
 
     @InjectMocks
-    private WeatherParserService parserService;
+    private WeatherParserServiceImpl parserService;
 
     // ── 헬퍼 ─────────────────────────────────────────────────────────────
 
