@@ -45,6 +45,7 @@ CLAUDE.md
 AGENTS.md
 GEMINI.md
 .claude/
+.codex/
 
 ### file ###
 .logs/
