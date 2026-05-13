@@ -19,6 +19,10 @@ public class ClothesUserDetails implements UserDetails {
   private final String tempPassword;
   private final Instant tempPasswordExpiresAt;
 
+  public ClothesUserDetails(UserDto userDto, String password) {
+    this(userDto, password, null, null);
+  }
+
   @Override
   public Collection<? extends GrantedAuthority> getAuthorities() {
     return List.of(new SimpleGrantedAuthority("ROLE_" + userDto.role().name()));

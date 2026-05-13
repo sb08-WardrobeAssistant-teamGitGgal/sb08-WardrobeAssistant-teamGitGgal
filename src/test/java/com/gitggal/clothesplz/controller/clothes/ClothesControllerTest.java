@@ -260,7 +260,7 @@ class ClothesControllerTest {
       UUID clothesId = UUID.randomUUID();
       ClothesUserDetails userDetails = new ClothesUserDetails(
           new UserDto(ownerId, Instant.now(), "owner@test.com", "owner", UserRole.USER, false),
-          "pw"
+          "pw", null, null
       );
       given(clothesRepository.existsByIdAndOwnerId(clothesId, ownerId)).willReturn(true);
 

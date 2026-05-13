@@ -12,7 +12,6 @@ import com.gitggal.clothesplz.security.jwt.JwtRegistry;
 import com.gitggal.clothesplz.security.jwt.JwtTokenProvider;
 import com.nimbusds.jose.JOSEException;
 import jakarta.transaction.Transactional;
-import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.Base64;
@@ -97,33 +96,42 @@ public class AuthServiceImpl implements AuthService {
     log.info("[Service] 임시 비밀번호 발급 요청");
     String email = request.email();
 
-    log.info("이메일 전송 시작");
-    User user = userRepository.findByEmail(email)
-        .orElseThrow(() -> new BusinessException(UserErrorCode.USER_NOT_FOUND));
+    // 이메일을 통해서 해킹 시도할 수 있으므로 예외 X
+    User user = userRepository.findByEmail(email).orElse(null);
+
+    if (user == null) {
+      log.warn("[Service] 존재하지 않는 이메일 : email={}", email);
+      return;
+    }
 
     String tempPassword;
 
     // 임시 비밀번호 생성
     try {
-      SecureRandom secureRandom = SecureRandom.getInstance("NativePRNG");
+      SecureRandom secureRandom = new SecureRandom();
       byte[] bytes = new byte[10];
       secureRandom.nextBytes(bytes);
       tempPassword = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
       String encodeTempPassword = passwordEncoder.encode(tempPassword);
       user.updateTempPassword(encodeTempPassword);
-    } catch (NoSuchAlgorithmException e) {
-      throw new BusinessException(UserErrorCode.JWT_TOKEN_GENERATION_FAILED);
+    } catch (Exception e) {
+      log.warn("[Service] 임시 비밀번호 발급 실패: message = {}", e.getMessage());
+      throw new BusinessException(UserErrorCode.TEMP_PASSWORD_GENERATION_FAILED);
     }
 
     // 메일 전송
-    SimpleMailMessage message = new SimpleMailMessage();
-    message.setFrom(senderEmail);
-    message.setTo(email);
-    message.setSubject("[옷장을 부탁해] 임시 비밀번호 발급");
-    message.setText("안녕하세요. 옷장을 부탁해입니다. \n 임시 비밀번호가 발급되었습니다. "
-        + "\n 임시 비밀번호 : " + tempPassword + " \n3분 뒤 임시 비밀번호는 파기됩니다.\n "
-        + "로그인 후 마이페이지에서 비밀번호를 변경해 주세요");
-    javaMailSender.send(message);
-    log.info("[Service] 임시 비밀번호 발급 완료");
+    try {
+      SimpleMailMessage message = new SimpleMailMessage();
+      message.setFrom(senderEmail);
+      message.setTo(email);
+      message.setSubject("[옷장을 부탁해] 임시 비밀번호 발급");
+      message.setText("안녕하세요. 옷장을 부탁해입니다. \n 임시 비밀번호가 발급되었습니다. "
+          + "\n 임시 비밀번호 : " + tempPassword + " \n3분 뒤 임시 비밀번호는 파기됩니다.\n "
+          + "로그인 후 마이페이지에서 비밀번호를 변경해 주세요");
+      javaMailSender.send(message);
+      log.info("[Service] 임시 비밀번호 발급 완료");
+    } catch (Exception e) {
+      log.warn("[Service] 이메일 전송 실패: email={}", email, e);
+    }
   }
 }
