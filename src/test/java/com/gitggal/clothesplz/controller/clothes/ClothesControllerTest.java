@@ -3,8 +3,11 @@ package com.gitggal.clothesplz.controller.clothes;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.BDDMockito.given;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.mockito.Mockito.verify;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -15,9 +18,17 @@ import com.gitggal.clothesplz.dto.clothes.ClothesAttributeDto;
 import com.gitggal.clothesplz.dto.clothes.ClothesAttributeWithDefDto;
 import com.gitggal.clothesplz.dto.clothes.ClothesCreateRequest;
 import com.gitggal.clothesplz.dto.clothes.ClothesDto;
+import com.gitggal.clothesplz.dto.clothes.ClothesDtoCursorResponse;
 import com.gitggal.clothesplz.entity.clothes.ClothesType;
+import com.gitggal.clothesplz.exception.BusinessException;
+import com.gitggal.clothesplz.exception.code.ClothesErrorCode;
 import com.gitggal.clothesplz.exception.GlobalExceptionHandler;
+import com.gitggal.clothesplz.dto.user.UserDto;
+import com.gitggal.clothesplz.entity.user.UserRole;
+import com.gitggal.clothesplz.repository.clothes.ClothesRepository;
+import com.gitggal.clothesplz.security.ClothesUserDetails;
 import com.gitggal.clothesplz.security.jwt.JwtAuthenticationFilter;
+import java.time.Instant;
 import com.gitggal.clothesplz.service.clothes.ClothesService;
 import java.util.List;
 import java.util.UUID;
@@ -53,6 +64,8 @@ class ClothesControllerTest {
 
   @MockitoBean
   private ClothesService clothesService;
+  @MockitoBean
+  private ClothesRepository clothesRepository;
 
   @Autowired
   private MockMvc mockMvc;
@@ -85,6 +98,49 @@ class ClothesControllerTest {
         MediaType.APPLICATION_JSON_VALUE,
         objectMapper.writeValueAsBytes(request)
     );
+  }
+
+  @Nested
+  @DisplayName("의상 조회 관련 테스트")
+  class GetClothesTests {
+
+    @Test
+    @DisplayName("성공 - 조건으로 조회 시 200과 커서 응답을 반환한다")
+    void getClothes_returns200() throws Exception {
+      ClothesDtoCursorResponse response = new ClothesDtoCursorResponse(
+          List.of(clothesDto),
+          "2024-01-01T00:00:00Z",
+          UUID.randomUUID(),
+          true,
+          1L,
+          "createdAt",
+          "DESCENDING"
+      );
+      given(clothesService.getClothes(any())).willReturn(response);
+
+      mockMvc.perform(get("/api/clothes")
+              .queryParam("ownerId", ownerId.toString())
+              .queryParam("limit", "20"))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$.data[0].ownerId").value(ownerId.toString()))
+          .andExpect(jsonPath("$.hasNext").value(true))
+          .andExpect(jsonPath("$.sortBy").value("createdAt"))
+          .andExpect(jsonPath("$.sortDirection").value("DESCENDING"));
+    }
+
+    @Test
+    @DisplayName("실패 - 잘못된 cursor 형식이면 400을 반환한다")
+    void getClothes_invalidCursor_returns400() throws Exception {
+      given(clothesService.getClothes(any()))
+          .willThrow(new BusinessException(ClothesErrorCode.INVALID_CURSOR_FORMAT));
+
+      mockMvc.perform(get("/api/clothes")
+              .queryParam("ownerId", ownerId.toString())
+              .queryParam("limit", "20")
+              .queryParam("cursor", "not-a-date")
+              .queryParam("idAfter", UUID.randomUUID().toString()))
+          .andExpect(status().isBadRequest());
+    }
   }
 
   @Nested
@@ -192,5 +248,29 @@ class ClothesControllerTest {
               .with(csrf()))
           .andExpect(status().isBadRequest());
     }
+  }
+
+  @Nested
+  @DisplayName("의상 삭제 관련 테스트")
+  class DeleteClothesTests {
+
+    @Test
+    @DisplayName("성공 - 본인 소유 의상을 삭제하면 204를 반환한다")
+    void deleteClothes_asOwner_returns204() throws Exception {
+      UUID clothesId = UUID.randomUUID();
+      ClothesUserDetails userDetails = new ClothesUserDetails(
+          new UserDto(ownerId, Instant.now(), "owner@test.com", "owner", UserRole.USER, false),
+          "pw"
+      );
+      given(clothesRepository.existsByIdAndOwnerId(clothesId, ownerId)).willReturn(true);
+
+      mockMvc.perform(delete("/api/clothes/{clothesId}", clothesId)
+              .with(user(userDetails))
+              .with(csrf()))
+          .andExpect(status().isNoContent());
+
+      verify(clothesService).deleteClothes(clothesId);
+    }
+
   }
 }

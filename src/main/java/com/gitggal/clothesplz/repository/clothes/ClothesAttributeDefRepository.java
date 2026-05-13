@@ -7,6 +7,6 @@ import java.util.UUID;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface ClothesAttributeDefRepository extends JpaRepository<ClothesAttributeDef, UUID>, ClothesAttributeDefRepositoryCustom {
+public interface ClothesAttributeDefRepository extends JpaRepository<ClothesAttributeDef, UUID> {
 
 }

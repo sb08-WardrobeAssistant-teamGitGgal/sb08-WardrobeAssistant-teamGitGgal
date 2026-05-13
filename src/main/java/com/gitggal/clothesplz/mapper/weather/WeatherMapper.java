@@ -29,9 +29,10 @@ public class WeatherMapper {
             double latitude,
             double longitude,
             int gridX,
-            int gridY) {
+            int gridY,
+            List<String> locationNames) {
         return forecasts.stream()
-                .map(dto -> toWeatherDto(dto, latitude, longitude, gridX, gridY))
+                .map(dto -> toWeatherDto(dto, latitude, longitude, gridX, gridY, locationNames))
                 .toList();
     }
 
@@ -41,10 +42,11 @@ public class WeatherMapper {
             double latitude,
             double longitude,
             int gridX,
-            int gridY) {
+            int gridY,
+            List<String> locationNames) {
         UUID weatherId = stableWeatherId(dto, gridX, gridY);
         WeatherAPILocationDto location =
-                new WeatherAPILocationDto(latitude, longitude, gridX, gridY, List.of());
+                new WeatherAPILocationDto(latitude, longitude, gridX, gridY, locationNames);
 
         PrecipitationDto precipitation = new PrecipitationDto(
                 dto.precipitationType() == null ? PrecipitationType.NONE : dto.precipitationType(),
@@ -73,8 +75,8 @@ public class WeatherMapper {
                 windSpeed);
     }
 
-    public WeatherAPILocationDto toLocationDto(double latitude, double longitude, int gridX, int gridY) {
-        return new WeatherAPILocationDto(latitude, longitude, gridX, gridY, List.of());
+    public WeatherAPILocationDto toLocationDto(double latitude, double longitude, int gridX, int gridY, List<String> locationNames) {
+        return new WeatherAPILocationDto(latitude, longitude, gridX, gridY, locationNames);
     }
 
     private WindPhrase toWindPhrase(Double speed) {

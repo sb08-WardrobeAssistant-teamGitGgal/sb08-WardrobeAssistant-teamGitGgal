@@ -21,6 +21,8 @@ import com.gitggal.clothesplz.repository.clothes.ClothesRepository;
 import com.gitggal.clothesplz.repository.user.UserRepository;
 import com.gitggal.clothesplz.service.clothes.ClothesService;
 import com.gitggal.clothesplz.service.image.ImageUploader;
+import java.time.Instant;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -47,8 +49,56 @@ public class ClothesServiceImpl implements ClothesService {
   @Override
   @Transactional(readOnly = true)
   public ClothesDtoCursorResponse getClothes(ClothesGetRequest request) {
+    User owner = findUserOrThrow(request.ownerId());
 
-    return null;
+    // 문자열로된 시간(cursor), 타입변환
+    Instant instantCursor;
+    try {
+      instantCursor = (request.cursor() != null && !request.cursor().isBlank())
+          ? Instant.parse(request.cursor())
+          : null;
+    } catch (DateTimeParseException e) {
+      throw new BusinessException(ClothesErrorCode.INVALID_CURSOR_FORMAT);
+    }
+
+    List<Clothes> clothesList = clothesRepository.findAllByCursor(request, instantCursor);
+    Long totalCount = clothesRepository.countByCursor(request);
+
+    boolean hasNext = clothesList.size() > request.limit();
+    List<Clothes> pageData = hasNext ? clothesList.subList(0, request.limit()) : clothesList;
+    String nextCursor = hasNext ? pageData.get(pageData.size() - 1).getCreatedAt().toString() : null;
+    UUID nextIdAfter = hasNext ? pageData.get(pageData.size() - 1).getId() : null;
+
+    List<UUID> ids = pageData.stream().map(Clothes::getId).toList();
+    Map<UUID, List<ClothesAttributeWithDefDto>> attrsMap = new HashMap<>();
+
+    // 의상 ID별 속성 리스트를 가져오고, Map형태로 변경한다. -> 탐색 O(1)
+    if (!ids.isEmpty()) {
+      for (ClothesAttribute attr : clothesAttributeRepository.findAllByClothesIdIn(ids)) {
+        attrsMap.computeIfAbsent(
+                attr.getClothes().getId(),
+                k -> new ArrayList<>())
+            .add(clothesMapper.toClothesAttributeWithDefDto(attr.getDefinition(), attr.getValue()));
+      }
+    }
+
+    List<ClothesDto> data = pageData.stream()
+        .map(clothes -> clothesMapper.toClothesDto(
+            clothes,
+            owner,
+            attrsMap.getOrDefault(clothes.getId(), List.of()))
+        )
+        .toList();
+
+    return new ClothesDtoCursorResponse(
+        data,
+        nextCursor,
+        nextIdAfter,
+        hasNext,
+        totalCount,
+        "createdAt",
+        "DESCENDING"
+    );
   }
 
   @Override
@@ -115,7 +165,19 @@ public class ClothesServiceImpl implements ClothesService {
   @Override
   @Transactional
   public void deleteClothes(UUID clothesId) {
+    log.info("[Service] 의상 삭제 요청 시작: clothesId = {}", clothesId);
 
+    Clothes clothes = clothesRepository.findById(clothesId)
+        .orElseThrow(() -> new BusinessException(ClothesErrorCode.CLOTHES_NOT_FOUND));
+
+    clothesAttributeRepository.deleteAllByClothesId(clothesId);
+    clothesRepository.delete(clothes);
+
+    if (clothes.getImageUrl() != null && !clothes.getImageUrl().isBlank()) {
+      imageUploader.delete(clothes.getImageUrl());
+    }
+
+    log.info("[Service] 의상 삭제 요청 완료: clothesId = {}", clothesId);
   }
 
   @Override
@@ -125,7 +187,84 @@ public class ClothesServiceImpl implements ClothesService {
       ClothesUpdateRequest request,
       MultipartFile image
   ) {
-    return null;
+    log.info("[Service] 의상 수정 요청 시작: clothesId = {}", clothesId);
+
+    Clothes clothes = findClothesOrThrow(clothesId);
+
+    String uploadedImageUrl = null;
+    String oldImageUrl = clothes.getImageUrl();
+
+    try {
+      if (image != null) {
+        uploadedImageUrl = imageUploader.upload(image);
+      }
+
+      clothes.update(
+          request.name(),
+          request.type(),
+          uploadedImageUrl != null ? uploadedImageUrl : clothes.getImageUrl()
+      );
+
+      List<ClothesAttributeWithDefDto> attributeDef;
+
+      if (request.attributes() != null) {
+        List<ClothesAttributeDto> requestAttributes = request.attributes();
+        List<UUID> attributeIds = requestAttributes.stream().map(ClothesAttributeDto::definitionId).toList();
+
+        if (attributeIds.size() != attributeIds.stream().distinct().count()) {
+          log.error("[Service] 의상 수정 요청 실패 - 중복된 속성 정의 ID가 포함되었습니다. clothesId={}, attributeIds={}",
+              clothesId, attributeIds);
+          throw new BusinessException(ClothesErrorCode.DUPLICATE_CLOTHES_ATTRIBUTE_DEFINITION_ID);
+        }
+
+        List<ClothesAttributeDef> clothesAttributes = clothesAttributeDefRepository.findAllById(attributeIds);
+        if (clothesAttributes.size() != attributeIds.size()) {
+          log.error("[Service] 의상 수정 요청 실패 - 존재하지 않는 속성 정의 ID가 포함되었습니다. clothesId={}, attributeIds={}",
+              clothesId, attributeIds);
+          throw new BusinessException(ClothesErrorCode.CLOTHES_ATTRIBUTE_DEFINITION_NOT_FOUND);
+        }
+
+        Map<UUID, ClothesAttributeDto> requestAttributeByDefinitionId = new HashMap<>();
+        for (ClothesAttributeDto attribute : requestAttributes) {
+          requestAttributeByDefinitionId.put(attribute.definitionId(), attribute);
+        }
+
+        clothesAttributeRepository.deleteAllByClothesId(clothesId);
+
+        List<ClothesAttribute> clothesAttributeList = new ArrayList<>();
+        attributeDef = new ArrayList<>();
+
+        for (ClothesAttributeDef def : clothesAttributes) {
+          String value = requestAttributeByDefinitionId.get(def.getId()).value();
+          if (!def.getSelectableValues().contains(value)) {
+            log.error("[Service] 의상 생성 요청 실패 - 허용되지 않는 속성 값입니다. definitionId={}, value={}", def.getId(), value);
+            throw new BusinessException(ClothesErrorCode.INVALID_CLOTHES_ATTRIBUTE_VALUE);
+          }
+
+          clothesAttributeList.add(clothesMapper.toClothesAttribute(clothes, def, value));
+          attributeDef.add(clothesMapper.toClothesAttributeWithDefDto(def, value));
+        }
+        clothesAttributeRepository.saveAll(clothesAttributeList);
+      } else {
+        attributeDef = clothesAttributeRepository.findAllByClothesIdIn(List.of(clothesId)).stream()
+            .map(attr -> clothesMapper.toClothesAttributeWithDefDto(attr.getDefinition(), attr.getValue()))
+            .toList();
+      }
+
+      if (uploadedImageUrl != null && oldImageUrl != null && !oldImageUrl.isBlank()) {
+        imageUploader.delete(oldImageUrl);
+      }
+
+      log.info("[Service] 의상 수정 요청 완료: clothesId = {}", clothesId);
+      return clothesMapper.toClothesDto(clothes, clothes.getOwner(), attributeDef);
+    } catch (RuntimeException e) {
+      log.error("[Service] 의상 수정 요청 실패");
+      if (uploadedImageUrl != null) {
+        log.info("[Service] 업로드된 이미지 삭제");
+        imageUploader.delete(uploadedImageUrl);
+      }
+      throw e;
+    }
   }
 
   @Override
@@ -137,5 +276,10 @@ public class ClothesServiceImpl implements ClothesService {
   private User findUserOrThrow(UUID userId) {
     return userRepository.findById(userId)
         .orElseThrow(() -> new BusinessException(UserErrorCode.USER_NOT_FOUND));
+  }
+
+  private Clothes findClothesOrThrow(UUID clothesId) {
+    return clothesRepository.findById(clothesId)
+        .orElseThrow(() -> new BusinessException(ClothesErrorCode.CLOTHES_NOT_FOUND));
   }
 }
