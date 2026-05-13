@@ -19,7 +19,7 @@ public class ClothesUserDetailsService implements UserDetailsService {
   private final UserRepository userRepository;
   private final UserMapper userMapper;
 
-  @Transactional
+  @Transactional(readOnly = true)
   @Override
   public UserDetails loadUserByUsername(String email) throws BusinessException {
     User user = userRepository.findByEmail(email)

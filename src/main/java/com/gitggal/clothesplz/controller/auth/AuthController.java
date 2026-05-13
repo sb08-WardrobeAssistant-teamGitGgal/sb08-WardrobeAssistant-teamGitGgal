@@ -8,6 +8,7 @@ import com.gitggal.clothesplz.security.jwt.JwtInformation;
 import com.gitggal.clothesplz.security.jwt.JwtTokenProvider;
 import com.gitggal.clothesplz.service.auth.AuthService;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
@@ -15,7 +16,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.web.csrf.CsrfToken;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -57,7 +57,7 @@ public class AuthController {
   }
 
   @PostMapping("/reset-password")
-  public ResponseEntity<Void> sendTempPassword(@Validated @RequestBody ResetPasswordRequest request){
+  public ResponseEntity<Void> sendTempPassword(@Valid @RequestBody ResetPasswordRequest request) {
     log.info("[Controller] 임시 비밀번호 발급 요청 시작");
     authService.sendTempPassword(request);
     log.info("[Controller] 임시 비밀번호 발급 요청 완료");
