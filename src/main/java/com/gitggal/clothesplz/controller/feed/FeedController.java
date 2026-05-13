@@ -6,6 +6,8 @@ import com.gitggal.clothesplz.dto.feed.CommentDtoCursorResponse;
 import com.gitggal.clothesplz.dto.feed.CommentPageRequest;
 import com.gitggal.clothesplz.dto.feed.FeedCreateRequest;
 import com.gitggal.clothesplz.dto.feed.FeedDto;
+import com.gitggal.clothesplz.dto.feed.FeedDtoCursorResponse;
+import com.gitggal.clothesplz.dto.feed.FeedPageRequest;
 import com.gitggal.clothesplz.dto.feed.FeedUpdateRequest;
 import com.gitggal.clothesplz.service.feed.FeedService;
 import jakarta.validation.Valid;
@@ -133,5 +135,18 @@ public class FeedController {
         .body(commentDtoCursorResponse);
   }
 
+  // TODO: security 구현 시 @AuthenticationPrincipal로 교체
+  @GetMapping
+  public ResponseEntity<FeedDtoCursorResponse> getFeeds(
+      @Valid @ModelAttribute FeedPageRequest feedPageRequest,
+      @RequestParam UUID userId
+  ) {
+    log.info("[Controller] 피드  목록 조회 요청 시작");
+    FeedDtoCursorResponse feedDtoCursorResponse = feedService.getFeeds(userId, feedPageRequest);
 
+    log.info("[Controller] 피드  목록 조회 요청 완료");
+    return ResponseEntity
+        .status(HttpStatus.OK)
+        .body(feedDtoCursorResponse);
+  }
 }

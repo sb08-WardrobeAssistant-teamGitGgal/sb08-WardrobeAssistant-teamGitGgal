@@ -7,6 +7,8 @@ import com.gitggal.clothesplz.dto.feed.CommentDtoCursorResponse;
 import com.gitggal.clothesplz.dto.feed.CommentPageRequest;
 import com.gitggal.clothesplz.dto.feed.FeedCreateRequest;
 import com.gitggal.clothesplz.dto.feed.FeedDto;
+import com.gitggal.clothesplz.dto.feed.FeedDtoCursorResponse;
+import com.gitggal.clothesplz.dto.feed.FeedPageRequest;
 import com.gitggal.clothesplz.dto.feed.FeedUpdateRequest;
 import com.gitggal.clothesplz.entity.feed.Feed;
 import com.gitggal.clothesplz.entity.feed.FeedComment;
@@ -26,6 +28,7 @@ import com.gitggal.clothesplz.repository.user.UserRepository;
 import com.gitggal.clothesplz.repository.weather.WeatherRepository;
 import com.gitggal.clothesplz.service.feed.FeedService;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -208,6 +211,56 @@ public class FeedServiceImpl implements FeedService {
         totalCount,
         COMMENT_SORT_BY,
         COMMENT_SORT_DIRECTION
+    );
+  }
+
+  @Override
+  public FeedDtoCursorResponse getFeeds(UUID userId, FeedPageRequest feedPageRequest) {
+    log.info("[Service] 피드 목록 조회 요청 시작 - limit: {}", feedPageRequest.limit());
+
+    List<FeedDto> feeds = feedRepository.findAllByCursor(feedPageRequest);
+
+    boolean hasNext = feeds.size() > feedPageRequest.limit();
+    List<FeedDto> data = hasNext ? feeds.subList(0, feedPageRequest.limit()) : feeds;
+
+    // 피드 목록의 id들만 추출
+    List<UUID> feedIds = data.stream().map(FeedDto::id).toList();
+
+    // 피드 목록 조회 요청 보낸 사용자가 좋아요를 누른 피드 목록
+    Set<UUID> likedFeedIds = feedLikeRepository.findFeedIdsByUserId(userId, feedIds);
+
+    // likedByMe 값을 채우기 위해 2차 매핑
+    List<FeedDto> result = data.stream()
+        // 피드 목록을 순회하며 사용자가 좋아요를 누른 피드인지 검증
+        .map(feedDto -> feedDto.withLikedByMe(likedFeedIds.contains(feedDto.id())))
+        .toList();
+
+    String nextCursor = null;
+    UUID nextIdAfter = null;
+
+    if (!data.isEmpty() && hasNext) {
+      FeedDto lastFeedDto = data.get(data.size() - 1);
+      nextIdAfter = lastFeedDto.id();
+
+      if ("likeCount".equals(feedPageRequest.sortBy())) {
+        nextCursor = String.valueOf(lastFeedDto.likeCount());
+      } else {
+        nextCursor = lastFeedDto.createdAt().toString();
+      }
+    }
+
+    long totalCount = feedRepository.countByCondition(feedPageRequest);
+
+    log.info("[Service] 피드 목록 조회 요청 완료 - totalCount: {}", totalCount);
+
+    return new FeedDtoCursorResponse(
+        result,
+        nextCursor,
+        nextIdAfter,
+        hasNext,
+        totalCount,
+        feedPageRequest.sortBy(),
+        feedPageRequest.sortDirection()
     );
   }
 }

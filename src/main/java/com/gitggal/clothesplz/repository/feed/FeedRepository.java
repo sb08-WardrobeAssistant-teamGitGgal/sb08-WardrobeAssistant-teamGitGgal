@@ -11,7 +11,7 @@ import java.util.UUID;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.QueryHints;
 
-public interface FeedRepository extends JpaRepository<Feed, UUID> {
+public interface FeedRepository extends JpaRepository<Feed, UUID>, FeedRepositoryCustom {
 
   @EntityGraph(attributePaths = {"weather", "author"})
   Optional<Feed> findWithDetailsById(UUID feedId);
