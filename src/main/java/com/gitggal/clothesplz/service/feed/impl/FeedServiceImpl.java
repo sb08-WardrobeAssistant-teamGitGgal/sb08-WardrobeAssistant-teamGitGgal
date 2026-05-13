@@ -280,9 +280,10 @@ public class FeedServiceImpl implements FeedService {
 
     try {
       if ("likeCount".equals(sortBy)) {
-        // cursor 자료형은 Long
+        // 좋아요 수가 정렬 기준일 경우 cursor 자료형은 Long
         return new FeedCursorCondition(null, Long.parseLong(cursor), idAfter);
       } else {
+        // 생성 시간이 정렬 기준일 경우 cursor 자료형은 Instant
         return new FeedCursorCondition(Instant.parse(cursor), null, idAfter);
       }
     } catch (Exception e) {

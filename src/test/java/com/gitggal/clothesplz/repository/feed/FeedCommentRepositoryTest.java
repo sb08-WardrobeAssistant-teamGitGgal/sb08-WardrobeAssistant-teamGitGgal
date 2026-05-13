@@ -150,7 +150,7 @@ class FeedCommentRepositoryTest extends RepositoryTestSupport {
     em.clear();
 
     // t3 > t2 > t1 최신순, limit이 2기 때문에 다음 페이지는 t1만 해당
-    CommentPageRequest request = new CommentPageRequest(t2.toString(), comment2.getId(), 2);
+    CommentPageRequest request = new CommentPageRequest(t2, comment2.getId(), 2);
 
     List<CommentDto> result = feedCommentRepository.findAllByCursor(feedId, request);
 

@@ -2,10 +2,11 @@ package com.gitggal.clothesplz.dto.feed;
 
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
+import java.time.Instant;
 import java.util.UUID;
 
 public record CommentPageRequest(
-    String cursor,
+    Instant cursor,
 
     UUID idAfter,
 

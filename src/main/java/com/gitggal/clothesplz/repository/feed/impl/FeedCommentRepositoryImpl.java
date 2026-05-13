@@ -64,12 +64,10 @@ public class FeedCommentRepositoryImpl implements FeedCommentRepositoryCustom {
       return null;
     }
 
-    // 책갈피가 되는 댓글의 생성 시간
-    Instant cursorInstant = Instant.parse(commentPageRequest.cursor());
-
     // 책갈피보다 생성 시간이 느린 댓글들부터 반환
     // 만약, 댓글의 생성 시간이 같을 경우 책갈피의 id보다 id가 작은 댓글들 반환
-    return feedComment.createdAt.lt(cursorInstant)
-        .or(feedComment.createdAt.eq(cursorInstant).and(feedComment.id.lt(commentPageRequest.idAfter())));
+    Instant cursor = commentPageRequest.cursor();
+    return feedComment.createdAt.lt(cursor)
+        .or(feedComment.createdAt.eq(cursor).and(feedComment.id.lt(commentPageRequest.idAfter())));
   }
 }
