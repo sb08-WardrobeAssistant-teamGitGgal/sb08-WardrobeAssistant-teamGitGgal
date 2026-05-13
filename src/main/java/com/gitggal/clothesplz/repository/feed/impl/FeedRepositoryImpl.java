@@ -5,6 +5,7 @@ import static com.gitggal.clothesplz.entity.profile.QProfile.profile;
 import static com.gitggal.clothesplz.entity.user.QUser.user;
 import static com.gitggal.clothesplz.entity.weather.QWeather.weather;
 
+import com.gitggal.clothesplz.dto.feed.FeedCursorCondition;
 import com.gitggal.clothesplz.dto.feed.FeedDto;
 import com.gitggal.clothesplz.dto.feed.FeedPageRequest;
 import com.gitggal.clothesplz.dto.user.AuthorDto;
@@ -34,7 +35,7 @@ public class FeedRepositoryImpl implements FeedRepositoryCustom {
   private final JPAQueryFactory queryFactory;
 
   @Override
-  public List<FeedDto> findAllByCursor(FeedPageRequest feedPageRequest) {
+  public List<FeedDto> findAllByCursor(FeedPageRequest feedPageRequest, FeedCursorCondition feedCursorCondition) {
 
     return queryFactory
         .select(Projections.constructor(FeedDto.class,
@@ -77,8 +78,7 @@ public class FeedRepositoryImpl implements FeedRepositoryCustom {
             precipitationTypeEqual(feedPageRequest.precipitationTypeEqual()),
             authorIdEqual(feedPageRequest.authorIdEqual()),
             cursorCondition(
-                feedPageRequest.cursor(),
-                feedPageRequest.idAfter(),
+                feedCursorCondition,
                 feedPageRequest.sortBy(),
                 feedPageRequest.sortDirection())
         )
@@ -125,19 +125,17 @@ public class FeedRepositoryImpl implements FeedRepositoryCustom {
   }
 
   // 특정 피드 작성자 Id로 검색
-  private BooleanExpression authorIdEqual(String authorId) {
-    return StringUtils.hasText(authorId) ?
-        user.id.eq(UUID.fromString(authorId)) : null;
+  private BooleanExpression authorIdEqual(UUID authorId) {
+    return authorId != null ? user.id.eq(authorId) : null;
   }
 
   // 커서 조건
   private BooleanExpression cursorCondition(
-      String cursor,
-      UUID idAfter,
+      FeedCursorCondition feedCursorCondition,
       String sortBy,
       String sortDirection) {
     // 첫 페이지 요청인 경우 커서 조건 없이 처음부터 조회
-    if (cursor == null || idAfter == null) {
+    if (feedCursorCondition.idAfter() == null) {
       return null;
     }
 
@@ -146,23 +144,23 @@ public class FeedRepositoryImpl implements FeedRepositoryCustom {
     // 좋아요로 정렬일 경우
     if ("likeCount".equals(sortBy)) {
       // 책갈피가 되는 피드의 좋아요 수
-      long cursorCount = Long.parseLong(cursor);
+      long cursorCount = feedCursorCondition.likeCountCursor();
       return isDesc
           // 내림차순인 경우 cursor보다 좋아요가 작거나, 좋아요가 같은 경우 id가 작은 피드들 반환
           ? feed.likeCount.lt(cursorCount)
-            .or(feed.likeCount.eq(cursorCount).and(feed.id.lt(idAfter)))
+            .or(feed.likeCount.eq(cursorCount).and(feed.id.lt(feedCursorCondition.idAfter())))
           // 오름차순 경우 cursor보다 좋아요가 많거나, 좋아요가 같은 경우 id가 큰 피드들 반환
           : feed.likeCount.gt(cursorCount)
-            .or(feed.likeCount.eq(cursorCount).and(feed.id.gt(idAfter)));
+            .or(feed.likeCount.eq(cursorCount).and(feed.id.gt(feedCursorCondition.idAfter())));
     }
 
     // 생성 시간으로 정렬일 경우(DEFAULT)
     // 책갈피가 되는 피드의 생성 시간
-    Instant cursorTime = Instant.parse(cursor);
+    Instant cursorTime = feedCursorCondition.createdAtCursor();
 
     return isDesc
-        ? feed.createdAt.lt(cursorTime).or(feed.createdAt.eq(cursorTime).and(feed.id.lt(idAfter)))
-        : feed.createdAt.gt(cursorTime).or(feed.createdAt.eq(cursorTime).and(feed.id.gt(idAfter)));
+        ? feed.createdAt.lt(cursorTime).or(feed.createdAt.eq(cursorTime).and(feed.id.lt(feedCursorCondition.idAfter())))
+        : feed.createdAt.gt(cursorTime).or(feed.createdAt.eq(cursorTime).and(feed.id.gt(feedCursorCondition.idAfter())));
   }
 
   // 정렬 조건

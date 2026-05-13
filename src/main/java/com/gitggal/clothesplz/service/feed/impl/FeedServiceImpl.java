@@ -6,6 +6,7 @@ import com.gitggal.clothesplz.dto.feed.CommentDto;
 import com.gitggal.clothesplz.dto.feed.CommentDtoCursorResponse;
 import com.gitggal.clothesplz.dto.feed.CommentPageRequest;
 import com.gitggal.clothesplz.dto.feed.FeedCreateRequest;
+import com.gitggal.clothesplz.dto.feed.FeedCursorCondition;
 import com.gitggal.clothesplz.dto.feed.FeedDto;
 import com.gitggal.clothesplz.dto.feed.FeedDtoCursorResponse;
 import com.gitggal.clothesplz.dto.feed.FeedPageRequest;
@@ -27,6 +28,7 @@ import com.gitggal.clothesplz.repository.feed.FeedRepository;
 import com.gitggal.clothesplz.repository.user.UserRepository;
 import com.gitggal.clothesplz.repository.weather.WeatherRepository;
 import com.gitggal.clothesplz.service.feed.FeedService;
+import java.time.Instant;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -218,7 +220,14 @@ public class FeedServiceImpl implements FeedService {
   public FeedDtoCursorResponse getFeeds(UUID userId, FeedPageRequest feedPageRequest) {
     log.info("[Service] 피드 목록 조회 요청 시작 - limit: {}", feedPageRequest.limit());
 
-    List<FeedDto> feeds = feedRepository.findAllByCursor(feedPageRequest);
+    // 요청 cursor를 받아서 parse
+    FeedCursorCondition feedCursorCondition = parseCursor(
+        feedPageRequest.cursor(),
+        feedPageRequest.idAfter(),
+        feedPageRequest.sortBy()
+    );
+
+    List<FeedDto> feeds = feedRepository.findAllByCursor(feedPageRequest, feedCursorCondition);
 
     boolean hasNext = feeds.size() > feedPageRequest.limit();
     List<FeedDto> data = hasNext ? feeds.subList(0, feedPageRequest.limit()) : feeds;
@@ -262,5 +271,22 @@ public class FeedServiceImpl implements FeedService {
         feedPageRequest.sortBy(),
         feedPageRequest.sortDirection()
     );
+  }
+
+  private FeedCursorCondition parseCursor(String cursor, UUID idAfter, String sortBy) {
+    if (cursor == null || idAfter == null) {
+      return null;
+    }
+
+    try {
+      if ("likeCount".equals(sortBy)) {
+        // cursor 자료형은 Long
+        return new FeedCursorCondition(null, Long.parseLong(cursor), idAfter);
+      } else {
+        return new FeedCursorCondition(Instant.parse(cursor), null, idAfter);
+      }
+    } catch (Exception e) {
+      throw new BusinessException(FeedErrorCode.INVALID_CURSOR_FORMAT);
+    }
   }
 }

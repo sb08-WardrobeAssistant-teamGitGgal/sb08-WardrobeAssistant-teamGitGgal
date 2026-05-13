@@ -3,6 +3,7 @@ package com.gitggal.clothesplz.repository.feed;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.gitggal.clothesplz.config.QuerydslConfig;
+import com.gitggal.clothesplz.dto.feed.FeedCursorCondition;
 import com.gitggal.clothesplz.dto.feed.FeedDto;
 import com.gitggal.clothesplz.dto.feed.FeedPageRequest;
 import com.gitggal.clothesplz.entity.feed.Feed;
@@ -122,7 +123,7 @@ public class FeedRepositoryTest extends RepositoryTestSupport {
     saveFeed("피드3");
     em.clear();
 
-    List<FeedDto> result = feedRepository.findAllByCursor(defaultRequest(2));
+    List<FeedDto> result = feedRepository.findAllByCursor(defaultRequest(2), new FeedCursorCondition(null, null, null));
 
     assertThat(result).hasSize(3);
   }
@@ -133,7 +134,7 @@ public class FeedRepositoryTest extends RepositoryTestSupport {
     saveFeed("피드1");
     em.clear();
 
-    List<FeedDto> result = feedRepository.findAllByCursor(defaultRequest(5));
+    List<FeedDto> result = feedRepository.findAllByCursor(defaultRequest(5), new FeedCursorCondition(null, null, null));
 
     assertThat(result).hasSize(1);
   }
@@ -155,9 +156,9 @@ public class FeedRepositoryTest extends RepositoryTestSupport {
     em.clear();
 
     // t3 > t2 > t1 내림차순, 다음 페이지는 t1만 해당
-    FeedPageRequest request = new FeedPageRequest(
-        t2.toString(), feed2.getId(), 10, "createdAt", "DESCENDING", null, null, null, null);
-    List<FeedDto> result = feedRepository.findAllByCursor(request);
+    FeedPageRequest request = new FeedPageRequest(null, null, 10, "createdAt", "DESCENDING", null, null, null, null);
+    FeedCursorCondition cursor = new FeedCursorCondition(t2, null, feed2.getId());
+    List<FeedDto> result = feedRepository.findAllByCursor(request, cursor);
 
     assertThat(result).hasSize(1);
     assertThat(result.get(0).content()).isEqualTo("피드1");
@@ -176,9 +177,9 @@ public class FeedRepositoryTest extends RepositoryTestSupport {
     em.clear();
 
     // 3 > 2 > 1 내림차순, likeCount=2인 feed2가 커서이므로 피드1만 해당
-    FeedPageRequest request = new FeedPageRequest(
-        "2", feed2.getId(), 10, "likeCount", "DESCENDING", null, null, null, null);
-    List<FeedDto> result = feedRepository.findAllByCursor(request);
+    FeedPageRequest request = new FeedPageRequest(null, null, 10, "likeCount", "DESCENDING", null, null, null, null);
+    FeedCursorCondition cursor = new FeedCursorCondition(null, 2L, feed2.getId());
+    List<FeedDto> result = feedRepository.findAllByCursor(request, cursor);
 
     assertThat(result).hasSize(1);
     assertThat(result.get(0).content()).isEqualTo("피드1");
@@ -193,7 +194,7 @@ public class FeedRepositoryTest extends RepositoryTestSupport {
 
     FeedPageRequest request = new FeedPageRequest(
         null, null, 10, "createdAt", "DESCENDING", "맑아", null, null, null);
-    List<FeedDto> result = feedRepository.findAllByCursor(request);
+    List<FeedDto> result = feedRepository.findAllByCursor(request, new FeedCursorCondition(null, null, null));
 
     assertThat(result).hasSize(1);
     assertThat(result.get(0).content()).isEqualTo("오늘 날씨가 맑아서 좋다");
@@ -211,8 +212,8 @@ public class FeedRepositoryTest extends RepositoryTestSupport {
     em.clear();
 
     FeedPageRequest request = new FeedPageRequest(
-        null, null, 10, "createdAt", "DESCENDING", null, null, null, userId.toString());
-    List<FeedDto> result = feedRepository.findAllByCursor(request);
+        null, null, 10, "createdAt", "DESCENDING", null, null, null, userId);
+    List<FeedDto> result = feedRepository.findAllByCursor(request, new FeedCursorCondition(null, null, null));
 
     assertThat(result).hasSize(1);
     assertThat(result.get(0).content()).isEqualTo("작성자 피드");

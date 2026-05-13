@@ -31,7 +31,7 @@ public record FeedPageRequest(
     @Pattern(regexp = "NONE|RAIN|RAIN_SNOW|SNOW|SHOWER")
     String precipitationTypeEqual,
 
-    String authorIdEqual
+    UUID authorIdEqual
 ) {
 
 }

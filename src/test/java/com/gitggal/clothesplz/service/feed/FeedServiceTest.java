@@ -13,6 +13,7 @@ import com.gitggal.clothesplz.dto.feed.CommentDto;
 import com.gitggal.clothesplz.dto.feed.CommentDtoCursorResponse;
 import com.gitggal.clothesplz.dto.feed.CommentPageRequest;
 import com.gitggal.clothesplz.dto.feed.FeedCreateRequest;
+import com.gitggal.clothesplz.dto.feed.FeedCursorCondition;
 import com.gitggal.clothesplz.dto.feed.FeedDto;
 import com.gitggal.clothesplz.dto.feed.FeedDtoCursorResponse;
 import com.gitggal.clothesplz.dto.feed.FeedPageRequest;
@@ -493,7 +494,7 @@ public class FeedServiceTest extends ServiceTestSupport {
     @DisplayName("피드 목록 조회 성공 - 다음 페이지 없는 경우")
     void getFeeds_Success_NoNextPage() {
       // given
-      given(feedRepository.findAllByCursor(eq(feedPageRequest))).willReturn(List.of(feedDto1));
+      given(feedRepository.findAllByCursor(eq(feedPageRequest), any(FeedCursorCondition.class))).willReturn(List.of(feedDto1));
       given(feedLikeRepository.findFeedIdsByUserId(eq(userId), any())).willReturn(Set.of());
       given(feedRepository.countByCondition(eq(feedPageRequest))).willReturn(1L);
 
@@ -512,7 +513,7 @@ public class FeedServiceTest extends ServiceTestSupport {
     @DisplayName("피드 목록 조회 성공 - 다음 페이지 있는 경우 (sortBy=createdAt)")
     void getFeeds_Success_HasNextPage_SortByCreatedAt() {
       // given
-      given(feedRepository.findAllByCursor(eq(feedPageRequest)))
+      given(feedRepository.findAllByCursor(eq(feedPageRequest), any(FeedCursorCondition.class)))
           .willReturn(List.of(feedDto1, feedDto2, feedDto3));
       given(feedLikeRepository.findFeedIdsByUserId(eq(userId), any())).willReturn(Set.of());
       given(feedRepository.countByCondition(eq(feedPageRequest))).willReturn(3L);
@@ -534,7 +535,7 @@ public class FeedServiceTest extends ServiceTestSupport {
       FeedPageRequest likeCountRequest = new FeedPageRequest(
           null, null, 2, "likeCount", "DESCENDING", null, null, null, null
       );
-      given(feedRepository.findAllByCursor(eq(likeCountRequest)))
+      given(feedRepository.findAllByCursor(eq(likeCountRequest), any(FeedCursorCondition.class)))
           .willReturn(List.of(feedDto1, feedDto2, feedDto3));
       given(feedLikeRepository.findFeedIdsByUserId(eq(userId), any())).willReturn(Set.of());
       given(feedRepository.countByCondition(eq(likeCountRequest))).willReturn(3L);
@@ -552,7 +553,7 @@ public class FeedServiceTest extends ServiceTestSupport {
     @DisplayName("피드 목록이 비어있는 경우")
     void getFeeds_EmptyList() {
       // given
-      given(feedRepository.findAllByCursor(eq(feedPageRequest))).willReturn(List.of());
+      given(feedRepository.findAllByCursor(eq(feedPageRequest), any(FeedCursorCondition.class))).willReturn(List.of());
       given(feedLikeRepository.findFeedIdsByUserId(eq(userId), any())).willReturn(Set.of());
       given(feedRepository.countByCondition(eq(feedPageRequest))).willReturn(0L);
 
@@ -567,10 +568,34 @@ public class FeedServiceTest extends ServiceTestSupport {
     }
 
     @Test
+    @DisplayName("잘못된 createdAt cursor 형식이면 예외 발생")
+    void getFeeds_InvalidCreatedAtCursor_ThrowsException() {
+      // given
+      FeedPageRequest invalidRequest = new FeedPageRequest(
+          "not-a-timestamp", UUID.randomUUID(), 2, "createdAt", "DESCENDING", null, null, null, null);
+
+      // when & then
+      assertThatThrownBy(() -> feedService.getFeeds(userId, invalidRequest))
+          .isInstanceOf(BusinessException.class);
+    }
+
+    @Test
+    @DisplayName("잘못된 likeCount cursor 형식이면 예외 발생")
+    void getFeeds_InvalidLikeCountCursor_ThrowsException() {
+      // given
+      FeedPageRequest invalidRequest = new FeedPageRequest(
+          "not-a-number", UUID.randomUUID(), 2, "likeCount", "DESCENDING", null, null, null, null);
+
+      // when & then
+      assertThatThrownBy(() -> feedService.getFeeds(userId, invalidRequest))
+          .isInstanceOf(BusinessException.class);
+    }
+
+    @Test
     @DisplayName("사용자가 좋아요한 피드에만 likedByMe가 true로 매핑되는 경우")
     void getFeeds_LikedByMe_MappedCorrectly() {
       // given
-      given(feedRepository.findAllByCursor(eq(feedPageRequest)))
+      given(feedRepository.findAllByCursor(eq(feedPageRequest), any(FeedCursorCondition.class)))
           .willReturn(List.of(feedDto1, feedDto2));
       given(feedLikeRepository.findFeedIdsByUserId(eq(userId), any()))
           .willReturn(Set.of(feedDto1.id()));
