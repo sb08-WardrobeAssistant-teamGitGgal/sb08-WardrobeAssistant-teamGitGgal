@@ -73,6 +73,9 @@ dependencies {
 
     // jwt
     implementation 'com.nimbusds:nimbus-jose-jwt:10.3'
+
+    // WebSocket / STOMP
+    implementation 'org.springframework.boot:spring-boot-starter-websocket'
 }
 
 tasks.named('test') {
