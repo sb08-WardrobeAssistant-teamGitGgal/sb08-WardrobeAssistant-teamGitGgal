@@ -254,7 +254,7 @@ class AuthServiceTest {
     }
 
     @Test
-    @DisplayName("실패 - 사용자를 찾을 수 없음")
+    @DisplayName("실패 - 사용자를 찾을 수 없음밋")
     void fail_userNotFound() {
       // given
       ResetPasswordRequest request =
@@ -264,13 +264,7 @@ class AuthServiceTest {
           .willReturn(Optional.empty());
 
       // when & then
-      BusinessException exception = assertThrows(
-          BusinessException.class,
-          () -> authService.sendTempPassword(request)
-      );
-
-      assertThat(exception.getErrorCode())
-          .isEqualTo(UserErrorCode.USER_NOT_FOUND);
+      authService.sendTempPassword(request);
 
       verify(userRepository).findByEmail(request.email());
       verify(passwordEncoder, never()).encode(anyString());

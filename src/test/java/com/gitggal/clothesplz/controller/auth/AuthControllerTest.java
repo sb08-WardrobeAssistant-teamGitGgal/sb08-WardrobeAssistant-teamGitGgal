@@ -14,7 +14,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gitggal.clothesplz.config.TestSecurityConfig;
-import com.gitggal.clothesplz.controller.user.UserController;
 import com.gitggal.clothesplz.dto.user.ResetPasswordRequest;
 import com.gitggal.clothesplz.dto.user.UserDto;
 import com.gitggal.clothesplz.entity.user.UserRole;
@@ -34,7 +33,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
@@ -206,7 +204,7 @@ class AuthControllerTest {
 
   @Nested
   @DisplayName("임시 비밀번호 발급")
-  class sendTempPassword{
+  class sendTempPassword {
 
     @Test
     @DisplayName("성공")

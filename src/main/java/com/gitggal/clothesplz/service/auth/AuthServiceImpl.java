@@ -100,7 +100,7 @@ public class AuthServiceImpl implements AuthService {
     User user = userRepository.findByEmail(email).orElse(null);
 
     if (user == null) {
-      log.warn("[Service] 존재하지 않는 이메일 : email={}", email);
+      log.warn("[Service] 존재하지 않는 이메일 요청");
       return;
     }
 
@@ -131,7 +131,8 @@ public class AuthServiceImpl implements AuthService {
       javaMailSender.send(message);
       log.info("[Service] 임시 비밀번호 발급 완료");
     } catch (Exception e) {
-      log.warn("[Service] 이메일 전송 실패: email={}", email, e);
+      log.warn("[Service] 이메일 전송 실패: message = {}", e.getMessage());
+      user.clearTempPassword();
     }
   }
 }

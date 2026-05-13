@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -18,6 +19,7 @@ import com.gitggal.clothesplz.dto.user.UserCreateRequest;
 import com.gitggal.clothesplz.dto.user.UserDto;
 import com.gitggal.clothesplz.entity.user.UserRole;
 import com.gitggal.clothesplz.exception.GlobalExceptionHandler;
+import com.gitggal.clothesplz.security.ClothesUserDetails;
 import com.gitggal.clothesplz.security.jwt.JwtAuthenticationFilter;
 import com.gitggal.clothesplz.service.user.UserService;
 import java.time.Instant;
@@ -74,7 +76,7 @@ public class UserControllerTest {
         "git1234!"
     );
     userDto = new UserDto(
-        UUID.randomUUID(),
+        userId,
         Instant.now(),
         "Git@git.git",
         "GitGit",
@@ -129,9 +131,13 @@ public class UserControllerTest {
     void success_updatePassword() throws Exception {
       // given
       ChangePasswordRequest request = new ChangePasswordRequest("newPassword123!");
-
+      ClothesUserDetails principal = new ClothesUserDetails(
+          userDto,
+          "encodedPassword"
+      );
       // when & then
       mockMvc.perform(patch("/api/users/{userId}/password", userId)
+              .with(user(principal))
               .with(csrf())
               .contentType(MediaType.APPLICATION_JSON)
               .content(objectMapper.writeValueAsString(request)))
@@ -145,9 +151,13 @@ public class UserControllerTest {
     void updatePassword_validation_fail() throws Exception {
       // given
       ChangePasswordRequest invalidRequest = new ChangePasswordRequest("");
-
+      ClothesUserDetails principal = new ClothesUserDetails(
+          userDto,
+          "encodedPassword"
+      );
       // when & then
       mockMvc.perform(patch("/api/users/{userId}/password", userId)
+              .with(user(principal))
               .with(csrf())
               .contentType(MediaType.APPLICATION_JSON)
               .content(objectMapper.writeValueAsString(invalidRequest)))
