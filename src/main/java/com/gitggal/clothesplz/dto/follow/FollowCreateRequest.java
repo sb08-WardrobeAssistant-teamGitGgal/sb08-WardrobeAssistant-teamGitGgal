@@ -14,5 +14,4 @@ public record FollowCreateRequest(
     @NotNull(message = "followeeId는 필수값입니다.")
     UUID followeeId
 ) {
-
 }
