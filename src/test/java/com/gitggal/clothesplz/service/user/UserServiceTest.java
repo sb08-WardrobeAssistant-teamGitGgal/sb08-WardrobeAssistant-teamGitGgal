@@ -2,22 +2,26 @@ package com.gitggal.clothesplz.service.user;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.BDDMockito.any;
 import static org.mockito.BDDMockito.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.never;
 import static org.mockito.BDDMockito.verify;
 
+import com.gitggal.clothesplz.dto.user.ChangePasswordRequest;
 import com.gitggal.clothesplz.dto.user.UserCreateRequest;
 import com.gitggal.clothesplz.dto.user.UserDto;
 import com.gitggal.clothesplz.entity.profile.Profile;
 import com.gitggal.clothesplz.entity.user.User;
 import com.gitggal.clothesplz.entity.user.UserRole;
 import com.gitggal.clothesplz.exception.BusinessException;
+import com.gitggal.clothesplz.exception.code.UserErrorCode;
 import com.gitggal.clothesplz.mapper.user.UserMapper;
 import com.gitggal.clothesplz.repository.profile.ProfileRepository;
 import com.gitggal.clothesplz.repository.user.UserRepository;
 import java.time.Instant;
+import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -51,6 +55,8 @@ class UserServiceTest {
   private UserCreateRequest request;
   private UserDto responseDto;
   private String encodedPassword;
+  private User user;
+  private UUID userId;
 
   @BeforeEach
   void setUp() {
@@ -64,6 +70,11 @@ class UserServiceTest {
         UserRole.USER,
         false
     );
+    user = new User(
+        "홍길동",
+        "test@test.com",
+        "oldPassword");
+    userId = UUID.randomUUID();
   }
 
   @Nested
@@ -106,6 +117,86 @@ class UserServiceTest {
           .isInstanceOf(BusinessException.class);
 
       verify(userRepository, never()).save(any(User.class));
+      verify(passwordEncoder, never()).encode(anyString());
+    }
+  }
+
+  @Nested
+  @DisplayName("비밀번호 변경")
+  class updatePassword {
+
+    @Test
+    @DisplayName("성공 - 임시 비밀번호가 있으면 제거")
+    void updatePassword_success_clearTempPassword() {
+      // given
+      ChangePasswordRequest request =
+          new ChangePasswordRequest("newPassword123!");
+
+      user.updateTempPassword("tempPassword");
+
+      given(userRepository.findById(userId))
+          .willReturn(Optional.of(user));
+
+      given(passwordEncoder.encode(request.password()))
+          .willReturn("encodedPassword");
+
+      // when
+      userService.updatePassword(userId, request);
+
+      // then
+      assertThat(user.getPassword()).isEqualTo("encodedPassword");
+      assertThat(user.getTempPassword()).isNull();
+
+      verify(userRepository).findById(userId);
+      verify(passwordEncoder).encode(request.password());
+    }
+
+    @Test
+    @DisplayName("성공 - 임시 비밀번호가 없는 경우")
+    void updatePassword_success_withoutTempPassword() {
+      // given
+      ChangePasswordRequest request =
+          new ChangePasswordRequest("newPassword123!");
+
+      given(userRepository.findById(userId))
+          .willReturn(Optional.of(user));
+
+      given(passwordEncoder.encode(request.password()))
+          .willReturn("encodedPassword");
+
+      // when
+      userService.updatePassword(userId, request);
+
+      // then
+      assertThat(user.getPassword()).isEqualTo("encodedPassword");
+      assertThat(user.getTempPassword()).isNull();
+
+      verify(userRepository).findById(userId);
+      verify(passwordEncoder).encode(request.password());
+    }
+
+    @Test
+    @DisplayName("실패 - 사용자를 찾을 수 없음")
+    void updatePassword_fail_userNotFound() {
+      // given
+      UUID userId = UUID.randomUUID();
+
+      ChangePasswordRequest request =
+          new ChangePasswordRequest("newPassword123!");
+
+      given(userRepository.findById(userId))
+          .willReturn(Optional.empty());
+
+      // when & then
+      BusinessException exception = assertThrows(
+          BusinessException.class,
+          () -> userService.updatePassword(userId, request)
+      );
+
+      assertThat(exception.getErrorCode())
+          .isEqualTo(UserErrorCode.USER_NOT_FOUND);
+
+      verify(userRepository).findById(userId);
       verify(passwordEncoder, never()).encode(anyString());
     }
   }
