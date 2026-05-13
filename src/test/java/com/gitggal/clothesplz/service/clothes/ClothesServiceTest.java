@@ -12,6 +12,7 @@ import com.gitggal.clothesplz.dto.clothes.ClothesCreateRequest;
 import com.gitggal.clothesplz.dto.clothes.ClothesDto;
 import com.gitggal.clothesplz.dto.clothes.ClothesDtoCursorResponse;
 import com.gitggal.clothesplz.dto.clothes.ClothesGetRequest;
+import com.gitggal.clothesplz.dto.clothes.ClothesUpdateRequest;
 import com.gitggal.clothesplz.entity.clothes.Clothes;
 import com.gitggal.clothesplz.entity.clothes.ClothesAttributeDef;
 import com.gitggal.clothesplz.entity.clothes.ClothesType;
@@ -247,5 +248,39 @@ class ClothesServiceTest extends ServiceTestSupport {
     assertThat(((BusinessException) thrown).getErrorCode()).isEqualTo(ClothesErrorCode.CLOTHES_NOT_FOUND);
     verify(clothesAttributeRepository, never()).deleteAllByClothesId(any());
     verify(clothesRepository, never()).delete(any());
+  }
+
+  @Test
+  @DisplayName("의상 수정에 성공하면 요청한 값으로 수정한다")
+  void updateClothes_success() {
+    UUID clothesId = UUID.randomUUID();
+    Clothes clothes = new Clothes(owner, "흰 티셔츠", ClothesType.TOP, null, null);
+    ClothesUpdateRequest req = new ClothesUpdateRequest(
+        "검은 티셔츠",
+        ClothesType.OUTER,
+        List.of(new ClothesAttributeDto(definitionId, "WHITE"))
+    );
+    given(clothesRepository.findById(clothesId)).willReturn(Optional.of(clothes));
+    given(clothesAttributeDefRepository.findAllById(List.of(definitionId))).willReturn(List.of(attributeDef));
+
+    ClothesDto result = clothesService.updateClothes(clothesId, req, null);
+
+    assertThat(result.name()).isEqualTo("검은 티셔츠");
+    assertThat(result.type()).isEqualTo(ClothesType.OUTER);
+    assertThat(result.attributes()).hasSize(1);
+    verify(clothesAttributeRepository).deleteAllByClothesId(clothesId);
+  }
+
+  @Test
+  @DisplayName("수정 대상 의상이 없으면 CLOTHES_NOT_FOUND 예외가 발생한다")
+  void updateClothes_notFound_throwsException() {
+    UUID clothesId = UUID.randomUUID();
+    ClothesUpdateRequest req = new ClothesUpdateRequest("검은 티셔츠", ClothesType.OUTER, null);
+    given(clothesRepository.findById(clothesId)).willReturn(Optional.empty());
+
+    Throwable thrown = catchThrowable(() -> clothesService.updateClothes(clothesId, req, null));
+
+    assertThat(thrown).isInstanceOf(BusinessException.class);
+    assertThat(((BusinessException) thrown).getErrorCode()).isEqualTo(ClothesErrorCode.CLOTHES_NOT_FOUND);
   }
 }
