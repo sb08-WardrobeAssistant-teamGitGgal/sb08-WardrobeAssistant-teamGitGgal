@@ -66,7 +66,7 @@ class LoginSuccessHandlerTest {
         false
     );
 
-    userDetails = new ClothesUserDetails(userDto, "encoded-password");
+    userDetails = new ClothesUserDetails(userDto, "encoded-password",null,null);
   }
 
   @Test
