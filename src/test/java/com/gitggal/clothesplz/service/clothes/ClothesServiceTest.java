@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.times;
 
 import com.gitggal.clothesplz.dto.clothes.ClothesAttributeDto;
 import com.gitggal.clothesplz.dto.clothes.ClothesCreateRequest;
@@ -15,6 +16,7 @@ import com.gitggal.clothesplz.dto.clothes.ClothesGetRequest;
 import com.gitggal.clothesplz.dto.clothes.ClothesUpdateRequest;
 import com.gitggal.clothesplz.entity.clothes.Clothes;
 import com.gitggal.clothesplz.entity.clothes.ClothesAttributeDef;
+import com.gitggal.clothesplz.entity.clothes.ClothesAttribute;
 import com.gitggal.clothesplz.entity.clothes.ClothesType;
 import com.gitggal.clothesplz.entity.user.User;
 import com.gitggal.clothesplz.exception.BusinessException;
@@ -282,5 +284,136 @@ class ClothesServiceTest extends ServiceTestSupport {
 
     assertThat(thrown).isInstanceOf(BusinessException.class);
     assertThat(((BusinessException) thrown).getErrorCode()).isEqualTo(ClothesErrorCode.CLOTHES_NOT_FOUND);
+  }
+
+  @Test
+  @DisplayName("속성 요청이 null이면 기존 속성을 조회해 반환한다")
+  void updateClothes_withNullAttributes_returnsExistingAttributes() {
+    UUID clothesId = UUID.randomUUID();
+    Clothes clothes = new Clothes(owner, "흰 티셔츠", ClothesType.TOP, null, null);
+    ClothesAttributeDef existingDef = new ClothesAttributeDef("색상", List.of("WHITE", "BLACK"));
+    ReflectionTestUtils.setField(existingDef, "id", UUID.randomUUID());
+    ClothesAttribute existingAttr = new ClothesAttribute(clothes, existingDef, "BLACK");
+
+    ClothesUpdateRequest req = new ClothesUpdateRequest("검은 티셔츠", ClothesType.OUTER, null);
+    given(clothesRepository.findById(clothesId)).willReturn(Optional.of(clothes));
+    given(clothesAttributeRepository.findAllByClothesIdIn(List.of(clothesId))).willReturn(List.of(existingAttr));
+
+    ClothesDto result = clothesService.updateClothes(clothesId, req, null);
+
+    assertThat(result.attributes()).hasSize(1);
+    assertThat(result.attributes().get(0).value()).isEqualTo("BLACK");
+    verify(clothesAttributeRepository, never()).deleteAllByClothesId(any());
+    verify(clothesAttributeRepository, never()).saveAll(any());
+  }
+
+  @Test
+  @DisplayName("새 이미지를 업로드하면 기존 이미지를 삭제한다")
+  void updateClothes_withNewImage_deletesOldImage() {
+    UUID clothesId = UUID.randomUUID();
+    String oldImageUrl = "http://s3.example.com/old.jpg";
+    String newImageUrl = "http://s3.example.com/new.jpg";
+    Clothes clothes = new Clothes(owner, "흰 티셔츠", ClothesType.TOP, oldImageUrl, null);
+    MockMultipartFile image = new MockMultipartFile("image", "shirt.jpg", "image/jpeg", "img".getBytes());
+    ClothesUpdateRequest req = new ClothesUpdateRequest("검은 티셔츠", ClothesType.OUTER,
+        List.of(new ClothesAttributeDto(definitionId, "WHITE")));
+
+    given(clothesRepository.findById(clothesId)).willReturn(Optional.of(clothes));
+    given(imageUploader.upload(image)).willReturn(newImageUrl);
+    given(clothesAttributeDefRepository.findAllById(List.of(definitionId))).willReturn(List.of(attributeDef));
+
+    ClothesDto result = clothesService.updateClothes(clothesId, req, image);
+
+    assertThat(result.imageUrl()).isEqualTo(newImageUrl);
+    verify(imageUploader).delete(oldImageUrl);
+  }
+
+  @Test
+  @DisplayName("수정 요청 속성에 중복된 정의 ID가 있으면 예외가 발생한다")
+  void updateClothes_duplicateAttributeId_throwsException() {
+    UUID clothesId = UUID.randomUUID();
+    Clothes clothes = new Clothes(owner, "흰 티셔츠", ClothesType.TOP, null, null);
+    ClothesUpdateRequest req = new ClothesUpdateRequest(
+        "검은 티셔츠",
+        ClothesType.OUTER,
+        List.of(
+            new ClothesAttributeDto(definitionId, "WHITE"),
+            new ClothesAttributeDto(definitionId, "BLACK")
+        )
+    );
+    given(clothesRepository.findById(clothesId)).willReturn(Optional.of(clothes));
+
+    Throwable thrown = catchThrowable(() -> clothesService.updateClothes(clothesId, req, null));
+
+    assertThat(thrown).isInstanceOf(BusinessException.class);
+    assertThat(((BusinessException) thrown).getErrorCode())
+        .isEqualTo(ClothesErrorCode.DUPLICATE_CLOTHES_ATTRIBUTE_DEFINITION_ID);
+  }
+
+  @Test
+  @DisplayName("수정 요청 속성 정의 ID가 없으면 예외가 발생한다")
+  void updateClothes_attributeDefNotFound_throwsException() {
+    UUID clothesId = UUID.randomUUID();
+    UUID unknownId = UUID.randomUUID();
+    Clothes clothes = new Clothes(owner, "흰 티셔츠", ClothesType.TOP, null, null);
+    ClothesUpdateRequest req = new ClothesUpdateRequest(
+        "검은 티셔츠",
+        ClothesType.OUTER,
+        List.of(new ClothesAttributeDto(unknownId, "WHITE"))
+    );
+
+    given(clothesRepository.findById(clothesId)).willReturn(Optional.of(clothes));
+    given(clothesAttributeDefRepository.findAllById(List.of(unknownId))).willReturn(List.of());
+
+    Throwable thrown = catchThrowable(() -> clothesService.updateClothes(clothesId, req, null));
+
+    assertThat(thrown).isInstanceOf(BusinessException.class);
+    assertThat(((BusinessException) thrown).getErrorCode())
+        .isEqualTo(ClothesErrorCode.CLOTHES_ATTRIBUTE_DEFINITION_NOT_FOUND);
+  }
+
+  @Test
+  @DisplayName("수정 요청 속성 값이 허용되지 않으면 예외가 발생한다")
+  void updateClothes_invalidAttributeValue_throwsException() {
+    UUID clothesId = UUID.randomUUID();
+    Clothes clothes = new Clothes(owner, "흰 티셔츠", ClothesType.TOP, null, null);
+    ClothesUpdateRequest req = new ClothesUpdateRequest(
+        "검은 티셔츠",
+        ClothesType.OUTER,
+        List.of(new ClothesAttributeDto(definitionId, "YELLOW"))
+    );
+
+    given(clothesRepository.findById(clothesId)).willReturn(Optional.of(clothes));
+    given(clothesAttributeDefRepository.findAllById(List.of(definitionId))).willReturn(List.of(attributeDef));
+
+    Throwable thrown = catchThrowable(() -> clothesService.updateClothes(clothesId, req, null));
+
+    assertThat(thrown).isInstanceOf(BusinessException.class);
+    assertThat(((BusinessException) thrown).getErrorCode())
+        .isEqualTo(ClothesErrorCode.INVALID_CLOTHES_ATTRIBUTE_VALUE);
+  }
+
+  @Test
+  @DisplayName("이미지 업로드 후 수정 예외가 발생하면 업로드된 이미지를 삭제한다")
+  void updateClothes_exceptionAfterUpload_deletesUploadedImage() {
+    UUID clothesId = UUID.randomUUID();
+    String uploadedImageUrl = "http://s3.example.com/new.jpg";
+    Clothes clothes = new Clothes(owner, "흰 티셔츠", ClothesType.TOP, null, null);
+    MockMultipartFile image = new MockMultipartFile("image", "shirt.jpg", "image/jpeg", "img".getBytes());
+    ClothesUpdateRequest req = new ClothesUpdateRequest(
+        "검은 티셔츠",
+        ClothesType.OUTER,
+        List.of(
+            new ClothesAttributeDto(definitionId, "WHITE"),
+            new ClothesAttributeDto(definitionId, "BLACK")
+        )
+    );
+
+    given(clothesRepository.findById(clothesId)).willReturn(Optional.of(clothes));
+    given(imageUploader.upload(image)).willReturn(uploadedImageUrl);
+
+    catchThrowable(() -> clothesService.updateClothes(clothesId, req, image));
+
+    verify(imageUploader, times(1)).delete(uploadedImageUrl);
   }
 }
