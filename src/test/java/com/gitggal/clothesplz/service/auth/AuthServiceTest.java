@@ -2,16 +2,20 @@ package com.gitggal.clothesplz.service.auth;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
+import com.gitggal.clothesplz.dto.user.ResetPasswordRequest;
 import com.gitggal.clothesplz.dto.user.UserDto;
+import com.gitggal.clothesplz.entity.user.User;
 import com.gitggal.clothesplz.entity.user.UserRole;
 import com.gitggal.clothesplz.exception.BusinessException;
 import com.gitggal.clothesplz.exception.code.UserErrorCode;
+import com.gitggal.clothesplz.repository.user.UserRepository;
 import com.gitggal.clothesplz.security.ClothesUserDetails;
 import com.gitggal.clothesplz.security.ClothesUserDetailsService;
 import com.gitggal.clothesplz.security.jwt.JwtInformation;
@@ -19,6 +23,7 @@ import com.gitggal.clothesplz.security.jwt.JwtRegistry;
 import com.gitggal.clothesplz.security.jwt.JwtTokenProvider;
 import com.nimbusds.jose.JOSEException;
 import java.time.Instant;
+import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -28,6 +33,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("AuthService Test")
@@ -42,6 +50,15 @@ class AuthServiceTest {
   @Mock
   private ClothesUserDetailsService clothesUserDetailsService;
 
+  @Mock
+  private JavaMailSender javaMailSender;
+
+  @Mock
+  private UserRepository userRepository;
+
+  @Mock
+  private PasswordEncoder passwordEncoder;
+
   @InjectMocks
   private AuthServiceImpl authService;
 
@@ -53,6 +70,7 @@ class AuthServiceTest {
   private String newRefreshToken;
   private Instant accessTokenExpiry;
   private Instant refreshTokenExpiry;
+  private User user;
 
   @BeforeEach
   void setUp() {
@@ -67,7 +85,13 @@ class AuthServiceTest {
         false
     );
 
-    clothesUserDetails = new ClothesUserDetails(userDto, "password");
+    user = new User(
+        "홍길동",
+        "test@test.com",
+        "oldPassword"
+    );
+
+    clothesUserDetails = new ClothesUserDetails(userDto, "password",null,null);
 
     oldRefreshToken = "old.refresh.token";
     newAccessToken = "new.access.token";
@@ -81,7 +105,7 @@ class AuthServiceTest {
   class Refresh {
 
     @Test
-    @DisplayName("토큰 재발급 성공")
+    @DisplayName("성공")
     void refresh_success() throws JOSEException {
       // given
       given(tokenProvider.validateRefreshToken(oldRefreshToken)).willReturn(true);
@@ -116,7 +140,7 @@ class AuthServiceTest {
     }
 
     @Test
-    @DisplayName("토큰 재발급 실패 - Refresh Token 유효성 검증 실패")
+    @DisplayName("실패 - Refresh Token 유효성 검증 실패")
     void refresh_fail_invalidRefreshToken() {
       // given
       given(tokenProvider.validateRefreshToken(oldRefreshToken)).willReturn(false);
@@ -134,7 +158,7 @@ class AuthServiceTest {
     }
 
     @Test
-    @DisplayName("토큰 재발급 실패 - Registry에 활성 토큰 없음")
+    @DisplayName("실패 - Registry에 활성 토큰 없음")
     void refresh_fail_noActiveToken() {
       // given
       given(tokenProvider.validateRefreshToken(oldRefreshToken)).willReturn(true);
@@ -153,7 +177,7 @@ class AuthServiceTest {
     }
 
     @Test
-    @DisplayName("토큰 재발급 실패 - 사용자를 찾을 수 없음")
+    @DisplayName("실패 - 사용자를 찾을 수 없음")
     void refresh_fail_userNotFound() throws JOSEException {
       // given
       given(tokenProvider.validateRefreshToken(oldRefreshToken)).willReturn(true);
@@ -176,7 +200,7 @@ class AuthServiceTest {
     }
 
     @Test
-    @DisplayName("토큰 재발급 실패 - JWT 생성 중 JOSEException 발생")
+    @DisplayName("실패 - JWT 생성 중 JOSEException 발생")
     void refresh_fail_joseException() throws JOSEException {
       // given
       given(tokenProvider.validateRefreshToken(oldRefreshToken)).willReturn(true);
@@ -197,6 +221,60 @@ class AuthServiceTest {
       verify(clothesUserDetailsService).loadUserById(userId);
       verify(tokenProvider).generateAccessToken(clothesUserDetails);
       verify(jwtRegistry, never()).rotateJwtInformation(anyString(), any());
+    }
+  }
+
+  @Nested
+  @DisplayName("임시 비밀번호 발급")
+  class sendTempPassword{
+
+    @Test
+    @DisplayName("성공")
+    void success_sendTempPassword() {
+      // given
+      ResetPasswordRequest request =
+          new ResetPasswordRequest("test@test.com");
+
+      given(userRepository.findByEmail(request.email()))
+          .willReturn(Optional.of(user));
+
+      given(passwordEncoder.encode(anyString()))
+          .willReturn("encodedTempPassword");
+
+      // when
+      authService.sendTempPassword(request);
+
+      // then
+      assertThat(user.getTempPassword()).isEqualTo("encodedTempPassword");
+      assertThat(user.getTempPasswordExpiresAt()).isNotNull();
+
+      verify(userRepository).findByEmail(request.email());
+      verify(passwordEncoder).encode(anyString());
+      verify(javaMailSender).send(any(SimpleMailMessage.class));
+    }
+
+    @Test
+    @DisplayName("실패 - 사용자를 찾을 수 없음")
+    void fail_userNotFound() {
+      // given
+      ResetPasswordRequest request =
+          new ResetPasswordRequest("test@test.com");
+
+      given(userRepository.findByEmail(request.email()))
+          .willReturn(Optional.empty());
+
+      // when & then
+      BusinessException exception = assertThrows(
+          BusinessException.class,
+          () -> authService.sendTempPassword(request)
+      );
+
+      assertThat(exception.getErrorCode())
+          .isEqualTo(UserErrorCode.USER_NOT_FOUND);
+
+      verify(userRepository).findByEmail(request.email());
+      verify(passwordEncoder, never()).encode(anyString());
+      verify(javaMailSender, never()).send(any(SimpleMailMessage.class));
     }
   }
 }

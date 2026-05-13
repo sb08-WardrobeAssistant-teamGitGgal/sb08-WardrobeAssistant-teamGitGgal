@@ -26,6 +26,9 @@ spring:
       credentials:
         access-key: dummy-access
         secret-key: dummy-secret
+  mail:
+    username: test
+    password: test
 
 logging:
   level:
