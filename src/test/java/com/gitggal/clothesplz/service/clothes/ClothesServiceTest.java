@@ -412,8 +412,11 @@ class ClothesServiceTest extends ServiceTestSupport {
     given(clothesRepository.findById(clothesId)).willReturn(Optional.of(clothes));
     given(imageUploader.upload(image)).willReturn(uploadedImageUrl);
 
-    catchThrowable(() -> clothesService.updateClothes(clothesId, req, image));
+    Throwable thrown = catchThrowable(() -> clothesService.updateClothes(clothesId, req, image));
 
+    assertThat(thrown).isNotNull().isInstanceOf(BusinessException.class);
+    assertThat(((BusinessException) thrown).getErrorCode())
+        .isEqualTo(ClothesErrorCode.DUPLICATE_CLOTHES_ATTRIBUTE_DEFINITION_ID);
     verify(imageUploader, times(1)).delete(uploadedImageUrl);
   }
 }
