@@ -71,3 +71,7 @@ kakao:
   api:
     rest-key: ${KAKAO_REST_API_KEY}
 
+openai:
+  api:
+    key: ${OPENAI_API_KEY}
+
