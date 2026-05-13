@@ -59,4 +59,8 @@ public class User extends BaseUpdatableEntity {
     this.tempPassword = null;
     this.tempPasswordExpiresAt = null;
   }
+
+  public void updatePassword(String password){
+    this.password = password;
+  }
 }
