@@ -29,6 +29,7 @@ import com.gitggal.clothesplz.repository.user.UserRepository;
 import com.gitggal.clothesplz.repository.weather.WeatherRepository;
 import com.gitggal.clothesplz.service.feed.FeedService;
 import java.time.Instant;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -184,10 +185,19 @@ public class FeedServiceImpl implements FeedService {
   public CommentDtoCursorResponse getComments(UUID feedId, CommentPageRequest commentPageRequest) {
     log.info("[Service] 피드 댓글 목록 조회 요청 시작 - feedId: {}", feedId);
 
+    Instant cursorInstant;
+    try {
+      cursorInstant = (commentPageRequest.cursor() != null && !commentPageRequest.cursor().isBlank())
+          ? Instant.parse(commentPageRequest.cursor())
+          : null;
+    } catch (DateTimeParseException e) {
+      throw new BusinessException(FeedErrorCode.INVALID_CURSOR_FORMAT);
+    }
+
     Feed feed = feedRepository.findById(feedId)
         .orElseThrow(() -> new BusinessException(FeedErrorCode.FEED_NOT_FOUND));
 
-    List<CommentDto> comments = feedCommentRepository.findAllByCursor(feedId, commentPageRequest);
+    List<CommentDto> comments = feedCommentRepository.findAllByCursor(feedId, commentPageRequest, cursorInstant);
 
     boolean hasNext = comments.size() > commentPageRequest.limit();
     List<CommentDto> data = hasNext ? comments.subList(0, commentPageRequest.limit()) : comments;
@@ -275,7 +285,8 @@ public class FeedServiceImpl implements FeedService {
 
   private FeedCursorCondition parseCursor(String cursor, UUID idAfter, String sortBy) {
     if (cursor == null || idAfter == null) {
-      return null;
+      // 첫 페이지인 경우 커서 x
+      return new FeedCursorCondition(null, null, null);
     }
 
     try {

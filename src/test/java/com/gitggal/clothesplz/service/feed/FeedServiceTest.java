@@ -4,6 +4,7 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.mock;
@@ -417,7 +418,7 @@ public class FeedServiceTest extends ServiceTestSupport {
     void getComments_Success_NoNextPage() {
       // given
       given(feedRepository.findById(eq(feedId))).willReturn(Optional.of(mockFeed));
-      given(feedCommentRepository.findAllByCursor(eq(feedId), eq(pageRequest)))
+      given(feedCommentRepository.findAllByCursor(eq(feedId), eq(pageRequest), isNull()))
           .willReturn(List.of(commentDto1));
       given(mockFeed.getCommentCount()).willReturn(1L);
 
@@ -441,7 +442,7 @@ public class FeedServiceTest extends ServiceTestSupport {
           new AuthorDto(authorId, "작성자3", "url3"), "댓글3"
       );
       given(feedRepository.findById(eq(feedId))).willReturn(Optional.of(mockFeed));
-      given(feedCommentRepository.findAllByCursor(eq(feedId), eq(pageRequest)))
+      given(feedCommentRepository.findAllByCursor(eq(feedId), eq(pageRequest), isNull()))
           .willReturn(List.of(commentDto1, commentDto2, commentDto3));
       given(mockFeed.getCommentCount()).willReturn(3L);
 
@@ -461,7 +462,7 @@ public class FeedServiceTest extends ServiceTestSupport {
     void getComments_EmptyComments() {
       // given
       given(feedRepository.findById(eq(feedId))).willReturn(Optional.of(mockFeed));
-      given(feedCommentRepository.findAllByCursor(eq(feedId), eq(pageRequest)))
+      given(feedCommentRepository.findAllByCursor(eq(feedId), eq(pageRequest), isNull()))
           .willReturn(List.of());
       given(mockFeed.getCommentCount()).willReturn(0L);
 
@@ -482,6 +483,17 @@ public class FeedServiceTest extends ServiceTestSupport {
 
       // when & then
       assertThatThrownBy(() -> feedService.getComments(feedId, pageRequest))
+          .isInstanceOf(BusinessException.class);
+    }
+
+    @Test
+    @DisplayName("잘못된 cursor 형식이면 예외 발생")
+    void getComments_InvalidCursorFormat_ThrowsException() {
+      // given
+      CommentPageRequest invalidRequest = new CommentPageRequest("not-a-timestamp", UUID.randomUUID(), 2);
+
+      // when & then
+      assertThatThrownBy(() -> feedService.getComments(feedId, invalidRequest))
           .isInstanceOf(BusinessException.class);
     }
   }

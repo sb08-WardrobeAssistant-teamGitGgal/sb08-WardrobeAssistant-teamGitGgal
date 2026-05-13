@@ -113,7 +113,7 @@ class FeedCommentRepositoryTest extends RepositoryTestSupport {
 
     CommentPageRequest request = new CommentPageRequest(null, null, 2);
 
-    List<CommentDto> result = feedCommentRepository.findAllByCursor(feedId, request);
+    List<CommentDto> result = feedCommentRepository.findAllByCursor(feedId, request, null);
 
     // 다음 페이지 존재 여부 검증을 위한 limit + 1 확인
     assertThat(result).hasSize(3);
@@ -127,7 +127,7 @@ class FeedCommentRepositoryTest extends RepositoryTestSupport {
 
     CommentPageRequest request = new CommentPageRequest(null, null, 5);
 
-    List<CommentDto> result = feedCommentRepository.findAllByCursor(feedId, request);
+    List<CommentDto> result = feedCommentRepository.findAllByCursor(feedId, request, null);
 
     assertThat(result).hasSize(1);
   }
@@ -150,9 +150,9 @@ class FeedCommentRepositoryTest extends RepositoryTestSupport {
     em.clear();
 
     // t3 > t2 > t1 최신순, limit이 2기 때문에 다음 페이지는 t1만 해당
-    CommentPageRequest request = new CommentPageRequest(t2, comment2.getId(), 2);
+    CommentPageRequest request = new CommentPageRequest(t2.toString(), comment2.getId(), 2);
 
-    List<CommentDto> result = feedCommentRepository.findAllByCursor(feedId, request);
+    List<CommentDto> result = feedCommentRepository.findAllByCursor(feedId, request, t2);
 
     assertThat(result).hasSize(1);
     assertThat(result.get(0).content()).isEqualTo("댓글1");
@@ -171,7 +171,7 @@ class FeedCommentRepositoryTest extends RepositoryTestSupport {
 
     CommentPageRequest request = new CommentPageRequest(null, null, 10);
 
-    List<CommentDto> result = feedCommentRepository.findAllByCursor(feedId, request);
+    List<CommentDto> result = feedCommentRepository.findAllByCursor(feedId, request, null);
 
     assertThat(result).hasSize(2);
     UUID firstId = result.get(0).id();
