@@ -61,6 +61,7 @@ public class SecurityConfig {
             .requestMatchers(HttpMethod.POST, "/api/users").permitAll() // 회원가입 허용
             .requestMatchers(HttpMethod.POST, "/api/auth/sign-in").permitAll() // 로그인 허용
             .requestMatchers(HttpMethod.POST, "/api/auth/sign-out").permitAll() // 로그아웃 허용
+            .requestMatchers(HttpMethod.POST, "/api/auth/reset-password").permitAll() // 임시 비밀번호 발급
             .requestMatchers(HttpMethod.POST, "/api/auth/refresh").permitAll()
             .requestMatchers("/api/**").authenticated() // api 인증 필요
             .anyRequest().permitAll()

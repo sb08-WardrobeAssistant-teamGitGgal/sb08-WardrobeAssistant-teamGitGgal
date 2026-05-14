@@ -11,7 +11,7 @@ import java.util.UUID;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.QueryHints;
 
-public interface FeedRepository extends JpaRepository<Feed, UUID> {
+public interface FeedRepository extends JpaRepository<Feed, UUID>, FeedRepositoryCustom {
 
   @EntityGraph(attributePaths = {"weather", "author"})
   Optional<Feed> findWithDetailsById(UUID feedId);
@@ -21,4 +21,6 @@ public interface FeedRepository extends JpaRepository<Feed, UUID> {
   // 3초동안 락 획득하지 못하면 타임아웃 발생
   @QueryHints(@QueryHint(name = "jakarta.persistence.lock.timeout", value = "3000"))
   Optional<Feed> findWithLockById(UUID feedId);
+
+  boolean existsByIdAndAuthorId(UUID feedId, UUID authorId);
 }
