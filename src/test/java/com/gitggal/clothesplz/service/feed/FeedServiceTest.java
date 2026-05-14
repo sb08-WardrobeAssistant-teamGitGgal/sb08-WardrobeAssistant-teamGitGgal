@@ -41,6 +41,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 @ExtendWith(MockitoExtension.class)
@@ -191,6 +192,7 @@ public class FeedServiceTest extends ServiceTestSupport {
   class UpdateFeedTests {
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("피드 수정 성공인 경우")
     void updateFeed_Success() {
       // given
@@ -207,6 +209,7 @@ public class FeedServiceTest extends ServiceTestSupport {
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("피드 정보를 찾을 수 없는 경우 예외 발생")
     void updateFeed_FeedNotFound_ThrowsException() {
       // given
@@ -223,6 +226,7 @@ public class FeedServiceTest extends ServiceTestSupport {
   class DeleteFeedTests {
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("피드 삭제 성공인 경우")
     void deleteFeed_Success() {
       // given
@@ -236,6 +240,7 @@ public class FeedServiceTest extends ServiceTestSupport {
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("피드 정보를 찾을 수 없는 경우 예외 발생")
     void deleteFeed_FeedNotFound_ThrowsException() {
       // given
