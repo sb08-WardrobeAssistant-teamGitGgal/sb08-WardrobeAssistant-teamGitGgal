@@ -187,7 +187,84 @@ public class ClothesServiceImpl implements ClothesService {
       ClothesUpdateRequest request,
       MultipartFile image
   ) {
-    return null;
+    log.info("[Service] 의상 수정 요청 시작: clothesId = {}", clothesId);
+
+    Clothes clothes = findClothesOrThrow(clothesId);
+
+    String uploadedImageUrl = null;
+    String oldImageUrl = clothes.getImageUrl();
+
+    try {
+      if (image != null) {
+        uploadedImageUrl = imageUploader.upload(image);
+      }
+
+      clothes.update(
+          request.name(),
+          request.type(),
+          uploadedImageUrl != null ? uploadedImageUrl : clothes.getImageUrl()
+      );
+
+      List<ClothesAttributeWithDefDto> attributeDef;
+
+      if (request.attributes() != null) {
+        List<ClothesAttributeDto> requestAttributes = request.attributes();
+        List<UUID> attributeIds = requestAttributes.stream().map(ClothesAttributeDto::definitionId).toList();
+
+        if (attributeIds.size() != attributeIds.stream().distinct().count()) {
+          log.error("[Service] 의상 수정 요청 실패 - 중복된 속성 정의 ID가 포함되었습니다. clothesId={}, attributeIds={}",
+              clothesId, attributeIds);
+          throw new BusinessException(ClothesErrorCode.DUPLICATE_CLOTHES_ATTRIBUTE_DEFINITION_ID);
+        }
+
+        List<ClothesAttributeDef> clothesAttributes = clothesAttributeDefRepository.findAllById(attributeIds);
+        if (clothesAttributes.size() != attributeIds.size()) {
+          log.error("[Service] 의상 수정 요청 실패 - 존재하지 않는 속성 정의 ID가 포함되었습니다. clothesId={}, attributeIds={}",
+              clothesId, attributeIds);
+          throw new BusinessException(ClothesErrorCode.CLOTHES_ATTRIBUTE_DEFINITION_NOT_FOUND);
+        }
+
+        Map<UUID, ClothesAttributeDto> requestAttributeByDefinitionId = new HashMap<>();
+        for (ClothesAttributeDto attribute : requestAttributes) {
+          requestAttributeByDefinitionId.put(attribute.definitionId(), attribute);
+        }
+
+        clothesAttributeRepository.deleteAllByClothesId(clothesId);
+
+        List<ClothesAttribute> clothesAttributeList = new ArrayList<>();
+        attributeDef = new ArrayList<>();
+
+        for (ClothesAttributeDef def : clothesAttributes) {
+          String value = requestAttributeByDefinitionId.get(def.getId()).value();
+          if (!def.getSelectableValues().contains(value)) {
+            log.error("[Service] 의상 생성 요청 실패 - 허용되지 않는 속성 값입니다. definitionId={}, value={}", def.getId(), value);
+            throw new BusinessException(ClothesErrorCode.INVALID_CLOTHES_ATTRIBUTE_VALUE);
+          }
+
+          clothesAttributeList.add(clothesMapper.toClothesAttribute(clothes, def, value));
+          attributeDef.add(clothesMapper.toClothesAttributeWithDefDto(def, value));
+        }
+        clothesAttributeRepository.saveAll(clothesAttributeList);
+      } else {
+        attributeDef = clothesAttributeRepository.findAllByClothesIdIn(List.of(clothesId)).stream()
+            .map(attr -> clothesMapper.toClothesAttributeWithDefDto(attr.getDefinition(), attr.getValue()))
+            .toList();
+      }
+
+      if (uploadedImageUrl != null && oldImageUrl != null && !oldImageUrl.isBlank()) {
+        imageUploader.delete(oldImageUrl);
+      }
+
+      log.info("[Service] 의상 수정 요청 완료: clothesId = {}", clothesId);
+      return clothesMapper.toClothesDto(clothes, clothes.getOwner(), attributeDef);
+    } catch (RuntimeException e) {
+      log.error("[Service] 의상 수정 요청 실패");
+      if (uploadedImageUrl != null) {
+        log.info("[Service] 업로드된 이미지 삭제");
+        imageUploader.delete(uploadedImageUrl);
+      }
+      throw e;
+    }
   }
 
   @Override
@@ -199,5 +276,10 @@ public class ClothesServiceImpl implements ClothesService {
   private User findUserOrThrow(UUID userId) {
     return userRepository.findById(userId)
         .orElseThrow(() -> new BusinessException(UserErrorCode.USER_NOT_FOUND));
+  }
+
+  private Clothes findClothesOrThrow(UUID clothesId) {
+    return clothesRepository.findById(clothesId)
+        .orElseThrow(() -> new BusinessException(ClothesErrorCode.CLOTHES_NOT_FOUND));
   }
 }

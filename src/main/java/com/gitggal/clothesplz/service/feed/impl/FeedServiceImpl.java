@@ -6,7 +6,10 @@ import com.gitggal.clothesplz.dto.feed.CommentDto;
 import com.gitggal.clothesplz.dto.feed.CommentDtoCursorResponse;
 import com.gitggal.clothesplz.dto.feed.CommentPageRequest;
 import com.gitggal.clothesplz.dto.feed.FeedCreateRequest;
+import com.gitggal.clothesplz.dto.feed.FeedCursorCondition;
 import com.gitggal.clothesplz.dto.feed.FeedDto;
+import com.gitggal.clothesplz.dto.feed.FeedDtoCursorResponse;
+import com.gitggal.clothesplz.dto.feed.FeedPageRequest;
 import com.gitggal.clothesplz.dto.feed.FeedUpdateRequest;
 import com.gitggal.clothesplz.entity.feed.Feed;
 import com.gitggal.clothesplz.entity.feed.FeedComment;
@@ -25,10 +28,14 @@ import com.gitggal.clothesplz.repository.feed.FeedRepository;
 import com.gitggal.clothesplz.repository.user.UserRepository;
 import com.gitggal.clothesplz.repository.weather.WeatherRepository;
 import com.gitggal.clothesplz.service.feed.FeedService;
+import java.time.Instant;
+import java.time.format.DateTimeParseException;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -78,7 +85,7 @@ public class FeedServiceImpl implements FeedService {
     return feedMapper.toDto(savedFeed);
   }
 
-  // TODO: 관리자나 피드 작성자만 피드 수정하도록 권한 위임 예정
+  @PreAuthorize("isAuthenticated() and (hasRole('ADMIN') or @feedServiceImpl.isAuthor(#feedId, authentication.principal.userDto.id))")
   @Override
   @Transactional
   public FeedDto updateFeed(UUID feedId, FeedUpdateRequest feedUpdateRequest) {
@@ -95,7 +102,7 @@ public class FeedServiceImpl implements FeedService {
     return feedMapper.toDto(feed);
   }
 
-  // TODO: 관리자나 피드 작성자만 피드 삭제하도록 권한 위임 예정
+  @PreAuthorize("isAuthenticated() and (hasRole('ADMIN') or @feedServiceImpl.isAuthor(#feedId, authentication.principal.userDto.id))")
   @Override
   @Transactional
   public void deleteFeed(UUID feedId) {
@@ -140,9 +147,6 @@ public class FeedServiceImpl implements FeedService {
     Feed feed = feedRepository.findWithLockById(feedId)
         .orElseThrow(() -> new BusinessException(FeedErrorCode.FEED_NOT_FOUND));
 
-    User user = userRepository.findById(userId)
-        .orElseThrow(() -> new BusinessException(UserErrorCode.USER_NOT_FOUND));
-
     FeedLike feedLike = feedLikeRepository.findByFeedIdAndUserId(feedId, userId)
         .orElseThrow(() -> new BusinessException(FeedErrorCode.FEED_LIKE_NOT_FOUND));
 
@@ -176,13 +180,22 @@ public class FeedServiceImpl implements FeedService {
   }
 
   @Override
-  public CommentDtoCursorResponse findAll(UUID feedId, CommentPageRequest commentPageRequest) {
+  public CommentDtoCursorResponse getComments(UUID feedId, CommentPageRequest commentPageRequest) {
     log.info("[Service] 피드 댓글 목록 조회 요청 시작 - feedId: {}", feedId);
+
+    Instant cursorInstant;
+    try {
+      cursorInstant = (commentPageRequest.cursor() != null && !commentPageRequest.cursor().isBlank())
+          ? Instant.parse(commentPageRequest.cursor())
+          : null;
+    } catch (DateTimeParseException e) {
+      throw new BusinessException(FeedErrorCode.INVALID_CURSOR_FORMAT);
+    }
 
     Feed feed = feedRepository.findById(feedId)
         .orElseThrow(() -> new BusinessException(FeedErrorCode.FEED_NOT_FOUND));
 
-    List<CommentDto> comments = feedCommentRepository.findAllByCursor(feedId, commentPageRequest);
+    List<CommentDto> comments = feedCommentRepository.findAllByCursor(feedId, commentPageRequest, cursorInstant);
 
     boolean hasNext = comments.size() > commentPageRequest.limit();
     List<CommentDto> data = hasNext ? comments.subList(0, commentPageRequest.limit()) : comments;
@@ -209,5 +222,86 @@ public class FeedServiceImpl implements FeedService {
         COMMENT_SORT_BY,
         COMMENT_SORT_DIRECTION
     );
+  }
+
+  @Override
+  public FeedDtoCursorResponse getFeeds(UUID userId, FeedPageRequest feedPageRequest) {
+    log.info("[Service] 피드 목록 조회 요청 시작 - limit: {}", feedPageRequest.limit());
+
+    // 요청 cursor를 받아서 parse
+    FeedCursorCondition feedCursorCondition = parseCursor(
+        feedPageRequest.cursor(),
+        feedPageRequest.idAfter(),
+        feedPageRequest.sortBy()
+    );
+
+    List<FeedDto> feeds = feedRepository.findAllByCursor(feedPageRequest, feedCursorCondition);
+
+    boolean hasNext = feeds.size() > feedPageRequest.limit();
+    List<FeedDto> data = hasNext ? feeds.subList(0, feedPageRequest.limit()) : feeds;
+
+    // 피드 목록의 id들만 추출
+    List<UUID> feedIds = data.stream().map(FeedDto::id).toList();
+
+    // 피드 목록 조회 요청 보낸 사용자가 좋아요를 누른 피드 목록
+    Set<UUID> likedFeedIds = feedLikeRepository.findFeedIdsByUserId(userId, feedIds);
+
+    // likedByMe 값을 채우기 위해 2차 매핑
+    List<FeedDto> result = data.stream()
+        // 피드 목록을 순회하며 사용자가 좋아요를 누른 피드인지 검증
+        .map(feedDto -> feedDto.withLikedByMe(likedFeedIds.contains(feedDto.id())))
+        .toList();
+
+    String nextCursor = null;
+    UUID nextIdAfter = null;
+
+    if (!data.isEmpty() && hasNext) {
+      FeedDto lastFeedDto = data.get(data.size() - 1);
+      nextIdAfter = lastFeedDto.id();
+
+      if ("likeCount".equals(feedPageRequest.sortBy())) {
+        nextCursor = String.valueOf(lastFeedDto.likeCount());
+      } else {
+        nextCursor = lastFeedDto.createdAt().toString();
+      }
+    }
+
+    long totalCount = feedRepository.countByCondition(feedPageRequest);
+
+    log.info("[Service] 피드 목록 조회 요청 완료 - totalCount: {}", totalCount);
+
+    return new FeedDtoCursorResponse(
+        result,
+        nextCursor,
+        nextIdAfter,
+        hasNext,
+        totalCount,
+        feedPageRequest.sortBy(),
+        feedPageRequest.sortDirection()
+    );
+  }
+
+  private FeedCursorCondition parseCursor(String cursor, UUID idAfter, String sortBy) {
+    if (cursor == null || idAfter == null) {
+      // 첫 페이지인 경우 커서 x
+      return new FeedCursorCondition(null, null, null);
+    }
+
+    try {
+      if ("likeCount".equals(sortBy)) {
+        // 좋아요 수가 정렬 기준일 경우 cursor 자료형은 Long
+        return new FeedCursorCondition(null, Long.parseLong(cursor), idAfter);
+      } else {
+        // 생성 시간이 정렬 기준일 경우 cursor 자료형은 Instant
+        return new FeedCursorCondition(Instant.parse(cursor), null, idAfter);
+      }
+    } catch (Exception e) {
+      throw new BusinessException(FeedErrorCode.INVALID_CURSOR_FORMAT);
+    }
+  }
+
+  // 권한 검증용 메소드(작성자가 userId인 feed가 있나 없나)
+  public boolean isAuthor(UUID feedId, UUID userId) {
+    return feedRepository.existsByIdAndAuthorId(feedId, userId);
   }
 }

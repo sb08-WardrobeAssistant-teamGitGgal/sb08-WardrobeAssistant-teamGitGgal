@@ -23,7 +23,7 @@ class ClothesUserDetailsTest {
         false
     );
 
-    ClothesUserDetails userDetails = new ClothesUserDetails(userDto, "encoded-password");
+    ClothesUserDetails userDetails = new ClothesUserDetails(userDto, "encoded-password",null,null);
 
     assertThat(userDetails.getUserDto()).isEqualTo(userDto);
     assertThat(userDetails.getUsername()).isEqualTo("test@test.com");
