@@ -2,6 +2,7 @@ package com.gitggal.clothesplz.service.message.impl;
 
 import com.gitggal.clothesplz.dto.message.DirectMessageCreateRequest;
 import com.gitggal.clothesplz.dto.message.DirectMessageDto;
+import com.gitggal.clothesplz.dto.message.DirectMessageDtoCursorResponse;
 import com.gitggal.clothesplz.dto.notification.NotificationRequest;
 import com.gitggal.clothesplz.entity.message.DirectMessage;
 import com.gitggal.clothesplz.entity.notification.NotificationLevel;
@@ -15,6 +16,8 @@ import com.gitggal.clothesplz.repository.user.UserRepository;
 import com.gitggal.clothesplz.service.message.DirectMessageService;
 import com.gitggal.clothesplz.service.notification.NotificationService;
 import com.gitggal.clothesplz.util.message.DmKeyGenerator;
+import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,6 +32,8 @@ import org.springframework.transaction.annotation.Transactional;
 public class DirectMessageServiceImpl implements DirectMessageService {
 
   private static final String SUB_PREFIX = "/sub/direct-messages_";
+  private static final String SORT_BY = "createdAt";
+  private static final String SORT_DIRECTION = "DESCENDING";
 
   private final DirectMessageRepository directMessageRepository;
   private final UserRepository userRepository;
@@ -95,5 +100,80 @@ public class DirectMessageServiceImpl implements DirectMessageService {
     log.info("[Service] DM 송신 요청 완료: messageId={}", savedMessage.getId());
 
     return dto;
+  }
+
+  /**
+   * 두 사용자 간 DM 목록 조회
+   * @param userId      - 요청자 ID
+   * @param partnerId   - 상대방 ID
+   * @param cursor      - 이전 페이지 마지막 createdAt
+   * @param idAfter     - 이전 페이지 마지막 id
+   * @param limit       - 한 페이지 크기
+   */
+  @Override
+  public DirectMessageDtoCursorResponse getMessages(
+
+      UUID userId,
+      UUID partnerId,
+      String cursor,
+      UUID idAfter,
+      int limit) {
+
+    log.info("[Service] DM 목록 조회 요청 시작: userId={}, partnerId={}", userId, partnerId);
+
+    Instant cursorInstant = parseCursor(cursor, idAfter);
+
+    List<DirectMessage> messages = directMessageRepository
+        .findPage(userId, partnerId, cursorInstant, idAfter, limit + 1);
+
+    boolean hasNext = messages.size() > limit;
+
+    List<DirectMessage> pageData = hasNext ? messages.subList(0, limit) : messages;
+
+    String nextCursor = null;
+
+    UUID nextIdAfter = null;
+
+    if (hasNext && !pageData.isEmpty()) {
+
+      DirectMessage lastMessage = pageData.get(pageData.size() - 1);
+
+      nextCursor = lastMessage.getCreatedAt().toString();
+
+      nextIdAfter = lastMessage.getId();
+    }
+
+    long totalCount = directMessageRepository.countBetween(userId, partnerId);
+
+    List<DirectMessageDto> dtoList = pageData.stream()
+        .map(directMessageMapper::toDto)
+        .toList();
+
+    log.info("[Service] DM 목록 조회 완료: totalCount={}", totalCount);
+
+    return new DirectMessageDtoCursorResponse(
+        dtoList,
+        nextCursor,
+        nextIdAfter,
+        hasNext,
+        totalCount,
+        SORT_BY,
+        SORT_DIRECTION
+    );
+  }
+
+  private Instant parseCursor(String cursor, UUID idAfter) {
+
+    if ((cursor == null) != (idAfter == null)) {
+      throw new BusinessException(MessageErrorCode.INVALID_CURSOR_FORMAT);
+    }
+
+    if (cursor == null) return null;
+
+    try {
+      return Instant.parse(cursor);
+    } catch (Exception e) {
+      throw new BusinessException(MessageErrorCode.INVALID_CURSOR_FORMAT);
+    }
   }
 }
