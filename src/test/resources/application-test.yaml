@@ -60,3 +60,7 @@ storage:
     region: dummy-region
     bucket: dummy-bucket
     cloudfront: dummy-cloudfront
+
+openai:
+  api:
+    key: dummy-openai-key
