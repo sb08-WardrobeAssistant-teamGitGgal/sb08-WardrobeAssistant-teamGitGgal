@@ -56,3 +56,11 @@ kakao:
   api:
     rest-key: dummy-kakao-key
 
+# s3
+storage:
+  s3:
+    access-key: dummy-access
+    secret-key: dummy-secret
+    region: dummy-region
+    bucket: dummy-bucket
+    cloudfront: dummy-cloudfront

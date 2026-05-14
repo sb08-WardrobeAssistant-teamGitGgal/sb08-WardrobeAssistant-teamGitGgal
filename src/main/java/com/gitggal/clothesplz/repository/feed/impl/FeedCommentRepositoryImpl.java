@@ -24,7 +24,7 @@ public class FeedCommentRepositoryImpl implements FeedCommentRepositoryCustom {
   private final JPAQueryFactory queryFactory;
 
   @Override
-  public List<CommentDto> findAllByCursor(UUID feedId, CommentPageRequest commentPageRequest) {
+  public List<CommentDto> findAllByCursor(UUID feedId, CommentPageRequest commentPageRequest, Instant cursorInstant) {
 
     // 필요한 컬럼만 조회하기 위해 Projection 사용
     // DB에서 가져온 컬럼들을 CommentDto 생성자에 매핑
@@ -48,7 +48,7 @@ public class FeedCommentRepositoryImpl implements FeedCommentRepositoryCustom {
         // 조회하고자 하는 feed와 cursor 조건
         .where(
             feedComment.feed.id.eq(feedId),
-            combineCursorCondition(commentPageRequest)
+            combineCursorCondition(cursorInstant, commentPageRequest.idAfter())
         )
         // 최신순 정렬 고정 및 생성 시간 같을 경우 id 내림차순으로 tie breaker 사용
         .orderBy(feedComment.createdAt.desc(), feedComment.id.desc())
@@ -58,18 +58,15 @@ public class FeedCommentRepositoryImpl implements FeedCommentRepositoryCustom {
   }
 
   // 커서 조건
-  private BooleanExpression combineCursorCondition(CommentPageRequest commentPageRequest) {
+  private BooleanExpression combineCursorCondition(Instant cursorInstant, UUID idAfter) {
     // 첫 페이지 요청인 경우 커서 조건 없이 처음부터 조회
-    if (commentPageRequest.cursor() == null || commentPageRequest.idAfter() == null) {
+    if (cursorInstant == null || idAfter == null) {
       return null;
     }
-
-    // 책갈피가 되는 댓글의 생성 시간
-    Instant cursorInstant = Instant.parse(commentPageRequest.cursor());
 
     // 책갈피보다 생성 시간이 느린 댓글들부터 반환
     // 만약, 댓글의 생성 시간이 같을 경우 책갈피의 id보다 id가 작은 댓글들 반환
     return feedComment.createdAt.lt(cursorInstant)
-        .or(feedComment.createdAt.eq(cursorInstant).and(feedComment.id.lt(commentPageRequest.idAfter())));
+        .or(feedComment.createdAt.eq(cursorInstant).and(feedComment.id.lt(idAfter)));
   }
 }

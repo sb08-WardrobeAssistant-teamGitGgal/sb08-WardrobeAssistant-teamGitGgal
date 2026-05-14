@@ -1,7 +1,7 @@
 package com.gitggal.clothesplz.mapper.feed;
 
-import com.gitggal.clothesplz.dto.user.AuthorDto;
 import com.gitggal.clothesplz.dto.feed.FeedDto;
+import com.gitggal.clothesplz.dto.user.AuthorDto;
 import com.gitggal.clothesplz.dto.weather.PrecipitationDto;
 import com.gitggal.clothesplz.dto.weather.TemperatureDto;
 import com.gitggal.clothesplz.dto.weather.WeatherSummaryDto;
