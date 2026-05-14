@@ -6,6 +6,8 @@ import com.gitggal.clothesplz.dto.feed.CommentDtoCursorResponse;
 import com.gitggal.clothesplz.dto.feed.CommentPageRequest;
 import com.gitggal.clothesplz.dto.feed.FeedCreateRequest;
 import com.gitggal.clothesplz.dto.feed.FeedDto;
+import com.gitggal.clothesplz.dto.feed.FeedDtoCursorResponse;
+import com.gitggal.clothesplz.dto.feed.FeedPageRequest;
 import com.gitggal.clothesplz.dto.feed.FeedUpdateRequest;
 import java.util.UUID;
 
@@ -30,7 +32,8 @@ public interface FeedService {
   CommentDto createComment(UUID feedId ,CommentCreateRequest commentCreateRequest);
 
   // 댓글 목록 조회
-  CommentDtoCursorResponse findAll(UUID feedId, CommentPageRequest commentPageRequest);
+  CommentDtoCursorResponse getComments(UUID feedId, CommentPageRequest commentPageRequest);
 
   // 피드 목록 조회
+  FeedDtoCursorResponse getFeeds(UUID userId, FeedPageRequest feedPageRequest);
 }

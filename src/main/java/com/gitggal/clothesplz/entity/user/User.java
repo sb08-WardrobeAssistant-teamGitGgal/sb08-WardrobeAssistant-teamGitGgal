@@ -6,6 +6,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
+import java.time.Duration;
 import java.time.Instant;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -27,7 +28,7 @@ public class User extends BaseUpdatableEntity {
   private String password;
 
   @Enumerated(EnumType.STRING)
-  @Column(name = "role", nullable = false, length=20)
+  @Column(name = "role", nullable = false, length = 20)
   private UserRole role = UserRole.USER;
 
   @Column(name = "locked", nullable = false)
@@ -47,5 +48,19 @@ public class User extends BaseUpdatableEntity {
 
   public void updateName(String newName) {
     this.name = newName;
+  }
+
+  public void updateTempPassword(String password) {
+    this.tempPassword = password;
+    this.tempPasswordExpiresAt = Instant.now().plus(Duration.ofMinutes(3));
+  }
+
+  public void clearTempPassword() {
+    this.tempPassword = null;
+    this.tempPasswordExpiresAt = null;
+  }
+
+  public void updatePassword(String password) {
+    this.password = password;
   }
 }

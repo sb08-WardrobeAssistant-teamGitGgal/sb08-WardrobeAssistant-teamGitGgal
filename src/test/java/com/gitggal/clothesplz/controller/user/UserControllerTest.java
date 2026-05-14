@@ -1,8 +1,12 @@
 package com.gitggal.clothesplz.controller.user;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -10,10 +14,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gitggal.clothesplz.config.TestSecurityConfig;
+import com.gitggal.clothesplz.dto.user.ChangePasswordRequest;
 import com.gitggal.clothesplz.dto.user.UserCreateRequest;
 import com.gitggal.clothesplz.dto.user.UserDto;
 import com.gitggal.clothesplz.entity.user.UserRole;
 import com.gitggal.clothesplz.exception.GlobalExceptionHandler;
+import com.gitggal.clothesplz.security.ClothesUserDetails;
 import com.gitggal.clothesplz.security.jwt.JwtAuthenticationFilter;
 import com.gitggal.clothesplz.service.user.UserService;
 import java.time.Instant;
@@ -70,7 +76,7 @@ public class UserControllerTest {
         "git1234!"
     );
     userDto = new UserDto(
-        UUID.randomUUID(),
+        userId,
         Instant.now(),
         "Git@git.git",
         "GitGit",
@@ -101,13 +107,57 @@ public class UserControllerTest {
     }
 
     @Test
-    @DisplayName("회원가입 실패 - 유효성 검사 실패 시 400 Bad Request를 반환한다")
+    @DisplayName("회원가입 실패")
     void create_User_Validation_Fail() throws Exception {
       // given
       UserCreateRequest invalidRequest = new UserCreateRequest(null, "Git@git.git", "git1234!");
 
       // when & then
       mockMvc.perform(post("/api/users")
+              .with(csrf())
+              .contentType(MediaType.APPLICATION_JSON)
+              .content(objectMapper.writeValueAsString(invalidRequest)))
+          .andDo(print())
+          .andExpect(status().isBadRequest());
+    }
+  }
+
+  @Nested
+  @DisplayName("비밀번호 변경")
+  class updatePassword {
+
+    @Test
+    @DisplayName("비밀번호 변경 성공")
+    void success_updatePassword() throws Exception {
+      // given
+      ChangePasswordRequest request = new ChangePasswordRequest("newPassword123!");
+      ClothesUserDetails principal = new ClothesUserDetails(
+          userDto,
+          "encodedPassword"
+      );
+      // when & then
+      mockMvc.perform(patch("/api/users/{userId}/password", userId)
+              .with(user(principal))
+              .with(csrf())
+              .contentType(MediaType.APPLICATION_JSON)
+              .content(objectMapper.writeValueAsString(request)))
+          .andExpect(status().isNoContent());
+
+      verify(userService).updatePassword(eq(userId), any(ChangePasswordRequest.class));
+    }
+
+    @Test
+    @DisplayName("비밀번호 변경 실패")
+    void updatePassword_validation_fail() throws Exception {
+      // given
+      ChangePasswordRequest invalidRequest = new ChangePasswordRequest("");
+      ClothesUserDetails principal = new ClothesUserDetails(
+          userDto,
+          "encodedPassword"
+      );
+      // when & then
+      mockMvc.perform(patch("/api/users/{userId}/password", userId)
+              .with(user(principal))
               .with(csrf())
               .contentType(MediaType.APPLICATION_JSON)
               .content(objectMapper.writeValueAsString(invalidRequest)))
