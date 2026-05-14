@@ -8,6 +8,7 @@ import com.gitggal.clothesplz.exception.BusinessException;
 import com.gitggal.clothesplz.exception.code.UserErrorCode;
 import com.gitggal.clothesplz.security.ClothesUserDetails;
 import com.gitggal.clothesplz.service.user.UserService;
+import jakarta.validation.Valid;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,7 +33,7 @@ public class UserController {
   private final UserService userService;
 
   @PostMapping
-  public ResponseEntity<UserDto> create(@Validated @RequestBody UserCreateRequest request) {
+  public ResponseEntity<UserDto> create(@Valid @RequestBody UserCreateRequest request) {
     log.info("[Controller] 회원가입 요청 시작");
     UserDto dto = userService.create(request);
     log.info("[Controller] 회원가입 요청 완료");
@@ -43,7 +44,7 @@ public class UserController {
   public ResponseEntity<Void> changePassword(
       @PathVariable UUID userId,
       @AuthenticationPrincipal ClothesUserDetails principal,
-      @Validated @RequestBody ChangePasswordRequest request) {
+      @Valid @RequestBody ChangePasswordRequest request) {
     log.info("[Controller] 비밀번호 변경 요청 시작");
     if (!principal.getUserDto().id().equals(userId)) {
       throw new BusinessException(UserErrorCode.FORBIDDEN);
@@ -57,7 +58,7 @@ public class UserController {
   @PatchMapping("/{userId}/role")
   public ResponseEntity<UserDto> updateRole(
       @PathVariable UUID userId,
-      @Validated @RequestBody UserRoleUpdateRequest request) {
+      @Valid @RequestBody UserRoleUpdateRequest request) {
     log.info("[Controller] 권한 변경 요청 시작");
     UserDto dto = userService.updateRole(userId, request);
     log.info("[Controller] 권한 변경 요청 완료");
