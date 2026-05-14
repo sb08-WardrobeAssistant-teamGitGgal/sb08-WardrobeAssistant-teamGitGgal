@@ -70,7 +70,7 @@ class RecommendationsControllerTest {
             ClothesType.TOP,
             List.of()))
     );
-    given(recommendationService.getRecommendations(weatherId.toString(), userDto))
+    given(recommendationService.getRecommendations(weatherId, userDto))
         .willReturn(response);
 
     mockMvc.perform(get("/api/recommendations")
@@ -82,7 +82,7 @@ class RecommendationsControllerTest {
         .andExpect(jsonPath("$.clothes[0].name").value("반팔 티셔츠"))
         .andExpect(jsonPath("$.clothes[0].type").value("TOP"));
 
-    verify(recommendationService).getRecommendations(weatherId.toString(), userDto);
+    verify(recommendationService).getRecommendations(weatherId, userDto);
   }
 
   @Test
@@ -101,7 +101,7 @@ class RecommendationsControllerTest {
     UUID userId = UUID.randomUUID();
     ClothesUserDetails userDetails = createUserDetails(userId);
 
-    given(recommendationService.getRecommendations(weatherId.toString(), userDetails.getUserDto()))
+    given(recommendationService.getRecommendations(weatherId, userDetails.getUserDto()))
         .willThrow(new BusinessException(WeatherErrorCode.WEATHER_NOT_FOUND));
 
     mockMvc.perform(get("/api/recommendations")

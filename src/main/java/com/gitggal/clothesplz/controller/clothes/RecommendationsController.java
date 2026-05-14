@@ -1,9 +1,11 @@
 package com.gitggal.clothesplz.controller.clothes;
 
+import com.gitggal.clothesplz.controller.clothes.api.RecommendationsControllerApi;
 import com.gitggal.clothesplz.dto.clothes.RecommendationDto;
 import com.gitggal.clothesplz.dto.user.UserDto;
 import com.gitggal.clothesplz.security.ClothesUserDetails;
 import com.gitggal.clothesplz.service.clothes.RecommendationService;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -19,14 +21,15 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/recommendations")
 @RequiredArgsConstructor
 @Slf4j
-public class RecommendationsController {
+public class RecommendationsController implements RecommendationsControllerApi {
 
   private final RecommendationService recommendationService;
 
+  @Override
   @GetMapping
   @PreAuthorize("isAuthenticated()")// 인증된 사용자만 접근 가능
   public ResponseEntity<RecommendationDto> getRecommendations(
-      @RequestParam(value = "weatherId") String weatherId,
+      @RequestParam(value = "weatherId") UUID weatherId,
       @AuthenticationPrincipal ClothesUserDetails userDetails
   ) {
     log.info("[Controller] 의상 추천 조회 요청 시작");

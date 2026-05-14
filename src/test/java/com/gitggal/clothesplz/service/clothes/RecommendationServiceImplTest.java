@@ -20,7 +20,6 @@ import com.gitggal.clothesplz.entity.weather.SkyStatus;
 import com.gitggal.clothesplz.entity.weather.Weather;
 import com.gitggal.clothesplz.entity.weather.WindPhrase;
 import com.gitggal.clothesplz.exception.BusinessException;
-import com.gitggal.clothesplz.exception.code.CommonErrorCode;
 import com.gitggal.clothesplz.exception.code.WeatherErrorCode;
 import com.gitggal.clothesplz.mapper.clothes.ClothesMapper;
 import com.gitggal.clothesplz.repository.clothes.ClothesRepository;
@@ -82,26 +81,11 @@ class RecommendationServiceImplTest {
     given(clothesMapper.toClothesDto(outer, owner, List.of())).willReturn(outerDto);
     given(clothesMapper.toClothesDto(top, owner, List.of())).willReturn(topDto);
 
-    RecommendationDto result = recommendationService.getRecommendations(weatherId.toString(), user);
+    RecommendationDto result = recommendationService.getRecommendations(weatherId, user);
 
     assertThat(result.weatherId()).isEqualTo(weatherId.toString());
     assertThat(result.userId()).isEqualTo(userId.toString());
     assertThat(result.clothes()).containsExactly(outerDto, topDto);
-  }
-
-  @Test
-  @DisplayName("실패 - weatherId 형식이 잘못되면 INVALID_INPUT 예외를 던진다")
-  void getRecommendations_invalidWeatherId_throwsInvalidInput() {
-    UserDto user = createUserDto(UUID.randomUUID());
-
-    BusinessException exception = catchThrowableOfType(
-        () -> recommendationService.getRecommendations("bad-weather-id", user),
-        BusinessException.class
-    );
-
-    assertThat(exception).isNotNull();
-    assertThat(exception.getErrorCode()).isEqualTo(CommonErrorCode.INVALID_INPUT);
-    verifyNoInteractions(weatherRepository, clothesRepository, clothesMapper, openAiClient);
   }
 
   @Test
@@ -112,7 +96,7 @@ class RecommendationServiceImplTest {
     given(weatherRepository.findById(weatherId)).willReturn(Optional.empty());
 
     BusinessException exception = catchThrowableOfType(
-        () -> recommendationService.getRecommendations(weatherId.toString(), user),
+        () -> recommendationService.getRecommendations(weatherId, user),
         BusinessException.class
     );
 
@@ -144,7 +128,7 @@ class RecommendationServiceImplTest {
     given(openAiClient.recommendClothesIds(weather, allClothes)).willReturn(List.of());
     given(clothesMapper.toClothesDto(top, owner, List.of())).willReturn(topDto);
 
-    RecommendationDto result = recommendationService.getRecommendations(weatherId.toString(), user);
+    RecommendationDto result = recommendationService.getRecommendations(weatherId, user);
 
     assertThat(result.clothes()).containsExactly(topDto);
     verify(openAiClient).recommendClothesIds(weather, allClothes);
@@ -161,7 +145,7 @@ class RecommendationServiceImplTest {
     given(weatherRepository.findById(weatherId)).willReturn(Optional.of(weather));
     given(clothesRepository.findByOwnerId(userId)).willReturn(List.of());
 
-    RecommendationDto result = recommendationService.getRecommendations(weatherId.toString(), user);
+    RecommendationDto result = recommendationService.getRecommendations(weatherId, user);
 
     assertThat(result.weatherId()).isEqualTo(weatherId.toString());
     assertThat(result.userId()).isEqualTo(userId.toString());
@@ -196,7 +180,7 @@ class RecommendationServiceImplTest {
         .willReturn(List.of(notOwnedId1, ownedOuterId, notOwnedId2));
     given(clothesMapper.toClothesDto(ownedOuter, owner, List.of())).willReturn(outerDto);
 
-    RecommendationDto result = recommendationService.getRecommendations(weatherId.toString(), user);
+    RecommendationDto result = recommendationService.getRecommendations(weatherId, user);
 
     assertThat(result.clothes()).containsExactly(outerDto);
     verify(weatherRepository).findById(weatherId);
@@ -227,7 +211,7 @@ class RecommendationServiceImplTest {
     given(openAiClient.recommendClothesIds(weather, allClothes)).willReturn(List.of());
     given(clothesMapper.toClothesDto(outer, owner, List.of())).willReturn(outerDto);
 
-    RecommendationDto result = recommendationService.getRecommendations(weatherId.toString(), user);
+    RecommendationDto result = recommendationService.getRecommendations(weatherId, user);
 
     assertThat(result.clothes()).containsExactly(outerDto);
     verify(openAiClient).recommendClothesIds(weather, allClothes);
@@ -256,7 +240,7 @@ class RecommendationServiceImplTest {
     given(openAiClient.recommendClothesIds(weather, allClothes)).willReturn(List.of());
     given(clothesMapper.toClothesDto(outer, owner, List.of())).willReturn(outerDto);
 
-    RecommendationDto result = recommendationService.getRecommendations(weatherId.toString(), user);
+    RecommendationDto result = recommendationService.getRecommendations(weatherId, user);
 
     assertThat(result.clothes()).containsExactly(outerDto);
     verify(openAiClient).recommendClothesIds(weather, allClothes);
@@ -285,7 +269,7 @@ class RecommendationServiceImplTest {
     given(openAiClient.recommendClothesIds(weather, allClothes)).willReturn(List.of());
     given(clothesMapper.toClothesDto(top, owner, List.of())).willReturn(topDto);
 
-    RecommendationDto result = recommendationService.getRecommendations(weatherId.toString(), user);
+    RecommendationDto result = recommendationService.getRecommendations(weatherId, user);
 
     assertThat(result.clothes()).containsExactly(topDto);
     verify(openAiClient).recommendClothesIds(weather, allClothes);
@@ -319,7 +303,7 @@ class RecommendationServiceImplTest {
     given(clothesMapper.toClothesDto(outer1, owner, List.of())).willReturn(outer1Dto);
     given(clothesMapper.toClothesDto(outer2, owner, List.of())).willReturn(outer2Dto);
 
-    RecommendationDto result = recommendationService.getRecommendations(weatherId.toString(), user);
+    RecommendationDto result = recommendationService.getRecommendations(weatherId, user);
 
     assertThat(result.clothes()).containsExactly(outer1Dto, outer2Dto);
     verify(openAiClient).recommendClothesIds(weather, allClothes);

@@ -1,6 +1,5 @@
 package com.gitggal.clothesplz.service.clothes.impl;
 
-import com.gitggal.clothesplz.service.clothes.OpenAiClient;
 import com.gitggal.clothesplz.dto.clothes.ClothesDto;
 import com.gitggal.clothesplz.dto.clothes.RecommendationDto;
 import com.gitggal.clothesplz.dto.user.UserDto;
@@ -8,11 +7,11 @@ import com.gitggal.clothesplz.entity.clothes.Clothes;
 import com.gitggal.clothesplz.entity.clothes.ClothesType;
 import com.gitggal.clothesplz.entity.weather.Weather;
 import com.gitggal.clothesplz.exception.BusinessException;
-import com.gitggal.clothesplz.exception.code.CommonErrorCode;
 import com.gitggal.clothesplz.exception.code.WeatherErrorCode;
 import com.gitggal.clothesplz.mapper.clothes.ClothesMapper;
 import com.gitggal.clothesplz.repository.clothes.ClothesRepository;
 import com.gitggal.clothesplz.repository.weather.WeatherRepository;
+import com.gitggal.clothesplz.service.clothes.OpenAiClient;
 import com.gitggal.clothesplz.service.clothes.RecommendationService;
 import java.util.List;
 import java.util.Map;
@@ -34,21 +33,14 @@ public class RecommendationServiceImpl implements RecommendationService {
   private final OpenAiClient openAiClient;
 
   @Override
-  public RecommendationDto getRecommendations(String weatherId, UserDto user) {
+  public RecommendationDto getRecommendations(UUID weatherId, UserDto user) {
     log.info("[Service] 의상 추천 조회 요청 시작");
 
-    UUID weatherUuid;
-    try {
-      weatherUuid = UUID.fromString(weatherId);
-    } catch (IllegalArgumentException e) {
-      throw new BusinessException(CommonErrorCode.INVALID_INPUT, e);
-    }
-
-    Weather weather = weatherRepository.findById(weatherUuid)
+    Weather weather = weatherRepository.findById(weatherId)
         .orElseThrow(() -> new BusinessException(WeatherErrorCode.WEATHER_NOT_FOUND));
     List<Clothes> allClothes = clothesRepository.findByOwnerId(user.id());
 
-    return recommendWithLlm(weatherUuid, weather, allClothes, user);
+    return recommendWithLlm(weatherId, weather, allClothes, user);
   }
 
   private RecommendationDto recommendWithLlm(
