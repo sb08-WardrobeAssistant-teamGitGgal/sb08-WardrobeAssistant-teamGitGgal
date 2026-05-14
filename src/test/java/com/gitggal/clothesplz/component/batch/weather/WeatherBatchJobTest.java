@@ -94,15 +94,29 @@ class WeatherBatchJobTest {
     }
 
     @Test
-    @DisplayName("Location 존재 + 정상 API 응답 → Job COMPLETED")
-    void job_withLocation_completesSuccessfully() throws Exception {
-        saveLocation(60, 127);
+    @DisplayName("Location 존재 + 정상 API 응답 → Weather DB 저장")
+    void job_withLocation_savesWeather() throws Exception {
+        Location location = saveLocation(60, 127);
+
         given(weatherApiService.fetchWeather(anyInt(), anyInt()))
                 .willReturn(Mono.just(emptyResponse()));
+        given(weatherParserService.parseDailyForecast(any()))
+                .willReturn(List.of(new DailyWeatherForecastDto(
+                        LocalDate.now(), SkyStatus.CLEAR,
+                        20.0, 15.0, 25.0,
+                        60.0, 5.0,
+                        PrecipitationType.NONE, 0.0, 10.0,
+                        2.0, 1.0)));
 
         JobExecution execution = jobLauncherTestUtils.launchJob(buildParams());
 
         assertThat(execution.getStatus()).isEqualTo(BatchStatus.COMPLETED);
+        assertThat(weatherRepository.count()).isEqualTo(1);
+
+        Weather saved = weatherRepository.findAll().get(0);
+        assertThat(saved.getLocation().getId()).isEqualTo(location.getId());
+        assertThat(saved.getSkyStatus()).isEqualTo(SkyStatus.CLEAR);
+        assertThat(saved.getTemperatureCurrent()).isEqualTo(20.0);
     }
 
     @Test
