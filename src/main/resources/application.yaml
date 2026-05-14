@@ -3,7 +3,7 @@ spring:
     job:
       enabled: false       # 앱 시작 시 배치 자동 실행 방지 (스케줄러로만 실행)
     jdbc:
-      initialize-schema: always  # 배치 메타데이터 테이블 자동 생성
+      initialize-schema: never  # Flyway가 배치 스키마 관리 (V3__add_spring_batch_schema.sql)
 
   jpa:
     properties:
