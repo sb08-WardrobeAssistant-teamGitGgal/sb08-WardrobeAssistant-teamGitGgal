@@ -14,10 +14,11 @@ import com.gitggal.clothesplz.mapper.clothes.ClothesMapper;
 import com.gitggal.clothesplz.repository.clothes.ClothesRepository;
 import com.gitggal.clothesplz.repository.weather.WeatherRepository;
 import com.gitggal.clothesplz.service.clothes.RecommendationService;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -67,10 +68,14 @@ public class RecommendationServiceImpl implements RecommendationService {
     List<UUID> ids = openAiClient.recommendClothesIds(weather, allClothes);
 
     if (!ids.isEmpty()) {
-      // OpenAI에서 추천된 ID를 필터링
-      Set<UUID> idSet = new HashSet<>(ids);
-      List<Clothes> result = allClothes.stream()
-          .filter(c -> idSet.contains(c.getId()))
+      Map<UUID, Clothes> clothesMap = allClothes.stream()
+          .collect(Collectors.toMap(
+              Clothes::getId,
+              c -> c));
+
+      List<Clothes> result = ids.stream()
+          .map(clothesMap::get)
+          .filter(Objects::nonNull)
           .limit(10)
           .toList();
 
@@ -97,7 +102,7 @@ public class RecommendationServiceImpl implements RecommendationService {
   private List<Clothes> fallback(double temp, List<Clothes> allClothes) {
     ClothesType preferred = temp <= 10.0 ? ClothesType.OUTER
         : temp >= 25.0 ? ClothesType.TOP
-        : null;
+            : null;
 
     List<Clothes> result = preferred == null ? List.of()
         : allClothes.stream().filter(c -> c.getType() == preferred).limit(10).toList();
