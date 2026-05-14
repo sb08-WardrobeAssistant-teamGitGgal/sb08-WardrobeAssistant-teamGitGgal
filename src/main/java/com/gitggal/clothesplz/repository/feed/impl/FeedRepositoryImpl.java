@@ -95,7 +95,6 @@ public class FeedRepositoryImpl implements FeedRepositoryCustom {
         .select(feed.count())
         .from(feed)
         .join(feed.weather, weather)
-        .join(feed.author, user)
         .where(
             keywordLike(feedPageRequest.keywordLike()),
             skyStatusEqual(feedPageRequest.skyStatusEqual()),
@@ -126,7 +125,7 @@ public class FeedRepositoryImpl implements FeedRepositoryCustom {
 
   // 특정 피드 작성자 Id로 검색
   private BooleanExpression authorIdEqual(UUID authorId) {
-    return authorId != null ? user.id.eq(authorId) : null;
+    return authorId != null ? feed.author.id.eq(authorId) : null;
   }
 
   // 커서 조건
