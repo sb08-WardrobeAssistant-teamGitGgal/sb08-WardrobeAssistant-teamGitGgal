@@ -21,6 +21,7 @@ import com.gitggal.clothesplz.dto.feed.CommentDtoCursorResponse;
 import com.gitggal.clothesplz.dto.feed.CommentPageRequest;
 import com.gitggal.clothesplz.dto.feed.FeedCreateRequest;
 import com.gitggal.clothesplz.dto.feed.FeedDto;
+import com.gitggal.clothesplz.dto.feed.FeedDtoCursorResponse;
 import com.gitggal.clothesplz.dto.feed.FeedUpdateRequest;
 import com.gitggal.clothesplz.dto.user.AuthorDto;
 import com.gitggal.clothesplz.dto.weather.PrecipitationDto;
@@ -357,8 +358,9 @@ public class FeedControllerTest {
   }
 
   @Nested
-  @DisplayName("피드 목록 조회 관련 테스트")
+  @DisplayName("피드 댓글 목록 조회 관련 테스트")
   class CommentFindAllTests {
+
     @Test
     @DisplayName("성공 - 200 반환")
     void commentFindAll_Success() throws Exception {
@@ -375,7 +377,7 @@ public class FeedControllerTest {
           "DESCENDING"
       );
 
-      given(feedService.findAll(eq(feedId), eq(commentPageRequest))).willReturn(response);
+      given(feedService.getComments(eq(feedId), eq(commentPageRequest))).willReturn(response);
 
       mockMvc.perform(get("/api/feeds/{feedId}/comments", feedId)
               .param("limit", "2"))
@@ -392,6 +394,113 @@ public class FeedControllerTest {
     @DisplayName("실패 - limit 없으면 400 반환")
     void commentFindAll_MissingLimit_Returns400() throws Exception {
       mockMvc.perform(get("/api/feeds/{feedId}/comments", feedId))
+          .andExpect(status().isBadRequest());
+    }
+  }
+
+  @Nested
+  @DisplayName("피드 목록 조회 관련 테스트")
+  class FeedFindAllTests {
+
+    @Test
+    @DisplayName("성공 - 200 반환")
+    void feedFindAll_Success() throws Exception {
+      FeedDtoCursorResponse feedDtoCursorResponse = new FeedDtoCursorResponse(
+          List.of(feedDto),
+          null,
+          null,
+          false,
+          1L,
+          "createdAt",
+          "DESCENDING"
+      );
+
+      given(feedService.getFeeds(eq(userId), any())).willReturn(feedDtoCursorResponse);
+
+      mockMvc.perform(get("/api/feeds")
+              .param("userId", userId.toString())
+              .param("limit", "1")
+              .param("sortBy", "createdAt")
+              .param("sortDirection", "DESCENDING"))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$.data").isArray())
+          .andExpect(jsonPath("$.data.length()").value(1))
+          .andExpect(jsonPath("$.hasNext").value(false))
+          .andExpect(jsonPath("$.totalCount").value(1))
+          .andExpect(jsonPath("$.sortBy").value("createdAt"))
+          .andExpect(jsonPath("$.sortDirection").value("DESCENDING"));
+    }
+
+    @Test
+    @DisplayName("실패 - userId 없으면 400 반환")
+    void feedFindAll_MissingUserId_Returns400() throws Exception {
+      mockMvc.perform(get("/api/feeds")
+              .param("limit", "10")
+              .param("sortBy", "createdAt")
+              .param("sortDirection", "DESCENDING"))
+          .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("실패 - limit 없으면 400 반환")
+    void feedFindAll_MissingLimit_Returns400() throws Exception {
+      mockMvc.perform(get("/api/feeds")
+              .param("userId", userId.toString())
+              .param("sortBy", "createdAt")
+              .param("sortDirection", "DESCENDING"))
+          .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("실패 - limit 0이면 400 반환")
+    void feedFindAll_LimitZero_Returns400() throws Exception {
+      mockMvc.perform(get("/api/feeds")
+              .param("userId", userId.toString())
+              .param("limit", "0")
+              .param("sortBy", "createdAt")
+              .param("sortDirection", "DESCENDING"))
+          .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("실패 - sortBy 없으면 400 반환")
+    void feedFindAll_MissingSortBy_Returns400() throws Exception {
+      mockMvc.perform(get("/api/feeds")
+              .param("userId", userId.toString())
+              .param("limit", "10")
+              .param("sortDirection", "DESCENDING"))
+          .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("실패 - sortBy 유효하지 않은 값이면 400 반환")
+    void feedFindAll_InvalidSortBy_Returns400() throws Exception {
+      mockMvc.perform(get("/api/feeds")
+              .param("userId", userId.toString())
+              .param("limit", "10")
+              .param("sortBy", "invalid")
+              .param("sortDirection", "DESCENDING"))
+          .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("실패 - sortDirection 없으면 400 반환")
+    void feedFindAll_MissingSortDirection_Returns400() throws Exception {
+      mockMvc.perform(get("/api/feeds")
+              .param("userId", userId.toString())
+              .param("limit", "10")
+              .param("sortBy", "createdAt"))
+          .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("실패 - sortDirection 유효하지 않은 값이면 400 반환")
+    void feedFindAll_InvalidSortDirection_Returns400() throws Exception {
+      mockMvc.perform(get("/api/feeds")
+              .param("userId", userId.toString())
+              .param("limit", "10")
+              .param("sortBy", "createdAt")
+              .param("sortDirection", "INVALID"))
           .andExpect(status().isBadRequest());
     }
   }
