@@ -225,7 +225,6 @@ class UserServiceTest {
       );
 
       given(userRepository.findById(userId)).willReturn(Optional.of(user));
-      given(userRepository.save(user)).willReturn(user);
       given(userMapper.toDto(user)).willReturn(updatedDto);
 
       // when
@@ -233,6 +232,7 @@ class UserServiceTest {
 
       // then
       assertThat(user.getRole()).isEqualTo(UserRole.ADMIN);
+      verify(userMapper).toDto(user);
       verify(jwtRegistry).invalidateJwtInformationByUserId(userId);
     }
 

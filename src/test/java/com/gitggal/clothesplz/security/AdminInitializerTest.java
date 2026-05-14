@@ -80,6 +80,7 @@ class AdminInitializerTest {
     assertThat(capturedUser.getName()).isEqualTo(adminName);
     assertThat(capturedUser.getEmail()).isEqualTo(adminEmail);
     assertThat(capturedUser.getRole()).isEqualTo(UserRole.ADMIN);
+    assertThat(capturedUser.getPassword()).isEqualTo("encoded_password");
 
     verify(passwordEncoder).encode(adminPassword);
     verify(profileRepository).save(any(Profile.class));

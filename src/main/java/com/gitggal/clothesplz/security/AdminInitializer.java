@@ -5,6 +5,7 @@ import com.gitggal.clothesplz.entity.user.User;
 import com.gitggal.clothesplz.entity.user.UserRole;
 import com.gitggal.clothesplz.repository.profile.ProfileRepository;
 import com.gitggal.clothesplz.repository.user.UserRepository;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -31,9 +32,11 @@ public class AdminInitializer implements ApplicationRunner {
   private final ProfileRepository profileRepository;
   private final PasswordEncoder passwordEncoder;
 
+  @Transactional
   @Override
   public void run(ApplicationArguments args) {
     log.info("[AdminInitializer] 관리자 계정 생성 요청");
+
     if (userRepository.existsByEmail(email)) {
       log.info("[AdminInitializer] 관리자 계정 생성 실패 : 이미 계정이 존재합니다.");
       return;
@@ -41,18 +44,14 @@ public class AdminInitializer implements ApplicationRunner {
 
     String encodePassword = passwordEncoder.encode(password);
 
-    try {
-      User admin = new User(name, email, encodePassword);
-      admin.updateRole(UserRole.ADMIN);
-      userRepository.save(admin);
+    User admin = new User(name, email, encodePassword);
+    admin.updateRole(UserRole.ADMIN);
+    userRepository.save(admin);
 
-      Profile profile = Profile.builder()
-          .user(admin)
-          .build();
-      profileRepository.save(profile);
-      log.info("[AdminInitializer] 관리자 계정 생성 완료");
-    } catch (Exception e) {
-      log.warn("[AdminInitializer] 관리가 계정 생성 실패 : message={}", e.getMessage());
-    }
+    Profile profile = Profile.builder()
+        .user(admin)
+        .build();
+    profileRepository.save(profile);
+    log.info("[AdminInitializer] 관리자 계정 생성 완료");
   }
 }

@@ -6,7 +6,6 @@ import com.gitggal.clothesplz.dto.user.UserDto;
 import com.gitggal.clothesplz.dto.user.UserRoleUpdateRequest;
 import com.gitggal.clothesplz.entity.profile.Profile;
 import com.gitggal.clothesplz.entity.user.User;
-import com.gitggal.clothesplz.entity.user.UserRole;
 import com.gitggal.clothesplz.exception.BusinessException;
 import com.gitggal.clothesplz.exception.code.UserErrorCode;
 import com.gitggal.clothesplz.mapper.user.UserMapper;
@@ -84,7 +83,7 @@ public class UserServiceImpl implements UserService {
   @PreAuthorize("hasRole('ADMIN')")
   @Transactional
   @Override
-  public UserDto updateRole(UUID userId, UserRoleUpdateRequest request){
+  public UserDto updateRole(UUID userId, UserRoleUpdateRequest request) {
     log.info("[Service] 권한 변경 요청 시작 : userId = {}", userId);
 
     User user = userRepository.findById(userId)
@@ -100,7 +99,7 @@ public class UserServiceImpl implements UserService {
     jwtRegistry.invalidateJwtInformationByUserId(userId);
 
     log.info("[Service] 권한 변경 요청 완료 : userId = {}", userId);
-    return  userMapper.toDto(userRepository.save(user));
+    return userMapper.toDto(user);
   }
 }
 

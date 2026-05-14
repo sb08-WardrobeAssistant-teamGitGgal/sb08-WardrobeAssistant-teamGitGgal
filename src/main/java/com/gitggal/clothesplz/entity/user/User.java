@@ -1,6 +1,8 @@
 package com.gitggal.clothesplz.entity.user;
 
 import com.gitggal.clothesplz.entity.base.BaseUpdatableEntity;
+import com.gitggal.clothesplz.exception.BusinessException;
+import com.gitggal.clothesplz.exception.code.UserErrorCode;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -64,7 +66,10 @@ public class User extends BaseUpdatableEntity {
     this.password = password;
   }
 
-  public void updateRole(UserRole role){
+  public void updateRole(UserRole role) {
+    if (role == null) {
+      throw new BusinessException(UserErrorCode.INVALID_ROLE);
+    }
     this.role = role;
   }
 }
