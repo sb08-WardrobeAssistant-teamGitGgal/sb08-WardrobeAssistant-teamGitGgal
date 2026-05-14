@@ -21,4 +21,6 @@ public interface FeedRepository extends JpaRepository<Feed, UUID>, FeedRepositor
   // 3초동안 락 획득하지 못하면 타임아웃 발생
   @QueryHints(@QueryHint(name = "jakarta.persistence.lock.timeout", value = "3000"))
   Optional<Feed> findWithLockById(UUID feedId);
+
+  boolean existsByIdAndAuthorId(UUID feedId, UUID authorId);
 }

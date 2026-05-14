@@ -35,6 +35,7 @@ import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -84,7 +85,7 @@ public class FeedServiceImpl implements FeedService {
     return feedMapper.toDto(savedFeed);
   }
 
-  // TODO: 관리자나 피드 작성자만 피드 수정하도록 권한 위임 예정
+  @PreAuthorize("isAuthenticated() and (hasRole('ADMIN') or @feedServiceImpl.isAuthor(#feedId, authentication.principal.userDto.id))")
   @Override
   @Transactional
   public FeedDto updateFeed(UUID feedId, FeedUpdateRequest feedUpdateRequest) {
@@ -101,7 +102,7 @@ public class FeedServiceImpl implements FeedService {
     return feedMapper.toDto(feed);
   }
 
-  // TODO: 관리자나 피드 작성자만 피드 삭제하도록 권한 위임 예정
+  @PreAuthorize("isAuthenticated() and (hasRole('ADMIN') or @feedServiceImpl.isAuthor(#feedId, authentication.principal.userDto.id))")
   @Override
   @Transactional
   public void deleteFeed(UUID feedId) {
@@ -145,9 +146,6 @@ public class FeedServiceImpl implements FeedService {
 
     Feed feed = feedRepository.findWithLockById(feedId)
         .orElseThrow(() -> new BusinessException(FeedErrorCode.FEED_NOT_FOUND));
-
-    User user = userRepository.findById(userId)
-        .orElseThrow(() -> new BusinessException(UserErrorCode.USER_NOT_FOUND));
 
     FeedLike feedLike = feedLikeRepository.findByFeedIdAndUserId(feedId, userId)
         .orElseThrow(() -> new BusinessException(FeedErrorCode.FEED_LIKE_NOT_FOUND));
@@ -300,5 +298,10 @@ public class FeedServiceImpl implements FeedService {
     } catch (Exception e) {
       throw new BusinessException(FeedErrorCode.INVALID_CURSOR_FORMAT);
     }
+  }
+
+  // 권한 검증용 메소드(작성자가 userId인 feed가 있나 없나)
+  public boolean isAuthor(UUID feedId, UUID userId) {
+    return feedRepository.existsByIdAndAuthorId(feedId, userId);
   }
 }
