@@ -85,7 +85,7 @@ public class FeedServiceImpl implements FeedService {
     return feedMapper.toDto(savedFeed);
   }
 
-  @PreAuthorize("hasRole('ADMIN') or @feedServiceImpl.isAuthor(#feedId, authentication.principal.userDto.id)")
+  @PreAuthorize("isAuthenticated() and (hasRole('ADMIN') or @feedServiceImpl.isAuthor(#feedId, authentication.principal.userDto.id))")
   @Override
   @Transactional
   public FeedDto updateFeed(UUID feedId, FeedUpdateRequest feedUpdateRequest) {
@@ -102,7 +102,7 @@ public class FeedServiceImpl implements FeedService {
     return feedMapper.toDto(feed);
   }
 
-  @PreAuthorize("hasRole('ADMIN') or @feedServiceImpl.isAuthor(#feedId, authentication.principal.userDto.id)")
+  @PreAuthorize("isAuthenticated() and (hasRole('ADMIN') or @feedServiceImpl.isAuthor(#feedId, authentication.principal.userDto.id))")
   @Override
   @Transactional
   public void deleteFeed(UUID feedId) {
