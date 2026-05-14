@@ -14,7 +14,6 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.springframework.beans.factory.annotation.Autowired;
 
-// @Mapper(componentModel = "spring", uses = {AuthorMapper.class, WeatherSummaryMapper.class})
 @Mapper(componentModel = "spring")
 public abstract class FeedMapper {
 
@@ -26,7 +25,6 @@ public abstract class FeedMapper {
   @Mapping(target = "likedByMe", expression = "java(false)")
   abstract public FeedDto toDto(Feed feed);
 
-  // TODO: authorMapper, weatherSummaryMapper 구현 시 교체 예정
   protected AuthorDto toAuthorDto(User user) {
     String profileImageUrl = profileRepository.findByUser(user)
         .map(Profile::getImageUrl)
