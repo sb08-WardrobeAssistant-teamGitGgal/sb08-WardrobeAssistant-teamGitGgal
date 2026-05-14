@@ -3,6 +3,7 @@ package com.gitggal.clothesplz.controller.user;
 import com.gitggal.clothesplz.dto.user.ChangePasswordRequest;
 import com.gitggal.clothesplz.dto.user.UserCreateRequest;
 import com.gitggal.clothesplz.dto.user.UserDto;
+import com.gitggal.clothesplz.dto.user.UserRoleUpdateRequest;
 import com.gitggal.clothesplz.exception.BusinessException;
 import com.gitggal.clothesplz.exception.code.UserErrorCode;
 import com.gitggal.clothesplz.security.ClothesUserDetails;
@@ -12,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -49,6 +51,17 @@ public class UserController {
     userService.updatePassword(userId, request);
     log.info("[Controller] 비밀번호 변경 요청 완료");
     return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+  }
+
+  @PreAuthorize("hasRole('ADMIN')")
+  @PatchMapping("/{userId}/role")
+  public ResponseEntity<UserDto> updateRole(
+      @PathVariable UUID userId,
+      @Validated @RequestBody UserRoleUpdateRequest request) {
+    log.info("[Controller] 권한 변경 요청 시작");
+    UserDto dto = userService.updateRole(userId, request);
+    log.info("[Controller] 권한 변경 요청 완료");
+    return ResponseEntity.status(HttpStatus.OK).body(dto);
   }
 
 }
