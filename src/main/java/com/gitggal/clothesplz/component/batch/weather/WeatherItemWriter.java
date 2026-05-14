@@ -30,6 +30,10 @@ public class WeatherItemWriter implements ItemWriter<List<Weather>> {
                 .flatMap(List::stream)
                 .toList();
 
+        if (allWeathers.isEmpty()) {
+            return;
+        }
+
         List<Location> locations = allWeathers.stream()
                 .map(Weather::getLocation)
                 .distinct()

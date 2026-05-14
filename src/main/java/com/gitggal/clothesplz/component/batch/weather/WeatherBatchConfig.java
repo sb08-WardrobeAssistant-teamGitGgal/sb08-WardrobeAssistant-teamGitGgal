@@ -2,8 +2,10 @@ package com.gitggal.clothesplz.component.batch.weather;
 
 import com.gitggal.clothesplz.entity.weather.Location;
 import com.gitggal.clothesplz.entity.weather.Weather;
+import com.gitggal.clothesplz.exception.BusinessException;
 import jakarta.persistence.EntityManagerFactory;
 import lombok.RequiredArgsConstructor;
+import org.springframework.web.reactive.function.client.WebClientRequestException;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.job.builder.JobBuilder;
@@ -45,7 +47,8 @@ public class WeatherBatchConfig {
                 .processor(processor)
                 .writer(writer)
                 .faultTolerant()
-                .skip(Exception.class)
+                .skip(BusinessException.class)
+                .skip(WebClientRequestException.class)
                 .skipLimit(10)
                 .build();
     }

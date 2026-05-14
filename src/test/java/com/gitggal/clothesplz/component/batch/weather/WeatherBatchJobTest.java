@@ -1,8 +1,9 @@
 package com.gitggal.clothesplz.component.batch.weather;
 
-import com.gitggal.clothesplz.dto.weather.DailyWeatherForecastDto;
 import com.gitggal.clothesplz.dto.weather.WeatherApiResponseDto;
 import com.gitggal.clothesplz.entity.weather.*;
+import com.gitggal.clothesplz.exception.BusinessException;
+import com.gitggal.clothesplz.exception.code.WeatherErrorCode;
 import com.gitggal.clothesplz.repository.weather.LocationRepository;
 import com.gitggal.clothesplz.repository.weather.WeatherRepository;
 import com.gitggal.clothesplz.service.image.ImageUploader;
@@ -25,13 +26,11 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import reactor.core.publisher.Mono;
 
-import java.time.LocalDate;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.mock;
 
 @SpringBatchTest
 @SpringBootTest
@@ -85,9 +84,9 @@ class WeatherBatchJobTest {
     }
 
     @Test
-    @DisplayName("Location 존재 + 정상 API 응답 → Weather 저장")
-    void job_withLocation_savesWeather() throws Exception {
-        Location location = locationRepository.save(Location.builder()
+    @DisplayName("Location 존재 + 정상 API 응답(빈 items) → Job COMPLETED")
+    void job_withLocation_completesSuccessfully() throws Exception {
+        locationRepository.save(Location.builder()
                 .latitude(37.5)
                 .longitude(127.0)
                 .gridX(60)
@@ -95,21 +94,13 @@ class WeatherBatchJobTest {
                 .locationNames("서울특별시 중구")
                 .build());
 
-        WeatherApiResponseDto response = mock(WeatherApiResponseDto.class);
-        List<DailyWeatherForecastDto> forecasts = List.of(
-                new DailyWeatherForecastDto(
-                        LocalDate.now(), SkyStatus.CLEAR,
-                        20.0, 15.0, 25.0,
-                        60.0, 5.0,
-                        PrecipitationType.NONE, 0.0, 10.0,
-                        2.0, 1.0
-                )
-        );
+        // 빈 items로 구성된 정상 응답 → parseDailyForecast → 빈 리스트 → 저장 없음
+        WeatherApiResponseDto response = new WeatherApiResponseDto(
+                new WeatherApiResponseDto.Response(
+                        new WeatherApiResponseDto.Body(
+                                new WeatherApiResponseDto.Items(List.of()))));
         given(weatherApiService.fetchWeather(anyInt(), anyInt())).willReturn(Mono.just(response));
 
-        // WeatherParserService는 실제 구현체 사용 (통합 테스트)
-        // parseDailyForecast(mock response) → 빈 리스트 반환됨
-        // 실제 저장 검증보다 Job 상태 검증에 집중
         JobParameters params = new JobParametersBuilder()
                 .addLong("timestamp", System.currentTimeMillis())
                 .toJobParameters();
@@ -120,8 +111,8 @@ class WeatherBatchJobTest {
     }
 
     @Test
-    @DisplayName("API 예외 발생 → skip 처리, Job COMPLETED")
-    void job_apiException_skipsAndCompletes() throws Exception {
+    @DisplayName("BusinessException 발생 → skip 처리, Job COMPLETED")
+    void job_businessException_skipsAndCompletes() throws Exception {
         locationRepository.save(Location.builder()
                 .latitude(37.5)
                 .longitude(127.0)
@@ -131,7 +122,7 @@ class WeatherBatchJobTest {
                 .build());
 
         given(weatherApiService.fetchWeather(anyInt(), anyInt()))
-                .willReturn(Mono.error(new RuntimeException("KMA API 오류")));
+                .willReturn(Mono.error(new BusinessException(WeatherErrorCode.WEATHER_API_ERROR)));
 
         JobParameters params = new JobParametersBuilder()
                 .addLong("timestamp", System.currentTimeMillis())
