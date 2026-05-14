@@ -64,6 +64,9 @@ public class RecommendationServiceImpl implements RecommendationService {
   }
 
   private List<Clothes> recommendByLlm(Weather weather, List<Clothes> allClothes) {
+    if(allClothes.isEmpty()) {
+      return List.of();
+    }
     // OpenAI를 통한 추천
     List<UUID> ids = openAiClient.recommendClothesIds(weather, allClothes);
 
@@ -74,6 +77,7 @@ public class RecommendationServiceImpl implements RecommendationService {
               c -> c));
 
       List<Clothes> result = ids.stream()
+          .distinct()
           .map(clothesMap::get)
           .filter(Objects::nonNull)
           .limit(10)

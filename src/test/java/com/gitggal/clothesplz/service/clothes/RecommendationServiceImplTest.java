@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.catchThrowableOfType;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import com.gitggal.clothesplz.dto.clothes.ClothesDto;
 import com.gitggal.clothesplz.dto.clothes.RecommendationDto;
@@ -147,6 +148,184 @@ class RecommendationServiceImplTest {
 
     assertThat(result.clothes()).containsExactly(topDto);
     verify(openAiClient).recommendClothesIds(weather, allClothes);
+  }
+
+  @Test
+  @DisplayName("성공 - 보유 의상이 없으면 빈 추천을 반환하고 LLM을 호출하지 않는다")
+  void getRecommendations_noClothes_returnsEmptyRecommendation() {
+    UUID weatherId = UUID.randomUUID();
+    UUID userId = UUID.randomUUID();
+    UserDto user = createUserDto(userId);
+    Weather weather = createWeather(20.0);
+
+    given(weatherRepository.findById(weatherId)).willReturn(Optional.of(weather));
+    given(clothesRepository.findByOwnerId(userId)).willReturn(List.of());
+
+    RecommendationDto result = recommendationService.getRecommendations(weatherId.toString(), user);
+
+    assertThat(result.weatherId()).isEqualTo(weatherId.toString());
+    assertThat(result.userId()).isEqualTo(userId.toString());
+    assertThat(result.clothes()).isEmpty();
+    verify(weatherRepository).findById(weatherId);
+    verify(clothesRepository).findByOwnerId(userId);
+    verifyNoInteractions(openAiClient, clothesMapper);
+  }
+
+  @Test
+  @DisplayName("성공 - LLM이 비보유 ID를 반환해도 보유 의상만 필터링해 반환한다")
+  void getRecommendations_llmReturnsNonOwnedIds_filtersToOwned() {
+    UUID weatherId = UUID.randomUUID();
+    UUID userId = UUID.randomUUID();
+    UserDto user = createUserDto(userId);
+    Weather weather = createWeather(18.0);
+    User owner = new User("owner3", "owner3@test.com", "pw");
+
+    UUID ownedOuterId = UUID.randomUUID();
+    UUID ownedTopId = UUID.randomUUID();
+    Clothes ownedOuter = createClothes(owner, ownedOuterId, "자켓", ClothesType.OUTER);
+    Clothes ownedTop = createClothes(owner, ownedTopId, "셔츠", ClothesType.TOP);
+    List<Clothes> allClothes = List.of(ownedOuter, ownedTop);
+
+    UUID notOwnedId1 = UUID.randomUUID();
+    UUID notOwnedId2 = UUID.randomUUID();
+    ClothesDto outerDto = new ClothesDto(ownedOuterId, userId, "자켓", null, ClothesType.OUTER, List.of());
+
+    given(weatherRepository.findById(weatherId)).willReturn(Optional.of(weather));
+    given(clothesRepository.findByOwnerId(userId)).willReturn(allClothes);
+    given(openAiClient.recommendClothesIds(weather, allClothes))
+        .willReturn(List.of(notOwnedId1, ownedOuterId, notOwnedId2));
+    given(clothesMapper.toClothesDto(ownedOuter, owner, List.of())).willReturn(outerDto);
+
+    RecommendationDto result = recommendationService.getRecommendations(weatherId.toString(), user);
+
+    assertThat(result.clothes()).containsExactly(outerDto);
+    verify(weatherRepository).findById(weatherId);
+    verify(clothesRepository).findByOwnerId(userId);
+    verify(openAiClient).recommendClothesIds(weather, allClothes);
+    verify(clothesMapper).toClothesDto(ownedOuter, owner, List.of());
+    verifyNoMoreInteractions(clothesMapper);
+  }
+
+  @Test
+  @DisplayName("성공 - LLM 추천이 비어있고 8.0도면 OUTER fallback을 반환한다")
+  void getRecommendations_llmEmpty_coldWeather_recommendsOuter() {
+    UUID weatherId = UUID.randomUUID();
+    UUID userId = UUID.randomUUID();
+    UserDto user = createUserDto(userId);
+    Weather weather = createWeather(8.0);
+    User owner = new User("owner4", "owner4@test.com", "pw");
+
+    UUID outerId = UUID.randomUUID();
+    UUID topId = UUID.randomUUID();
+    Clothes outer = createClothes(owner, outerId, "패딩", ClothesType.OUTER);
+    Clothes top = createClothes(owner, topId, "니트", ClothesType.TOP);
+    List<Clothes> allClothes = List.of(outer, top);
+    ClothesDto outerDto = new ClothesDto(outerId, userId, "패딩", null, ClothesType.OUTER, List.of());
+
+    given(weatherRepository.findById(weatherId)).willReturn(Optional.of(weather));
+    given(clothesRepository.findByOwnerId(userId)).willReturn(allClothes);
+    given(openAiClient.recommendClothesIds(weather, allClothes)).willReturn(List.of());
+    given(clothesMapper.toClothesDto(outer, owner, List.of())).willReturn(outerDto);
+
+    RecommendationDto result = recommendationService.getRecommendations(weatherId.toString(), user);
+
+    assertThat(result.clothes()).containsExactly(outerDto);
+    verify(openAiClient).recommendClothesIds(weather, allClothes);
+    verify(clothesMapper).toClothesDto(outer, owner, List.of());
+    verifyNoMoreInteractions(clothesMapper);
+  }
+
+  @Test
+  @DisplayName("성공 - LLM 추천이 비어있고 정확히 10.0도면 OUTER fallback을 반환한다")
+  void getRecommendations_llmEmpty_atTenDegrees_recommendsOuter() {
+    UUID weatherId = UUID.randomUUID();
+    UUID userId = UUID.randomUUID();
+    UserDto user = createUserDto(userId);
+    Weather weather = createWeather(10.0);
+    User owner = new User("owner5", "owner5@test.com", "pw");
+
+    UUID outerId = UUID.randomUUID();
+    UUID topId = UUID.randomUUID();
+    Clothes outer = createClothes(owner, outerId, "코트", ClothesType.OUTER);
+    Clothes top = createClothes(owner, topId, "긴팔", ClothesType.TOP);
+    List<Clothes> allClothes = List.of(outer, top);
+    ClothesDto outerDto = new ClothesDto(outerId, userId, "코트", null, ClothesType.OUTER, List.of());
+
+    given(weatherRepository.findById(weatherId)).willReturn(Optional.of(weather));
+    given(clothesRepository.findByOwnerId(userId)).willReturn(allClothes);
+    given(openAiClient.recommendClothesIds(weather, allClothes)).willReturn(List.of());
+    given(clothesMapper.toClothesDto(outer, owner, List.of())).willReturn(outerDto);
+
+    RecommendationDto result = recommendationService.getRecommendations(weatherId.toString(), user);
+
+    assertThat(result.clothes()).containsExactly(outerDto);
+    verify(openAiClient).recommendClothesIds(weather, allClothes);
+    verify(clothesMapper).toClothesDto(outer, owner, List.of());
+    verifyNoMoreInteractions(clothesMapper);
+  }
+
+  @Test
+  @DisplayName("성공 - LLM 추천이 비어있고 정확히 25.0도면 TOP fallback을 반환한다")
+  void getRecommendations_llmEmpty_atTwentyFiveDegrees_recommendsTop() {
+    UUID weatherId = UUID.randomUUID();
+    UUID userId = UUID.randomUUID();
+    UserDto user = createUserDto(userId);
+    Weather weather = createWeather(25.0);
+    User owner = new User("owner6", "owner6@test.com", "pw");
+
+    UUID outerId = UUID.randomUUID();
+    UUID topId = UUID.randomUUID();
+    Clothes outer = createClothes(owner, outerId, "가디건", ClothesType.OUTER);
+    Clothes top = createClothes(owner, topId, "반팔", ClothesType.TOP);
+    List<Clothes> allClothes = List.of(outer, top);
+    ClothesDto topDto = new ClothesDto(topId, userId, "반팔", null, ClothesType.TOP, List.of());
+
+    given(weatherRepository.findById(weatherId)).willReturn(Optional.of(weather));
+    given(clothesRepository.findByOwnerId(userId)).willReturn(allClothes);
+    given(openAiClient.recommendClothesIds(weather, allClothes)).willReturn(List.of());
+    given(clothesMapper.toClothesDto(top, owner, List.of())).willReturn(topDto);
+
+    RecommendationDto result = recommendationService.getRecommendations(weatherId.toString(), user);
+
+    assertThat(result.clothes()).containsExactly(topDto);
+    verify(openAiClient).recommendClothesIds(weather, allClothes);
+    verify(clothesMapper).toClothesDto(top, owner, List.of());
+    verifyNoMoreInteractions(clothesMapper);
+  }
+
+  @Test
+  @DisplayName("성공 - fallback에서 동일 타입이 여러 개면 입력 순서대로 결정적으로 선택한다")
+  void getRecommendations_fallback_multipleSameType_deterministicSelection() {
+    UUID weatherId = UUID.randomUUID();
+    UUID userId = UUID.randomUUID();
+    UserDto user = createUserDto(userId);
+    Weather weather = createWeather(8.0);
+    User owner = new User("owner7", "owner7@test.com", "pw");
+
+    UUID outer1Id = UUID.randomUUID();
+    UUID outer2Id = UUID.randomUUID();
+    UUID topId = UUID.randomUUID();
+    Clothes outer1 = createClothes(owner, outer1Id, "숏패딩", ClothesType.OUTER);
+    Clothes outer2 = createClothes(owner, outer2Id, "롱패딩", ClothesType.OUTER);
+    Clothes top = createClothes(owner, topId, "후드티", ClothesType.TOP);
+    List<Clothes> allClothes = List.of(outer1, outer2, top);
+
+    ClothesDto outer1Dto = new ClothesDto(outer1Id, userId, "숏패딩", null, ClothesType.OUTER, List.of());
+    ClothesDto outer2Dto = new ClothesDto(outer2Id, userId, "롱패딩", null, ClothesType.OUTER, List.of());
+
+    given(weatherRepository.findById(weatherId)).willReturn(Optional.of(weather));
+    given(clothesRepository.findByOwnerId(userId)).willReturn(allClothes);
+    given(openAiClient.recommendClothesIds(weather, allClothes)).willReturn(List.of());
+    given(clothesMapper.toClothesDto(outer1, owner, List.of())).willReturn(outer1Dto);
+    given(clothesMapper.toClothesDto(outer2, owner, List.of())).willReturn(outer2Dto);
+
+    RecommendationDto result = recommendationService.getRecommendations(weatherId.toString(), user);
+
+    assertThat(result.clothes()).containsExactly(outer1Dto, outer2Dto);
+    verify(openAiClient).recommendClothesIds(weather, allClothes);
+    verify(clothesMapper).toClothesDto(outer1, owner, List.of());
+    verify(clothesMapper).toClothesDto(outer2, owner, List.of());
+    verifyNoMoreInteractions(clothesMapper);
   }
 
   private UserDto createUserDto(UUID userId) {
