@@ -187,6 +187,7 @@ class WeatherBatchJobTest {
         JobExecution execution = jobLauncherTestUtils.launchJob(buildParams());
 
         assertThat(execution.getStatus()).isEqualTo(BatchStatus.COMPLETED);
+        assertThat(execution.getStepExecutions().iterator().next().getReadCount()).isEqualTo(2);
     }
 
     @Test
@@ -203,6 +204,7 @@ class WeatherBatchJobTest {
         JobExecution execution = jobLauncherTestUtils.launchJob(buildParams());
 
         assertThat(execution.getStatus()).isEqualTo(BatchStatus.COMPLETED);
+        assertThat(execution.getStepExecutions().iterator().next().getProcessSkipCount()).isGreaterThanOrEqualTo(1);
     }
 
     private Location saveLocation(int gridX, int gridY) {
