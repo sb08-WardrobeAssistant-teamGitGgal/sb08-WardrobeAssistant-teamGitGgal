@@ -22,7 +22,6 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -35,7 +34,6 @@ public class RecommendationServiceImpl implements RecommendationService {
   private final OpenAiClient openAiClient;
 
   @Override
-  @Transactional(readOnly = true)
   public RecommendationDto getRecommendations(String weatherId, UserDto user) {
     log.info("[Service] 의상 추천 조회 요청 시작");
 
@@ -50,6 +48,15 @@ public class RecommendationServiceImpl implements RecommendationService {
         .orElseThrow(() -> new BusinessException(WeatherErrorCode.WEATHER_NOT_FOUND));
     List<Clothes> allClothes = clothesRepository.findByOwnerId(user.id());
 
+    return recommendWithLlm(weatherUuid, weather, allClothes, user);
+  }
+
+  private RecommendationDto recommendWithLlm(
+      UUID weatherUuid,
+      Weather weather,
+      List<Clothes> allClothes,
+      UserDto user
+  ) {
     // 의상 추천
     List<Clothes> recommended = recommendByLlm(weather, allClothes);
 
