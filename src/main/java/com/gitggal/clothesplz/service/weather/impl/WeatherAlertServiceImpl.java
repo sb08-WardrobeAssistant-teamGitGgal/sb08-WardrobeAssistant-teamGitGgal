@@ -6,10 +6,9 @@ import com.gitggal.clothesplz.entity.profile.Profile;
 import com.gitggal.clothesplz.entity.weather.PrecipitationType;
 import com.gitggal.clothesplz.entity.weather.Weather;
 import com.gitggal.clothesplz.entity.weather.WindPhrase;
+import com.gitggal.clothesplz.repository.profile.ProfileRepository;
 import com.gitggal.clothesplz.service.notification.NotificationService;
 import com.gitggal.clothesplz.service.weather.WeatherAlertService;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -20,19 +19,15 @@ import java.util.List;
 @RequiredArgsConstructor
 public class WeatherAlertServiceImpl implements WeatherAlertService {
 
-    @PersistenceContext
-    private EntityManager entityManager;
-
+    private final ProfileRepository profileRepository;
     private final NotificationService notificationService;
 
     @Override
     public void sendAlertsIfNeeded(Weather weather) {
-        List<Profile> profiles = entityManager.createQuery(
-                        "SELECT p FROM Profile p WHERE p.gridX = :x AND p.gridY = :y",
-                        Profile.class)
-                .setParameter("x", weather.getLocation().getGridX())
-                .setParameter("y", weather.getLocation().getGridY())
-                .getResultList();
+        List<Profile> profiles = profileRepository.findByGridXAndGridY(
+                weather.getLocation().getGridX(),
+                weather.getLocation().getGridY()
+        );
 
         if (profiles.isEmpty()) return;
 

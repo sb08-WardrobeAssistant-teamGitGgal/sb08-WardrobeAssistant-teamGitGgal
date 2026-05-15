@@ -8,10 +8,9 @@ import com.gitggal.clothesplz.entity.weather.PrecipitationType;
 import com.gitggal.clothesplz.entity.weather.Weather;
 import com.gitggal.clothesplz.entity.weather.WindPhrase;
 import com.gitggal.clothesplz.entity.weather.Location;
+import com.gitggal.clothesplz.repository.profile.ProfileRepository;
 import com.gitggal.clothesplz.service.notification.NotificationService;
 import com.gitggal.clothesplz.service.weather.impl.WeatherAlertServiceImpl;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.TypedQuery;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -21,15 +20,12 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
 
@@ -38,16 +34,13 @@ import static org.mockito.Mockito.*;
 class WeatherAlertServiceImplTest {
 
     @Mock
-    private NotificationService notificationService;
+    private ProfileRepository profileRepository;
 
     @Mock
-    private EntityManager entityManager;
+    private NotificationService notificationService;
 
     @InjectMocks
     private WeatherAlertServiceImpl alertService;
-
-    @Mock
-    private TypedQuery<Profile> query;
 
     private Location location;
     private Profile profile;
@@ -55,8 +48,6 @@ class WeatherAlertServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        ReflectionTestUtils.setField(alertService, "entityManager", entityManager);
-
         userId = UUID.randomUUID();
         User user = mock(User.class);
         lenient().when(user.getId()).thenReturn(userId);
@@ -67,9 +58,6 @@ class WeatherAlertServiceImplTest {
 
         profile = mock(Profile.class);
         lenient().when(profile.getUser()).thenReturn(user);
-
-        given(entityManager.createQuery(anyString(), eq(Profile.class))).willReturn(query);
-        given(query.setParameter(anyString(), any())).willReturn(query);
     }
 
     @Nested
@@ -79,8 +67,8 @@ class WeatherAlertServiceImplTest {
         @Test
         @DisplayName("알림 미발송")
         void sendAlertsIfNeeded_noProfiles_sendsNothing() {
-            given(query.getResultList()).willReturn(List.of());
-            Weather weather = makeWeather(PrecipitationType.RAIN, 70.0, WindPhrase.WEAK, 20.0, 10.0, 3.0);
+            given(profileRepository.findByGridXAndGridY(any(), any())).willReturn(List.of());
+            Weather weather = makeWeather(PrecipitationType.RAIN, 70.0, WindPhrase.WEAK, 20.0, 12.0, 3.0);
 
             alertService.sendAlertsIfNeeded(weather);
 
@@ -95,7 +83,7 @@ class WeatherAlertServiceImplTest {
         @Test
         @DisplayName("비 + 강수확률 60% 이상 → WARNING 알림")
         void rain_highProbability_sendsWarning() {
-            given(query.getResultList()).willReturn(List.of(profile));
+            given(profileRepository.findByGridXAndGridY(any(), any())).willReturn(List.of(profile));
             // swing=8 < 12, tempMax=20 < 33, tempMin=12 > 0 → 강수만 트리거
             Weather weather = makeWeather(PrecipitationType.RAIN, 70.0, WindPhrase.WEAK, 20.0, 12.0, 3.0);
 
@@ -113,7 +101,7 @@ class WeatherAlertServiceImplTest {
         @Test
         @DisplayName("비 + 강수확률 59% 이하 → 알림 없음")
         void rain_lowProbability_sendsNothing() {
-            given(query.getResultList()).willReturn(List.of(profile));
+            given(profileRepository.findByGridXAndGridY(any(), any())).willReturn(List.of(profile));
             Weather weather = makeWeather(PrecipitationType.RAIN, 59.0, WindPhrase.WEAK, 20.0, 12.0, 3.0);
 
             alertService.sendAlertsIfNeeded(weather);
@@ -124,7 +112,7 @@ class WeatherAlertServiceImplTest {
         @Test
         @DisplayName("눈 예보 → WARNING 알림")
         void snow_sendsWarning() {
-            given(query.getResultList()).willReturn(List.of(profile));
+            given(profileRepository.findByGridXAndGridY(any(), any())).willReturn(List.of(profile));
             Weather weather = makeWeather(PrecipitationType.SNOW, 70.0, WindPhrase.WEAK, 20.0, 12.0, 3.0);
 
             alertService.sendAlertsIfNeeded(weather);
@@ -137,7 +125,7 @@ class WeatherAlertServiceImplTest {
         @Test
         @DisplayName("비/눈 예보 → WARNING 알림")
         void rainSnow_sendsWarning() {
-            given(query.getResultList()).willReturn(List.of(profile));
+            given(profileRepository.findByGridXAndGridY(any(), any())).willReturn(List.of(profile));
             Weather weather = makeWeather(PrecipitationType.RAIN_SNOW, 70.0, WindPhrase.WEAK, 20.0, 12.0, 3.0);
 
             alertService.sendAlertsIfNeeded(weather);
@@ -150,7 +138,7 @@ class WeatherAlertServiceImplTest {
         @Test
         @DisplayName("소나기 예보 → WARNING 알림")
         void shower_sendsWarning() {
-            given(query.getResultList()).willReturn(List.of(profile));
+            given(profileRepository.findByGridXAndGridY(any(), any())).willReturn(List.of(profile));
             Weather weather = makeWeather(PrecipitationType.SHOWER, 70.0, WindPhrase.WEAK, 20.0, 12.0, 3.0);
 
             alertService.sendAlertsIfNeeded(weather);
@@ -163,7 +151,7 @@ class WeatherAlertServiceImplTest {
         @Test
         @DisplayName("강수 없음 → 알림 없음")
         void noPrecip_sendsNothing() {
-            given(query.getResultList()).willReturn(List.of(profile));
+            given(profileRepository.findByGridXAndGridY(any(), any())).willReturn(List.of(profile));
             Weather weather = makeWeather(PrecipitationType.NONE, 0.0, WindPhrase.WEAK, 20.0, 12.0, 3.0);
 
             alertService.sendAlertsIfNeeded(weather);
@@ -179,7 +167,7 @@ class WeatherAlertServiceImplTest {
         @Test
         @DisplayName("STRONG 풍속 → WARNING 알림")
         void strongWind_sendsWarning() {
-            given(query.getResultList()).willReturn(List.of(profile));
+            given(profileRepository.findByGridXAndGridY(any(), any())).willReturn(List.of(profile));
             // swing=8 < 12 → 강풍만 트리거
             Weather weather = makeWeather(PrecipitationType.NONE, 0.0, WindPhrase.STRONG, 20.0, 12.0, 10.0);
 
@@ -195,7 +183,7 @@ class WeatherAlertServiceImplTest {
         @Test
         @DisplayName("MODERATE 풍속 → 알림 없음")
         void moderateWind_sendsNothing() {
-            given(query.getResultList()).willReturn(List.of(profile));
+            given(profileRepository.findByGridXAndGridY(any(), any())).willReturn(List.of(profile));
             Weather weather = makeWeather(PrecipitationType.NONE, 0.0, WindPhrase.MODERATE, 20.0, 12.0, 5.0);
 
             alertService.sendAlertsIfNeeded(weather);
@@ -211,7 +199,7 @@ class WeatherAlertServiceImplTest {
         @Test
         @DisplayName("최고기온 33°C 이상 → 폭염 WARNING")
         void heatwave_sendsWarning() {
-            given(query.getResultList()).willReturn(List.of(profile));
+            given(profileRepository.findByGridXAndGridY(any(), any())).willReturn(List.of(profile));
             // swing=11 < 12, tempMin=22 > 0 → 폭염만 트리거
             Weather weather = makeWeather(PrecipitationType.NONE, 0.0, WindPhrase.WEAK, 33.0, 22.0, 3.0);
 
@@ -226,7 +214,7 @@ class WeatherAlertServiceImplTest {
         @Test
         @DisplayName("최고기온 32°C → 알림 없음")
         void belowHeatwaveThreshold_sendsNothing() {
-            given(query.getResultList()).willReturn(List.of(profile));
+            given(profileRepository.findByGridXAndGridY(any(), any())).willReturn(List.of(profile));
             // swing=10 < 12, tempMin=22 > 0 → 알림 없음
             Weather weather = makeWeather(PrecipitationType.NONE, 0.0, WindPhrase.WEAK, 32.0, 22.0, 3.0);
 
@@ -238,7 +226,7 @@ class WeatherAlertServiceImplTest {
         @Test
         @DisplayName("최저기온 0°C 이하 → 한파 WARNING")
         void coldWave_sendsWarning() {
-            given(query.getResultList()).willReturn(List.of(profile));
+            given(profileRepository.findByGridXAndGridY(any(), any())).willReturn(List.of(profile));
             // swing=10 < 12, tempMax=10 < 33 → 한파만 트리거
             Weather weather = makeWeather(PrecipitationType.NONE, 0.0, WindPhrase.WEAK, 10.0, 0.0, 3.0);
 
@@ -253,7 +241,7 @@ class WeatherAlertServiceImplTest {
         @Test
         @DisplayName("최저기온 1°C → 알림 없음")
         void aboveColdWaveThreshold_sendsNothing() {
-            given(query.getResultList()).willReturn(List.of(profile));
+            given(profileRepository.findByGridXAndGridY(any(), any())).willReturn(List.of(profile));
             // swing=9 < 12, tempMax=10 < 33 → 알림 없음
             Weather weather = makeWeather(PrecipitationType.NONE, 0.0, WindPhrase.WEAK, 10.0, 1.0, 3.0);
 
@@ -270,7 +258,7 @@ class WeatherAlertServiceImplTest {
         @Test
         @DisplayName("일교차 12°C 이상 → INFO 알림")
         void bigSwing_sendsInfo() {
-            given(query.getResultList()).willReturn(List.of(profile));
+            given(profileRepository.findByGridXAndGridY(any(), any())).willReturn(List.of(profile));
             // tempMax=25 < 33, tempMin=13 > 0 → 일교차만 트리거
             Weather weather = makeWeather(PrecipitationType.NONE, 0.0, WindPhrase.WEAK, 25.0, 13.0, 3.0);
 
@@ -286,7 +274,7 @@ class WeatherAlertServiceImplTest {
         @Test
         @DisplayName("일교차 11°C → 알림 없음")
         void smallSwing_sendsNothing() {
-            given(query.getResultList()).willReturn(List.of(profile));
+            given(profileRepository.findByGridXAndGridY(any(), any())).willReturn(List.of(profile));
             Weather weather = makeWeather(PrecipitationType.NONE, 0.0, WindPhrase.WEAK, 21.0, 10.0, 3.0);
 
             alertService.sendAlertsIfNeeded(weather);
@@ -302,7 +290,7 @@ class WeatherAlertServiceImplTest {
         @Test
         @DisplayName("비 + 강풍 동시 → 유저 1명에게 알림 2건")
         void rainAndWind_sendsMultipleAlerts() {
-            given(query.getResultList()).willReturn(List.of(profile));
+            given(profileRepository.findByGridXAndGridY(any(), any())).willReturn(List.of(profile));
             // swing=8 < 12 → 강수+강풍만 트리거
             Weather weather = makeWeather(PrecipitationType.RAIN, 70.0, WindPhrase.STRONG, 20.0, 12.0, 10.0);
 
@@ -320,7 +308,7 @@ class WeatherAlertServiceImplTest {
             Profile profile2 = mock(Profile.class);
             given(profile2.getUser()).willReturn(user2);
 
-            given(query.getResultList()).willReturn(List.of(profile, profile2));
+            given(profileRepository.findByGridXAndGridY(any(), any())).willReturn(List.of(profile, profile2));
             Weather weather = makeWeather(PrecipitationType.RAIN, 70.0, WindPhrase.WEAK, 20.0, 12.0, 3.0);
 
             alertService.sendAlertsIfNeeded(weather);
