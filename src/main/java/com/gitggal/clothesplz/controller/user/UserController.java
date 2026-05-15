@@ -21,6 +21,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -69,8 +70,9 @@ public class UserController {
     return ResponseEntity.status(HttpStatus.OK).body(dto);
   }
 
+  @PreAuthorize("hasRole('ADMIN')")
   @GetMapping
-  public ResponseEntity<UserDtoCursorResponse> findAll(@Valid UserDtoCursorRequest request) {
+  public ResponseEntity<UserDtoCursorResponse> findAll(@Valid @ModelAttribute UserDtoCursorRequest request) {
     log.info("[Controller] 목록 조회 요청 시작");
     UserDtoCursorResponse response =  userService.findAll(request);
     log.info("[Controller] 목록 조회 요청 완료");

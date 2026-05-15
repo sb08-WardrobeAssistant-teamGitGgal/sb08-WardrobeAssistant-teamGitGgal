@@ -136,8 +136,10 @@ public class UserServiceImpl implements UserService {
       nextIdAfter = lastUser.getId();
     }
 
+    long totalCount = userRepository.totalCount(request);
+
     log.info("[Service] 목록 조회 요청 완료");
-    return new UserDtoCursorResponse(userDtos, nextCursor, nextIdAfter, hasNext, userDtos.size(),
+    return new UserDtoCursorResponse(userDtos, nextCursor, nextIdAfter, hasNext, totalCount,
         request.sortBy(), request.sortDirection());
   }
 }

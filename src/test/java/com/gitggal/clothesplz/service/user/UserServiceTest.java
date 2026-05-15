@@ -295,6 +295,7 @@ class UserServiceTest {
 
       given(userRepository.getAllUsers(request)).willReturn(List.of(user));
       given(userMapper.toDto(user)).willReturn(userDto);
+      given(userRepository.totalCount(request)).willReturn(1L);
 
       // when
       UserDtoCursorResponse response = userService.findAll(request);
@@ -338,6 +339,7 @@ class UserServiceTest {
       given(userRepository.getAllUsers(request)).willReturn(List.of(user, user1, user2));
       given(userMapper.toDto(user)).willReturn(userDto);
       given(userMapper.toDto(user1)).willReturn(userDto1);
+      given(userRepository.totalCount(request)).willReturn(3L);
 
       // when
       UserDtoCursorResponse response = userService.findAll(request);
@@ -349,7 +351,7 @@ class UserServiceTest {
       assertThat(response.nextCursor()).isNotNull();
       assertThat(response.nextIdAfter()).isNotNull();
       assertThat(response.hasNext()).isTrue();
-      assertThat(response.totalCount()).isEqualTo(2);
+      assertThat(response.totalCount()).isEqualTo(3);
       assertThat(response.sortBy()).isEqualTo("email");
       assertThat(response.sortDirection()).isEqualTo("ASCENDING");
 

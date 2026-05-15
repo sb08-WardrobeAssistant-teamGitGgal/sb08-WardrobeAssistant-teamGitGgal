@@ -11,6 +11,7 @@ public enum UserErrorCode implements ErrorCode {
   DUPLICATE_EMAIL(1002, HttpStatus.CONFLICT, "이미 사용 중인 이메일입니다."),
   INVALID_PASSWORD(1003, HttpStatus.BAD_REQUEST, "비밀번호가 올바르지 않습니다."),
   INVALID_ROLE(1004, HttpStatus.BAD_REQUEST, "역할이 올바르지 않습니다."),
+  INVALID_CURSOR_FORMAT(1005, HttpStatus.BAD_REQUEST, "cursor가 올바르지 않습니다."),
 
   // 인증
   AUTHENTICATION_FAILED(1101, HttpStatus.UNAUTHORIZED, "이메일 또는 비밀번호가 올바르지 않습니다."),

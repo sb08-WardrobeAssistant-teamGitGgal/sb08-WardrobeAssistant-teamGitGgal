@@ -1,6 +1,7 @@
 package com.gitggal.clothesplz.dto.user;
 
 import com.gitggal.clothesplz.entity.user.UserRole;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -27,4 +28,8 @@ public record UserDtoCursorRequest(
     Boolean locked
 ) {
 
+    @AssertTrue(message = "cursor와 idAfter는 함께 전달되거나 비워야 합니다.")
+    public boolean isCursorPairValid(){
+        return (cursor == null) == (idAfter == null);
+    }
 }

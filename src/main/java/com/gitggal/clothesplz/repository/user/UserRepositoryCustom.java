@@ -8,4 +8,5 @@ public interface UserRepositoryCustom {
 
   List<User> getAllUsers(UserDtoCursorRequest request);
 
+  long totalCount(UserDtoCursorRequest request);
 }

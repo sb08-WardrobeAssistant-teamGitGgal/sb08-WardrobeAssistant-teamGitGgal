@@ -250,7 +250,7 @@ public class UserControllerTest {
 
   @Nested
   @DisplayName("계정 목록 조회")
-  class finaAll {
+  class findAll {
 
     @Test
     @DisplayName("계정 목록 조회 성공")
@@ -297,17 +297,18 @@ public class UserControllerTest {
 
       verify(userService, times(1)).findAll(any(UserDtoCursorRequest.class));
     }
+
+    @Test
+    @DisplayName("계정 목록 조회 실패")
+    void findAll_fail() throws Exception {
+
+      mockMvc.perform(get("/api/users")
+              .with(csrf())
+              .param("sortDirection", "ASCENDING")
+              .contentType(MediaType.APPLICATION_JSON))
+          .andDo(print())
+          .andExpect(status().isBadRequest());
+    }
   }
 
-  @Test
-  @DisplayName("계정 목록 조회 실패")
-  void findAll_fail() throws Exception {
-
-    mockMvc.perform(get("/api/users")
-            .with(csrf())
-            .param("sortDirection", "ASCENDING")
-            .contentType(MediaType.APPLICATION_JSON))
-        .andDo(print())
-        .andExpect(status().isBadRequest());
-  }
 }
