@@ -7,7 +7,9 @@ import org.springframework.http.HttpStatus;
 public enum MessageErrorCode implements ErrorCode {
 
   MESSAGE_NOT_FOUND(4001, HttpStatus.NOT_FOUND, "메시지를 찾을 수 없습니다."),
-  UNAUTHORIZED_MESSAGE_ACCESS(4002, HttpStatus.FORBIDDEN, "해당 메시지에 접근 권한이 없습니다.");
+  UNAUTHORIZED_MESSAGE_ACCESS(4002, HttpStatus.FORBIDDEN, "해당 메시지에 접근 권한이 없습니다."),
+  SELF_MESSAGE_NOT_ALLOWED(4003, HttpStatus.BAD_REQUEST, "자기 자신에게 DM을 보낼 수 없습니다."),
+  INVALID_CURSOR_FORMAT(4004, HttpStatus.BAD_REQUEST, "커서 형식이 올바르지 않습니다.");
 
   private final int code;
   private final HttpStatus httpStatus;

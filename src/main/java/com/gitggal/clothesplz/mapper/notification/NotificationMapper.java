@@ -12,5 +12,6 @@ import org.mapstruct.Mapping;
 public interface NotificationMapper {
 
   @Mapping(source = "receiver.id", target = "receiverId")
+  @Mapping(source = "content", target = "content", defaultValue = "")
   NotificationDto toDto(Notification notification);
 }
