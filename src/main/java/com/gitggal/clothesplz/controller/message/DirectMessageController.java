@@ -1,12 +1,14 @@
 package com.gitggal.clothesplz.controller.message;
 
 import com.gitggal.clothesplz.dto.message.DirectMessageDtoCursorResponse;
+import com.gitggal.clothesplz.security.ClothesUserDetails;
 import com.gitggal.clothesplz.service.message.DirectMessageService;
 import jakarta.validation.constraints.Positive;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -28,15 +30,18 @@ public class DirectMessageController {
   @GetMapping
   public ResponseEntity<DirectMessageDtoCursorResponse> getMessages(
       @RequestParam UUID userId,
-      @RequestParam UUID partnerId,
       @RequestParam(required = false) String cursor,
       @RequestParam(required = false) UUID idAfter,
-      @RequestParam @Positive int limit) {
+      @RequestParam @Positive int limit,
+      @AuthenticationPrincipal ClothesUserDetails userDetails) {
 
-    log.info("[Controller] DM 목록 조회 요청 시작: userId={}, partnerId={}", userId, partnerId);
+    // 인증된 유저
+    UUID myId = userDetails.getUserDto().id();
+
+    log.info("[Controller] DM 목록 조회 요청 시작: myId={}, partnerId={}", myId, userId);
 
     DirectMessageDtoCursorResponse response =
-        directMessageService.getMessages(userId, partnerId, cursor, idAfter, limit);
+        directMessageService.getMessages(myId, userId, cursor, idAfter, limit);
 
     log.info("[Controller] DM 목록 조회 요청 완료");
 

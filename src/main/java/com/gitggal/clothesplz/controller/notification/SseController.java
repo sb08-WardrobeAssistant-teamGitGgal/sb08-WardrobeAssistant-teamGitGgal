@@ -1,14 +1,15 @@
 package com.gitggal.clothesplz.controller.notification;
 
 import com.gitggal.clothesplz.repository.notification.SseEmitterRepository;
+import com.gitggal.clothesplz.security.ClothesUserDetails;
 import java.io.IOException;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -24,7 +25,9 @@ public class SseController {
   private final SseEmitterRepository emitterRepository;
 
   @GetMapping(produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-  public SseEmitter subscribe(@RequestParam UUID userId) {
+  public SseEmitter subscribe(@AuthenticationPrincipal ClothesUserDetails userDetails) {
+
+    UUID userId = userDetails.getUserDto().id();
 
     log.info("[Controller] SSE 연결 요청 시작: userId={}", userId);
 

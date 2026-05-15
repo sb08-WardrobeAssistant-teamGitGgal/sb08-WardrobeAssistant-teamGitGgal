@@ -91,7 +91,7 @@ public class DirectMessageServiceImpl implements DirectMessageService {
 
     // 받는 사람에게 알림 발송
     NotificationRequest notificationRequest = new NotificationRequest(request.receiverId(),
-        "[DM]" + sender.getName(),
+        "[DM]" + " " + sender.getName(),
         dto.content(),
         NotificationLevel.INFO);
 

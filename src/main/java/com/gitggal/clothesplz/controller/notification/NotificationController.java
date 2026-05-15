@@ -1,12 +1,14 @@
 package com.gitggal.clothesplz.controller.notification;
 
 import com.gitggal.clothesplz.dto.notification.NotificationDtoCursorResponse;
+import com.gitggal.clothesplz.security.ClothesUserDetails;
 import com.gitggal.clothesplz.service.notification.NotificationService;
 import jakarta.validation.constraints.Positive;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -35,9 +37,11 @@ public class NotificationController {
       @RequestParam(required = false) String cursor,
       @RequestParam(required = false) UUID idAfter,
       @RequestParam @Positive int limit,
-      @RequestParam UUID receiverId) {
+      @AuthenticationPrincipal ClothesUserDetails userDetails) {
 
-    log.info("[Controller] 알림 목록 조회 요청 시작: receiverId={}, cursor={}, idAfter={}, limit={}", receiverId, cursor, idAfter, limit);
+    UUID receiverId = userDetails.getUserDto().id();
+
+    log.info("[Controller] 알림 목록 조회 요청 시작: receiverId={}", receiverId);
 
     NotificationDtoCursorResponse response =
         notificationService.getNotifications(receiverId, cursor, idAfter, limit);
@@ -50,7 +54,9 @@ public class NotificationController {
   @DeleteMapping("/{notificationId}")
   public ResponseEntity<Void> deleteNotification(
       @PathVariable UUID notificationId,
-      @RequestParam UUID requesterId) {
+      @AuthenticationPrincipal ClothesUserDetails userDetails) {
+
+    UUID requesterId = userDetails.getUserDto().id();
 
     log.info("[Controller] 알림 읽음 처리 요청 시작: notificationId={}, requesterId={}", notificationId, requesterId);
 
