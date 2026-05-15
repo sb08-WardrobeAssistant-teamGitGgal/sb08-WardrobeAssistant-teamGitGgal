@@ -54,12 +54,11 @@ public class DirectMessageControllerTest {
   }
 
   @Test
-  @DisplayName("DM 목록 조회 성공 시 200 OK 및 정상 응답 반환")
+  @DisplayName("DM 목록 조회 성공 시 200 OK 및 정상 응답 반환한다.")
   void getMessages_returns_200() throws Exception {
 
     // given
     UUID userId = UUID.randomUUID();
-    UUID partnerId = UUID.randomUUID();
 
     DirectMessageDtoCursorResponse response =
         new DirectMessageDtoCursorResponse(
@@ -76,5 +75,25 @@ public class DirectMessageControllerTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.hasNext").value(false))
         .andExpect(jsonPath("$.sortBy").value("createdAt"));
+  }
+
+  @Test
+  @DisplayName("userId 파라미터 없이 요청하면 400을 반환한다.")
+  void getMessages_missingUserId_returns400() throws Exception {
+
+    mockMvc.perform(get("/api/direct-messages")
+            .param("limit", "20")
+            .with(user(mockUserDetails(UUID.randomUUID()))))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  @DisplayName("limit 파라미터 없이 요청하면 400을 반환한다.")
+  void getMessages_missingLimit_returns400() throws Exception {
+
+    mockMvc.perform(get("/api/direct-messages")
+            .param("userId", UUID.randomUUID().toString())
+            .with(user(mockUserDetails(UUID.randomUUID()))))
+        .andExpect(status().isBadRequest());
   }
 }
