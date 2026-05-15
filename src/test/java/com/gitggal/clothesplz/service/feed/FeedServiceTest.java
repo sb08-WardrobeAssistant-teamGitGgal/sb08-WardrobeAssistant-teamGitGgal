@@ -9,6 +9,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.mock;
 
+import com.gitggal.clothesplz.document.feed.FeedDocument;
 import com.gitggal.clothesplz.dto.feed.CommentCreateRequest;
 import com.gitggal.clothesplz.dto.feed.CommentDto;
 import com.gitggal.clothesplz.dto.feed.CommentDtoCursorResponse;
@@ -25,6 +26,8 @@ import com.gitggal.clothesplz.entity.feed.Feed;
 import com.gitggal.clothesplz.entity.feed.FeedComment;
 import com.gitggal.clothesplz.entity.feed.FeedLike;
 import com.gitggal.clothesplz.entity.user.User;
+import com.gitggal.clothesplz.entity.weather.PrecipitationType;
+import com.gitggal.clothesplz.entity.weather.SkyStatus;
 import com.gitggal.clothesplz.entity.weather.Weather;
 import com.gitggal.clothesplz.exception.BusinessException;
 import com.gitggal.clothesplz.mapper.feed.CommentMapper;
@@ -149,7 +152,16 @@ public class FeedServiceTest extends ServiceTestSupport {
       // given
       given(weatherRepository.findById(eq(weatherId))).willReturn(Optional.of(mockWeather));
       given(userRepository.findById(authorId)).willReturn(Optional.of(mockAuthor));
-      given(feedRepository.save(any(Feed.class))).willAnswer(inv -> inv.getArgument(0));
+      given(mockFeed.getId()).willReturn(feedId);
+      given(mockFeed.getContent()).willReturn(feedCreateRequest.content());
+      given(mockFeed.getAuthor()).willReturn(mockAuthor);
+      given(mockFeed.getWeather()).willReturn(mockWeather);
+      given(mockFeed.getLikeCount()).willReturn(0L);
+      given(mockFeed.getCreatedAt()).willReturn(Instant.now());
+      given(feedRepository.save(any(Feed.class))).willReturn(mockFeed);
+      given(mockWeather.getSkyStatus()).willReturn(SkyStatus.CLEAR);
+      given(mockWeather.getPrecipitationType()).willReturn(PrecipitationType.NONE);
+      given(mockAuthor.getId()).willReturn(authorId);
 
       FeedDto expectedDto = mock(FeedDto.class);
       given(feedMapper.toDto(any(Feed.class))).willReturn(expectedDto);
@@ -160,6 +172,7 @@ public class FeedServiceTest extends ServiceTestSupport {
       // then
       assertThat(result).isEqualTo(expectedDto);
       then(feedRepository).should().save(any(Feed.class));
+      then(feedSearchRepository).should().save(any(FeedDocument.class));
       then(feedMapper).should().toDto(any(Feed.class));
     }
 
@@ -197,6 +210,14 @@ public class FeedServiceTest extends ServiceTestSupport {
     void updateFeed_Success() {
       // given
       given(feedRepository.findWithDetailsById(eq(feedId))).willReturn(Optional.of(mockFeed));
+      given(mockFeed.getContent()).willReturn(feedUpdateRequest.content());
+      given(mockFeed.getAuthor()).willReturn(mockAuthor);
+      given(mockFeed.getWeather()).willReturn(mockWeather);
+      given(mockFeed.getLikeCount()).willReturn(0L);
+      given(mockFeed.getCreatedAt()).willReturn(Instant.now());
+      given(mockAuthor.getId()).willReturn(authorId);
+      given(mockWeather.getSkyStatus()).willReturn(SkyStatus.CLEAR);
+      given(mockWeather.getPrecipitationType()).willReturn(PrecipitationType.NONE);
 
       FeedDto expectedDto = mock(FeedDto.class);
       given(feedMapper.toDto(any(Feed.class))).willReturn(expectedDto);
@@ -206,6 +227,7 @@ public class FeedServiceTest extends ServiceTestSupport {
 
       // then
       assertThat(result).isEqualTo(expectedDto);
+      then(feedSearchRepository).should().save(any(FeedDocument.class));
     }
 
     @Test
@@ -237,6 +259,7 @@ public class FeedServiceTest extends ServiceTestSupport {
 
       // then
       then(feedRepository).should().delete(any(Feed.class));
+      then(feedSearchRepository).should().deleteById(eq(feedId.toString()));
     }
 
     @Test
@@ -511,9 +534,9 @@ public class FeedServiceTest extends ServiceTestSupport {
     @DisplayName("피드 목록 조회 성공 - 다음 페이지 없는 경우")
     void getFeeds_Success_NoNextPage() {
       // given
-      given(feedRepository.findAllByCursor(eq(feedPageRequest), any(FeedCursorCondition.class))).willReturn(List.of(feedDto1));
+      given(feedRepository.findAllByCursor(eq(feedPageRequest), any(FeedCursorCondition.class), isNull())).willReturn(List.of(feedDto1));
       given(feedLikeRepository.findFeedIdsByUserId(eq(userId), any())).willReturn(Set.of());
-      given(feedRepository.countByCondition(eq(feedPageRequest))).willReturn(1L);
+      given(feedRepository.countByCondition(eq(feedPageRequest), isNull())).willReturn(1L);
 
       // when
       FeedDtoCursorResponse result = feedService.getFeeds(userId, feedPageRequest);
@@ -530,10 +553,10 @@ public class FeedServiceTest extends ServiceTestSupport {
     @DisplayName("피드 목록 조회 성공 - 다음 페이지 있는 경우 (sortBy=createdAt)")
     void getFeeds_Success_HasNextPage_SortByCreatedAt() {
       // given
-      given(feedRepository.findAllByCursor(eq(feedPageRequest), any(FeedCursorCondition.class)))
+      given(feedRepository.findAllByCursor(eq(feedPageRequest), any(FeedCursorCondition.class), isNull()))
           .willReturn(List.of(feedDto1, feedDto2, feedDto3));
       given(feedLikeRepository.findFeedIdsByUserId(eq(userId), any())).willReturn(Set.of());
-      given(feedRepository.countByCondition(eq(feedPageRequest))).willReturn(3L);
+      given(feedRepository.countByCondition(eq(feedPageRequest), isNull())).willReturn(3L);
 
       // when
       FeedDtoCursorResponse result = feedService.getFeeds(userId, feedPageRequest);
@@ -552,10 +575,10 @@ public class FeedServiceTest extends ServiceTestSupport {
       FeedPageRequest likeCountRequest = new FeedPageRequest(
           null, null, 2, "likeCount", "DESCENDING", null, null, null, null
       );
-      given(feedRepository.findAllByCursor(eq(likeCountRequest), any(FeedCursorCondition.class)))
+      given(feedRepository.findAllByCursor(eq(likeCountRequest), any(FeedCursorCondition.class), isNull()))
           .willReturn(List.of(feedDto1, feedDto2, feedDto3));
       given(feedLikeRepository.findFeedIdsByUserId(eq(userId), any())).willReturn(Set.of());
-      given(feedRepository.countByCondition(eq(likeCountRequest))).willReturn(3L);
+      given(feedRepository.countByCondition(eq(likeCountRequest), isNull())).willReturn(3L);
 
       // when
       FeedDtoCursorResponse result = feedService.getFeeds(userId, likeCountRequest);
@@ -570,9 +593,9 @@ public class FeedServiceTest extends ServiceTestSupport {
     @DisplayName("피드 목록이 비어있는 경우")
     void getFeeds_EmptyList() {
       // given
-      given(feedRepository.findAllByCursor(eq(feedPageRequest), any(FeedCursorCondition.class))).willReturn(List.of());
+      given(feedRepository.findAllByCursor(eq(feedPageRequest), any(FeedCursorCondition.class), isNull())).willReturn(List.of());
       given(feedLikeRepository.findFeedIdsByUserId(eq(userId), any())).willReturn(Set.of());
-      given(feedRepository.countByCondition(eq(feedPageRequest))).willReturn(0L);
+      given(feedRepository.countByCondition(eq(feedPageRequest), isNull())).willReturn(0L);
 
       // when
       FeedDtoCursorResponse result = feedService.getFeeds(userId, feedPageRequest);
@@ -582,6 +605,47 @@ public class FeedServiceTest extends ServiceTestSupport {
       assertThat(result.hasNext()).isFalse();
       assertThat(result.nextCursor()).isNull();
       assertThat(result.nextIdAfter()).isNull();
+    }
+
+    @Test
+    @DisplayName("keywordLike가 있으면 ES 검색 후 JPA에 ID 전달")
+    void getFeeds_WithKeyword_UsesElasticsearch() {
+      // given
+      UUID matchedId = feedDto1.id();
+      FeedPageRequest keywordRequest = new FeedPageRequest(
+          null, null, 2, "createdAt", "DESCENDING", "봄코디", null, null, null);
+      FeedDocument mockDoc = mock(FeedDocument.class);
+      given(mockDoc.getId()).willReturn(matchedId.toString());
+      given(feedSearchRepository.searchByContent(eq("봄코디"))).willReturn(List.of(mockDoc));
+      given(feedRepository.findAllByCursor(eq(keywordRequest), any(FeedCursorCondition.class), eq(List.of(matchedId))))
+          .willReturn(List.of(feedDto1));
+      given(feedLikeRepository.findFeedIdsByUserId(eq(userId), any())).willReturn(Set.of());
+      given(feedRepository.countByCondition(eq(keywordRequest), eq(List.of(matchedId)))).willReturn(1L);
+
+      // when
+      FeedDtoCursorResponse result = feedService.getFeeds(userId, keywordRequest);
+
+      // then
+      then(feedSearchRepository).should().searchByContent(eq("봄코디"));
+      assertThat(result.data().size()).isEqualTo(1);
+      assertThat(result.data().get(0)).isEqualTo(feedDto1);
+    }
+
+    @Test
+    @DisplayName("keywordLike 검색 결과 없으면 빈 응답 즉시 반환")
+    void getFeeds_WithKeyword_NoResults_ReturnsEmpty() {
+      // given
+      FeedPageRequest keywordRequest = new FeedPageRequest(
+          null, null, 2, "createdAt", "DESCENDING", "없는키워드", null, null, null);
+      given(feedSearchRepository.searchByContent(eq("없는키워드"))).willReturn(List.of());
+
+      // when
+      FeedDtoCursorResponse result = feedService.getFeeds(userId, keywordRequest);
+
+      // then
+      assertThat(result.data().size()).isEqualTo(0);
+      assertThat(result.hasNext()).isFalse();
+      then(feedRepository).shouldHaveNoInteractions();
     }
 
     @Test
@@ -612,11 +676,11 @@ public class FeedServiceTest extends ServiceTestSupport {
     @DisplayName("사용자가 좋아요한 피드에만 likedByMe가 true로 매핑되는 경우")
     void getFeeds_LikedByMe_MappedCorrectly() {
       // given
-      given(feedRepository.findAllByCursor(eq(feedPageRequest), any(FeedCursorCondition.class)))
+      given(feedRepository.findAllByCursor(eq(feedPageRequest), any(FeedCursorCondition.class), isNull()))
           .willReturn(List.of(feedDto1, feedDto2));
       given(feedLikeRepository.findFeedIdsByUserId(eq(userId), any()))
           .willReturn(Set.of(feedDto1.id()));
-      given(feedRepository.countByCondition(eq(feedPageRequest))).willReturn(2L);
+      given(feedRepository.countByCondition(eq(feedPageRequest), isNull())).willReturn(2L);
 
       // when
       FeedDtoCursorResponse result = feedService.getFeeds(userId, feedPageRequest);

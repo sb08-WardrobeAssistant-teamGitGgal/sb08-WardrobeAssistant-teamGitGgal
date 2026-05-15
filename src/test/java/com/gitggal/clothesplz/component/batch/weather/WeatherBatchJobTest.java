@@ -5,6 +5,7 @@ import com.gitggal.clothesplz.dto.weather.WeatherApiResponseDto;
 import com.gitggal.clothesplz.entity.weather.*;
 import com.gitggal.clothesplz.exception.BusinessException;
 import com.gitggal.clothesplz.exception.code.WeatherErrorCode;
+import com.gitggal.clothesplz.repository.feed.FeedSearchRepository;
 import com.gitggal.clothesplz.repository.weather.LocationRepository;
 import com.gitggal.clothesplz.repository.weather.WeatherRepository;
 import com.gitggal.clothesplz.service.image.ImageUploader;
@@ -72,6 +73,9 @@ class WeatherBatchJobTest {
 
     @MockitoBean
     private Flyway flyway;
+
+    @MockitoBean
+    private FeedSearchRepository feedSearchRepository;
 
     @BeforeEach
     void setUp() {

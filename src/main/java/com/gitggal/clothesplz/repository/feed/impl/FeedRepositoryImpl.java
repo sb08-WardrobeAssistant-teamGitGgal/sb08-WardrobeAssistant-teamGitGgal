@@ -35,7 +35,7 @@ public class FeedRepositoryImpl implements FeedRepositoryCustom {
   private final JPAQueryFactory queryFactory;
 
   @Override
-  public List<FeedDto> findAllByCursor(FeedPageRequest feedPageRequest, FeedCursorCondition feedCursorCondition) {
+  public List<FeedDto> findAllByCursor(FeedPageRequest feedPageRequest, FeedCursorCondition feedCursorCondition, List<UUID> esMatchedIds) {
 
     return queryFactory
         .select(Projections.constructor(FeedDto.class,
@@ -73,7 +73,7 @@ public class FeedRepositoryImpl implements FeedRepositoryCustom {
         .join(feed.author, user)
         .join(profile).on(profile.user.eq(user))
         .where(
-            keywordLike(feedPageRequest.keywordLike()),
+            idIn(esMatchedIds),
             skyStatusEqual(feedPageRequest.skyStatusEqual()),
             precipitationTypeEqual(feedPageRequest.precipitationTypeEqual()),
             authorIdEqual(feedPageRequest.authorIdEqual()),
@@ -90,13 +90,13 @@ public class FeedRepositoryImpl implements FeedRepositoryCustom {
   }
 
   @Override
-  public long countByCondition(FeedPageRequest feedPageRequest) {
+  public long countByCondition(FeedPageRequest feedPageRequest, List<UUID> esMatchedIds) {
     Long count = queryFactory
         .select(feed.count())
         .from(feed)
         .join(feed.weather, weather)
         .where(
-            keywordLike(feedPageRequest.keywordLike()),
+            idIn(esMatchedIds),
             skyStatusEqual(feedPageRequest.skyStatusEqual()),
             precipitationTypeEqual(feedPageRequest.precipitationTypeEqual()),
             authorIdEqual(feedPageRequest.authorIdEqual())
@@ -106,9 +106,8 @@ public class FeedRepositoryImpl implements FeedRepositoryCustom {
   }
 
   // 키워드로 검색
-  private BooleanExpression keywordLike(String keyword) {
-    return StringUtils.hasText(keyword) ?
-        feed.content.containsIgnoreCase(keyword) : null;
+  private BooleanExpression idIn(List<UUID> esMatchedIds) {
+    return esMatchedIds != null ? feed.id.in(esMatchedIds) : null;
   }
 
   // 날씨로 검색

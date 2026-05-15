@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.gitggal.clothesplz.entity.user.User;
+import com.gitggal.clothesplz.repository.feed.FeedSearchRepository;
 import com.gitggal.clothesplz.repository.user.UserRepository;
 import com.gitggal.clothesplz.service.image.ImageUploader;
 import com.gitggal.clothesplz.service.weather.WeatherApiService;
@@ -29,6 +30,9 @@ import org.springframework.transaction.annotation.Transactional;
 @ActiveProfiles("test")
 @Transactional
 class LoginIntegrationTest {
+
+  @MockitoBean
+  private FeedSearchRepository feedSearchRepository;
 
   @MockitoBean
   private ImageUploader imageUploader;

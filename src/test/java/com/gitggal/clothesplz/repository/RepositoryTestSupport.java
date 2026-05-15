@@ -1,5 +1,6 @@
 package com.gitggal.clothesplz.repository;
 
+import com.gitggal.clothesplz.repository.feed.FeedSearchRepository;
 import org.flywaydb.core.Flyway;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
@@ -14,4 +15,7 @@ public abstract class RepositoryTestSupport {
 
   @MockitoBean
   protected Flyway flyway;
+
+  @MockitoBean
+  protected FeedSearchRepository feedSearchRepository;
 }
