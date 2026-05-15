@@ -12,9 +12,10 @@ import com.gitggal.clothesplz.entity.weather.Weather;
 import com.gitggal.clothesplz.repository.profile.ProfileRepository;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.ReportingPolicy;
 import org.springframework.beans.factory.annotation.Autowired;
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.IGNORE)
 public abstract class FeedMapper {
 
   @Autowired

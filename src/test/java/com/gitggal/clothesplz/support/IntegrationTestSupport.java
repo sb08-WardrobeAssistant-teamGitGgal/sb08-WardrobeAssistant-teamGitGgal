@@ -1,5 +1,6 @@
 package com.gitggal.clothesplz.support;
 
+import com.gitggal.clothesplz.repository.feed.FeedSearchRepository;
 import com.gitggal.clothesplz.service.image.ImageUploader;
 import org.flywaydb.core.Flyway;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -15,5 +16,8 @@ public abstract class IntegrationTestSupport {
 
   @MockitoBean
   protected ImageUploader imageUploader;
+
+  @MockitoBean
+  protected FeedSearchRepository feedSearchRepository;
 
 }

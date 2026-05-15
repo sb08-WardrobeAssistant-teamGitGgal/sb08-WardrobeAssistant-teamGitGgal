@@ -3,6 +3,7 @@ package com.gitggal.clothesplz.repository.feed;
 import com.gitggal.clothesplz.entity.feed.Feed;
 import jakarta.persistence.LockModeType;
 import jakarta.persistence.QueryHint;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -15,6 +16,9 @@ public interface FeedRepository extends JpaRepository<Feed, UUID>, FeedRepositor
 
   @EntityGraph(attributePaths = {"weather", "author"})
   Optional<Feed> findWithDetailsById(UUID feedId);
+
+  @EntityGraph(attributePaths = {"weather", "author"})
+  List<Feed> findAll();
 
   // 동시성 작업(좋아요, 댓글)을 위한 비관적 락 획득
   @Lock(LockModeType.PESSIMISTIC_WRITE)

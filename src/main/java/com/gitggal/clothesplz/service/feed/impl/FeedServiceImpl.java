@@ -1,5 +1,6 @@
 package com.gitggal.clothesplz.service.feed.impl;
 
+import com.gitggal.clothesplz.document.feed.FeedDocument;
 import com.gitggal.clothesplz.dto.clothes.OotdDto;
 import com.gitggal.clothesplz.dto.feed.CommentCreateRequest;
 import com.gitggal.clothesplz.dto.feed.CommentDto;
@@ -25,6 +26,7 @@ import com.gitggal.clothesplz.mapper.feed.FeedMapper;
 import com.gitggal.clothesplz.repository.feed.FeedCommentRepository;
 import com.gitggal.clothesplz.repository.feed.FeedLikeRepository;
 import com.gitggal.clothesplz.repository.feed.FeedRepository;
+import com.gitggal.clothesplz.repository.feed.FeedSearchRepository;
 import com.gitggal.clothesplz.repository.user.UserRepository;
 import com.gitggal.clothesplz.repository.weather.WeatherRepository;
 import com.gitggal.clothesplz.service.feed.FeedService;
@@ -38,6 +40,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -55,6 +58,7 @@ public class FeedServiceImpl implements FeedService {
   private final FeedCommentRepository feedCommentRepository;
   private final FeedMapper feedMapper;
   private final CommentMapper commentMapper;
+  private final FeedSearchRepository feedSearchRepository;
 
   @Override
   @Transactional
@@ -80,6 +84,16 @@ public class FeedServiceImpl implements FeedService {
 
     Feed savedFeed = feedRepository.save(feed);
 
+    feedSearchRepository.save(FeedDocument.builder()
+        .id(savedFeed.getId().toString())
+        .content(savedFeed.getContent())
+        .authorId(savedFeed.getAuthor().getId().toString())
+        .skyStatus(savedFeed.getWeather().getSkyStatus().name())
+        .precipitationType(savedFeed.getWeather().getPrecipitationType().name())
+        .likeCount(savedFeed.getLikeCount())
+        .createdAt(savedFeed.getCreatedAt())
+        .build());
+
     log.info("[Service] 피드 생성 요청 완료 - feedId: {}", savedFeed.getId());
 
     return feedMapper.toDto(savedFeed);
@@ -97,6 +111,18 @@ public class FeedServiceImpl implements FeedService {
 
     feed.update(newContent);
 
+    feedSearchRepository.findById(feedId.toString()).ifPresent(doc ->
+        feedSearchRepository.save(FeedDocument.builder()
+            .id(doc.getId())
+            .content(feed.getContent())
+            .authorId(doc.getAuthorId())
+            .skyStatus(doc.getSkyStatus())
+            .precipitationType(doc.getPrecipitationType())
+            .likeCount(doc.getLikeCount())
+            .createdAt(doc.getCreatedAt())
+            .build())
+    );
+
     log.info("[Service] 피드 수정 요청 완료 - feedId: {}", feedId);
 
     return feedMapper.toDto(feed);
@@ -112,6 +138,8 @@ public class FeedServiceImpl implements FeedService {
         .orElseThrow(() -> new BusinessException(FeedErrorCode.FEED_NOT_FOUND));
 
     feedRepository.delete(feed);
+    feedSearchRepository.deleteById(feedId.toString());
+
     log.info("[Service] 피드 삭제 요청 완료 - feedId: {}", feedId);
   }
 
@@ -185,9 +213,10 @@ public class FeedServiceImpl implements FeedService {
 
     Instant cursorInstant;
     try {
-      cursorInstant = (commentPageRequest.cursor() != null && !commentPageRequest.cursor().isBlank())
-          ? Instant.parse(commentPageRequest.cursor())
-          : null;
+      cursorInstant =
+          (commentPageRequest.cursor() != null && !commentPageRequest.cursor().isBlank())
+              ? Instant.parse(commentPageRequest.cursor())
+              : null;
     } catch (DateTimeParseException e) {
       throw new BusinessException(FeedErrorCode.INVALID_CURSOR_FORMAT);
     }
@@ -195,7 +224,8 @@ public class FeedServiceImpl implements FeedService {
     Feed feed = feedRepository.findById(feedId)
         .orElseThrow(() -> new BusinessException(FeedErrorCode.FEED_NOT_FOUND));
 
-    List<CommentDto> comments = feedCommentRepository.findAllByCursor(feedId, commentPageRequest, cursorInstant);
+    List<CommentDto> comments = feedCommentRepository.findAllByCursor(feedId, commentPageRequest,
+        cursorInstant);
 
     boolean hasNext = comments.size() > commentPageRequest.limit();
     List<CommentDto> data = hasNext ? comments.subList(0, commentPageRequest.limit()) : comments;
@@ -235,7 +265,27 @@ public class FeedServiceImpl implements FeedService {
         feedPageRequest.sortBy()
     );
 
-    List<FeedDto> feeds = feedRepository.findAllByCursor(feedPageRequest, feedCursorCondition);
+    List<UUID> esMatchedIDs = null;
+    if (StringUtils.hasText(feedPageRequest.keywordLike())) {
+      List<FeedDocument> documents = feedSearchRepository.searchByContent(
+          feedPageRequest.keywordLike());
+
+      // search 검사 결과 아무것도 없을 경우 빈 페이지 반환
+      if (documents.isEmpty()) {
+        return new FeedDtoCursorResponse(
+          List.of(), null, null, false, 0,
+          feedPageRequest.sortBy(), feedPageRequest.sortDirection()
+        );
+      }
+
+      // 검사 결과와 일치하는 피드들의 id만 추출해서 담기
+      esMatchedIDs = documents.stream()
+          .map(document -> UUID.fromString(document.getId()))
+          .toList();
+    }
+
+    // 그 후 필터링, 정렬, 커서 페이지네이션 처리 후 반환
+    List<FeedDto> feeds = feedRepository.findAllByCursor(feedPageRequest, feedCursorCondition, esMatchedIDs);
 
     boolean hasNext = feeds.size() > feedPageRequest.limit();
     List<FeedDto> data = hasNext ? feeds.subList(0, feedPageRequest.limit()) : feeds;
@@ -266,7 +316,7 @@ public class FeedServiceImpl implements FeedService {
       }
     }
 
-    long totalCount = feedRepository.countByCondition(feedPageRequest);
+    long totalCount = feedRepository.countByCondition(feedPageRequest, esMatchedIDs);
 
     log.info("[Service] 피드 목록 조회 요청 완료 - totalCount: {}", totalCount);
 
