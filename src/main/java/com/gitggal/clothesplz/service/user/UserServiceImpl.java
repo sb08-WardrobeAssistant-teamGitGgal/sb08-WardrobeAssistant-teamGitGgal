@@ -3,6 +3,8 @@ package com.gitggal.clothesplz.service.user;
 import com.gitggal.clothesplz.dto.user.ChangePasswordRequest;
 import com.gitggal.clothesplz.dto.user.UserCreateRequest;
 import com.gitggal.clothesplz.dto.user.UserDto;
+import com.gitggal.clothesplz.dto.user.UserDtoCursorRequest;
+import com.gitggal.clothesplz.dto.user.UserDtoCursorResponse;
 import com.gitggal.clothesplz.dto.user.UserRoleUpdateRequest;
 import com.gitggal.clothesplz.entity.profile.Profile;
 import com.gitggal.clothesplz.entity.user.User;
@@ -12,7 +14,7 @@ import com.gitggal.clothesplz.mapper.user.UserMapper;
 import com.gitggal.clothesplz.repository.profile.ProfileRepository;
 import com.gitggal.clothesplz.repository.user.UserRepository;
 import com.gitggal.clothesplz.security.jwt.JwtRegistry;
-import jakarta.transaction.Transactional;
+import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,6 +22,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @Service
@@ -100,6 +103,42 @@ public class UserServiceImpl implements UserService {
 
     log.info("[Service] 권한 변경 요청 완료 : userId = {}", userId);
     return userMapper.toDto(user);
+  }
+
+  @Transactional(readOnly = true)
+  @Override
+  public UserDtoCursorResponse findAll(UserDtoCursorRequest request) {
+    log.info("[Service] 목록 조회 요청 시작");
+    List<User> users = userRepository.getAllUsers(request);
+
+    boolean hasNext = users.size() > request.limit();
+
+    if (hasNext) {
+      users = users.subList(0, request.limit());
+    }
+
+    List<UserDto> userDtos = users.stream()
+        .map(userMapper::toDto)
+        .toList();
+
+    String nextCursor = null;
+    UUID nextIdAfter = null;
+
+    if (hasNext && !users.isEmpty()) {
+      User lastUser = users.get(users.size() - 1);
+
+      if ("email".equalsIgnoreCase(request.sortBy())) {
+        nextCursor = lastUser.getEmail();
+      } else if ("createdAt".equalsIgnoreCase(request.sortBy())) {
+        nextCursor = lastUser.getCreatedAt().toString();
+      }
+
+      nextIdAfter = lastUser.getId();
+    }
+
+    log.info("[Service] 목록 조회 요청 완료");
+    return new UserDtoCursorResponse(userDtos, nextCursor, nextIdAfter, hasNext, userDtos.size(),
+        request.sortBy(), request.sortDirection());
   }
 }
 
