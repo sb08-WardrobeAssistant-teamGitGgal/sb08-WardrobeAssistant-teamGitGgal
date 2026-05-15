@@ -3,12 +3,15 @@ package com.gitggal.clothesplz.controller.user;
 import com.gitggal.clothesplz.dto.user.ChangePasswordRequest;
 import com.gitggal.clothesplz.dto.user.UserCreateRequest;
 import com.gitggal.clothesplz.dto.user.UserDto;
+import com.gitggal.clothesplz.dto.user.UserDtoCursorRequest;
+import com.gitggal.clothesplz.dto.user.UserDtoCursorResponse;
 import com.gitggal.clothesplz.dto.user.UserRoleUpdateRequest;
 import com.gitggal.clothesplz.exception.BusinessException;
 import com.gitggal.clothesplz.exception.code.UserErrorCode;
 import com.gitggal.clothesplz.security.ClothesUserDetails;
 import com.gitggal.clothesplz.service.user.UserService;
 import jakarta.validation.Valid;
+import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,6 +20,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -63,6 +68,15 @@ public class UserController {
     UserDto dto = userService.updateRole(userId, request);
     log.info("[Controller] 권한 변경 요청 완료");
     return ResponseEntity.status(HttpStatus.OK).body(dto);
+  }
+
+  @PreAuthorize("hasRole('ADMIN')")
+  @GetMapping
+  public ResponseEntity<UserDtoCursorResponse> findAll(@Valid @ModelAttribute UserDtoCursorRequest request) {
+    log.info("[Controller] 목록 조회 요청 시작");
+    UserDtoCursorResponse response =  userService.findAll(request);
+    log.info("[Controller] 목록 조회 요청 완료");
+    return ResponseEntity.status(HttpStatus.OK).body(response);
   }
 
 }
