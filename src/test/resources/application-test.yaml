@@ -1,8 +1,11 @@
 spring:
   flyway:
     enabled: false
+  batch:
+    jdbc:
+      initialize-schema: always  # 테스트는 H2 인메모리 → Flyway 미사용이므로 자동 생성
   datasource:
-    url: jdbc:h2:mem:clothesplz;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    url: jdbc:h2:mem:clothesplz;MODE=PostgreSQL;INIT=CREATE DOMAIN IF NOT EXISTS JSONB AS JSON;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
     driver-class-name: org.h2.Driver
     username: sa
     password:
@@ -37,6 +40,10 @@ logging:
 
 
 clothesplz:
+  admin:
+    username: admin
+    password: admin
+    email: admin
   jwt:
     access-token-secret: abcdefghijklmnopqrstuvwxyz123456
     access-token-exp: 900000

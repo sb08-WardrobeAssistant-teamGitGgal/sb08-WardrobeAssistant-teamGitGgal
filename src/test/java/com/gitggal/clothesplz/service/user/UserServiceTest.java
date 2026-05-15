@@ -12,6 +12,7 @@ import static org.mockito.BDDMockito.verify;
 import com.gitggal.clothesplz.dto.user.ChangePasswordRequest;
 import com.gitggal.clothesplz.dto.user.UserCreateRequest;
 import com.gitggal.clothesplz.dto.user.UserDto;
+import com.gitggal.clothesplz.dto.user.UserRoleUpdateRequest;
 import com.gitggal.clothesplz.entity.profile.Profile;
 import com.gitggal.clothesplz.entity.user.User;
 import com.gitggal.clothesplz.entity.user.UserRole;
@@ -20,6 +21,7 @@ import com.gitggal.clothesplz.exception.code.UserErrorCode;
 import com.gitggal.clothesplz.mapper.user.UserMapper;
 import com.gitggal.clothesplz.repository.profile.ProfileRepository;
 import com.gitggal.clothesplz.repository.user.UserRepository;
+import com.gitggal.clothesplz.security.jwt.JwtRegistry;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
@@ -51,6 +53,9 @@ class UserServiceTest {
 
   @Mock
   private PasswordEncoder passwordEncoder;
+
+  @Mock
+  private JwtRegistry jwtRegistry;
 
   private UserCreateRequest request;
   private UserDto responseDto;
@@ -190,14 +195,76 @@ class UserServiceTest {
       // when & then
       BusinessException exception = assertThrows(
           BusinessException.class,
-          () -> userService.updatePassword(userId, request)
-      );
+          () -> userService.updatePassword(userId, request));
 
       assertThat(exception.getErrorCode())
           .isEqualTo(UserErrorCode.USER_NOT_FOUND);
 
       verify(userRepository).findById(userId);
       verify(passwordEncoder, never()).encode(anyString());
+    }
+  }
+
+  @Nested
+  @DisplayName("역할 변경")
+  class UpdateRole {
+
+    @Test
+    @DisplayName("성공")
+    void updateRole_success_userToAdmin() {
+      // given
+      UserRoleUpdateRequest request = new UserRoleUpdateRequest(UserRole.ADMIN);
+
+      UserDto updatedDto = new UserDto(
+          userId,
+          Instant.now(),
+          "test@test.com",
+          "TestUser",
+          UserRole.ADMIN,
+          false
+      );
+
+      given(userRepository.findById(userId)).willReturn(Optional.of(user));
+      given(userMapper.toDto(user)).willReturn(updatedDto);
+
+      // when
+      userService.updateRole(userId, request);
+
+      // then
+      assertThat(user.getRole()).isEqualTo(UserRole.ADMIN);
+      verify(userMapper).toDto(user);
+      verify(jwtRegistry).invalidateJwtInformationByUserId(userId);
+    }
+
+    @Test
+    @DisplayName("실패 - 이미 같은 역할")
+    void updateRole_skip_sameRole() {
+      // given
+      UserRoleUpdateRequest request = new UserRoleUpdateRequest(UserRole.USER);
+
+      given(userRepository.findById(userId)).willReturn(Optional.of(user));
+      given(userMapper.toDto(user)).willReturn(responseDto);
+
+      // when
+      UserDto result = userService.updateRole(userId, request);
+
+      // then
+      assertThat(result.role()).isEqualTo(UserRole.USER);
+      verify(jwtRegistry, never()).invalidateJwtInformationByUserId(any());
+    }
+
+    @Test
+    @DisplayName("실패 - 사용자를 찾을 수 없음")
+    void updateRole_fail_userNotFound() {
+      // given
+      UserRoleUpdateRequest request = new UserRoleUpdateRequest(UserRole.ADMIN);
+      given(userRepository.findById(userId)).willReturn(Optional.empty());
+
+      // when & then
+      assertThatThrownBy(() -> userService.updateRole(userId, request))
+          .isInstanceOf(BusinessException.class);
+
+      verify(jwtRegistry, never()).invalidateJwtInformationByUserId(any());
     }
   }
 }
