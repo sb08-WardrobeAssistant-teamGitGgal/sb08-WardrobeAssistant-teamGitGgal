@@ -4,11 +4,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.gitggal.clothesplz.config.QuerydslConfig;
 import com.gitggal.clothesplz.dto.clothes.ClothesGetRequest;
+import com.gitggal.clothesplz.entity.clothes.ClothesAttributeDef;
 import com.gitggal.clothesplz.entity.clothes.Clothes;
 import com.gitggal.clothesplz.entity.clothes.ClothesType;
 import com.gitggal.clothesplz.entity.user.User;
 import com.gitggal.clothesplz.repository.RepositoryTestSupport;
-import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -28,6 +28,8 @@ class ClothesRepositoryTest extends RepositoryTestSupport {
 
   @Autowired
   private ClothesRepository clothesRepository;
+  @Autowired
+  private ClothesAttributeDefRepository clothesAttributeDefRepository;
 
   private Clothes persistClothes(User owner, String name, ClothesType type) {
     Clothes clothes = new Clothes(owner, name, type, null, null);
@@ -130,5 +132,33 @@ class ClothesRepositoryTest extends RepositoryTestSupport {
     em.clear();
 
     assertThat(clothesRepository.existsByIdAndOwnerId(clothesId, ownerId)).isFalse();
+  }
+
+  @Test
+  @DisplayName("existsByName은 같은 이름의 의상 속성 정의가 존재하면 true를 반환한다")
+  void existsByName_returnsTrueWhenExists() {
+    clothesAttributeDefRepository.save(
+        new ClothesAttributeDef("색상", List.of("WHITE", "BLACK"))
+    );
+    em.flush();
+    em.clear();
+
+    boolean result = clothesAttributeDefRepository.existsByName("색상");
+
+    assertThat(result).isTrue();
+  }
+
+  @Test
+  @DisplayName("existsByName은 같은 이름의 의상 속성 정의가 없으면 false를 반환한다")
+  void existsByName_returnsFalseWhenNotExists() {
+    clothesAttributeDefRepository.save(
+        new ClothesAttributeDef("소재", List.of("COTTON", "WOOL"))
+    );
+    em.flush();
+    em.clear();
+
+    boolean result = clothesAttributeDefRepository.existsByName("색상");
+
+    assertThat(result).isFalse();
   }
 }
