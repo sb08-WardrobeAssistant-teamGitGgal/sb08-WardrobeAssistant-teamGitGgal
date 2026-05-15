@@ -40,6 +40,10 @@ logging:
 
 
 clothesplz:
+  admin:
+    username: admin
+    password: admin
+    email: admin
   jwt:
     access-token-secret: abcdefghijklmnopqrstuvwxyz123456
     access-token-exp: 900000

@@ -17,8 +17,11 @@ import com.gitggal.clothesplz.config.TestSecurityConfig;
 import com.gitggal.clothesplz.dto.user.ChangePasswordRequest;
 import com.gitggal.clothesplz.dto.user.UserCreateRequest;
 import com.gitggal.clothesplz.dto.user.UserDto;
+import com.gitggal.clothesplz.dto.user.UserRoleUpdateRequest;
 import com.gitggal.clothesplz.entity.user.UserRole;
+import com.gitggal.clothesplz.exception.BusinessException;
 import com.gitggal.clothesplz.exception.GlobalExceptionHandler;
+import com.gitggal.clothesplz.exception.code.UserErrorCode;
 import com.gitggal.clothesplz.security.ClothesUserDetails;
 import com.gitggal.clothesplz.security.jwt.JwtAuthenticationFilter;
 import com.gitggal.clothesplz.service.user.UserService;
@@ -161,6 +164,80 @@ public class UserControllerTest {
               .with(csrf())
               .contentType(MediaType.APPLICATION_JSON)
               .content(objectMapper.writeValueAsString(invalidRequest)))
+          .andDo(print())
+          .andExpect(status().isBadRequest());
+    }
+  }
+
+  @Nested
+  @DisplayName("역할 변경")
+  class UpdateRole {
+
+    @Test
+    @DisplayName("역할 변경 성공")
+    void updateRole_success_withAdminRole() throws Exception {
+      // given
+      UserRoleUpdateRequest request = new UserRoleUpdateRequest(UserRole.ADMIN);
+      UserDto adminDto = new UserDto(
+          userId,
+          Instant.now(),
+          "Git@git.git",
+          "GitGit",
+          UserRole.ADMIN,
+          false
+      );
+
+      given(userService.updateRole(eq(userId), any(UserRoleUpdateRequest.class)))
+          .willReturn(adminDto);
+
+      // when & then
+      mockMvc.perform(patch("/api/users/{userId}/role", userId)
+              .with(user("admin@test.com").roles("ADMIN"))
+              .with(csrf())
+              .contentType(MediaType.APPLICATION_JSON)
+              .content(objectMapper.writeValueAsString(request)))
+          .andDo(print())
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$.id").value(userId.toString()))
+          .andExpect(jsonPath("$.role").value("ADMIN"));
+
+      verify(userService).updateRole(eq(userId), any(UserRoleUpdateRequest.class));
+    }
+
+    @Test
+    @DisplayName("역할 변경 실패 - 사용자를 찾을 수 없음")
+    void updateRole_fail_userNotFound() throws Exception {
+      // given
+      UserRoleUpdateRequest request = new UserRoleUpdateRequest(UserRole.ADMIN);
+
+      given(userService.updateRole(eq(userId), any(UserRoleUpdateRequest.class)))
+          .willThrow(new BusinessException(UserErrorCode.USER_NOT_FOUND));
+
+      // when & then
+      mockMvc.perform(patch("/api/users/{userId}/role", userId)
+              .with(user("admin@test.com").roles("ADMIN"))
+              .with(csrf())
+              .contentType(MediaType.APPLICATION_JSON)
+              .content(objectMapper.writeValueAsString(request)))
+          .andDo(print())
+          .andExpect(status().isNotFound())
+          .andExpect(jsonPath("$.exceptionName").value(UserErrorCode.USER_NOT_FOUND.name()));
+
+      verify(userService).updateRole(eq(userId), any(UserRoleUpdateRequest.class));
+    }
+
+    @Test
+    @DisplayName("역할 변경 실패 - 유효성 검사 실패")
+    void updateRole_fail_validationFailed() throws Exception {
+      // given
+      String invalidRequest = "{}";
+
+      // when & then
+      mockMvc.perform(patch("/api/users/{userId}/role", userId)
+              .with(user("admin@test.com").roles("ADMIN"))
+              .with(csrf())
+              .contentType(MediaType.APPLICATION_JSON)
+              .content(invalidRequest))
           .andDo(print())
           .andExpect(status().isBadRequest());
     }
