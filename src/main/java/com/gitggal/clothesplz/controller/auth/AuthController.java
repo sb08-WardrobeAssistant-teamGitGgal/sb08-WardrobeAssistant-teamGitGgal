@@ -1,5 +1,6 @@
 package com.gitggal.clothesplz.controller.auth;
 
+import com.gitggal.clothesplz.dto.user.ResetPasswordRequest;
 import com.gitggal.clothesplz.exception.BusinessException;
 import com.gitggal.clothesplz.exception.code.UserErrorCode;
 import com.gitggal.clothesplz.security.jwt.JwtDto;
@@ -7,6 +8,7 @@ import com.gitggal.clothesplz.security.jwt.JwtInformation;
 import com.gitggal.clothesplz.security.jwt.JwtTokenProvider;
 import com.gitggal.clothesplz.service.auth.AuthService;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
@@ -17,6 +19,7 @@ import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -51,5 +54,13 @@ public class AuthController {
 
     JwtDto jwtDto = new JwtDto(jwtInformation.userDto(), jwtInformation.accessToken());
     return ResponseEntity.status(HttpStatus.OK).body(jwtDto);
+  }
+
+  @PostMapping("/reset-password")
+  public ResponseEntity<Void> sendTempPassword(@Valid @RequestBody ResetPasswordRequest request) {
+    log.info("[Controller] 임시 비밀번호 발급 요청 시작");
+    authService.sendTempPassword(request);
+    log.info("[Controller] 임시 비밀번호 발급 요청 완료");
+    return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
   }
 }

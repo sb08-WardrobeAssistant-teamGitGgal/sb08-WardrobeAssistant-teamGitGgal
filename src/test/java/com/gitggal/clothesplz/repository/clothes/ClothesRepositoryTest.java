@@ -99,6 +99,25 @@ class ClothesRepositoryTest extends RepositoryTestSupport {
   }
 
   @Test
+  @DisplayName("findByOwnerId는 해당 소유자의 의상만 반환한다")
+  void findByOwnerId_returnsOnlyOwnersClothes() {
+    User owner = em.persistAndFlush(new User("owner6", "owner6@test.com", "pw"));
+    User other = em.persistAndFlush(new User("other6", "other6@test.com", "pw"));
+
+    persistClothes(owner, "owner-top", ClothesType.TOP);
+    persistClothes(owner, "owner-bottom", ClothesType.BOTTOM);
+    persistClothes(other, "other-outer", ClothesType.OUTER);
+    em.clear();
+
+    List<Clothes> result = clothesRepository.findByOwnerId(owner.getId());
+
+    assertThat(result).hasSize(2);
+    assertThat(result).allMatch(c -> c.getOwner().getId().equals(owner.getId()));
+    assertThat(result).extracting(Clothes::getName)
+        .containsExactlyInAnyOrder("owner-top", "owner-bottom");
+  }
+
+  @Test
   @DisplayName("의상 삭제 후에는 existsByIdAndOwnerId가 false를 반환한다")
   void existsByIdAndOwnerId_returnsFalseAfterDelete() {
     User owner = em.persistAndFlush(new User("owner5", "owner5@test.com", "pw"));

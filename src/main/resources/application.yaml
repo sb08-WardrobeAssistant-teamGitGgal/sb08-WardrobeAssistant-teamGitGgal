@@ -1,4 +1,10 @@
 spring:
+  batch:
+    job:
+      enabled: false       # 앱 시작 시 배치 자동 실행 방지 (스케줄러로만 실행)
+    jdbc:
+      initialize-schema: never  # Flyway가 배치 스키마 관리 (V3__add_spring_batch_schema.sql)
+
   jpa:
     properties:
       hibernate:
@@ -19,6 +25,19 @@ spring:
     enabled: true
     locations:
       - classpath:db/migration # 스키마 저장 위치 - 관례
+
+  mail:
+    host: smtp.naver.com
+    port: 465
+    username: ${NAVER_ID}
+    password: ${NAVER_APP_PW}
+    properties:
+      mail:
+        smtp:
+          ssl:
+            enable: true
+            trust: smtp.naver.com
+
 
 # Common Logging
 logging:
@@ -46,7 +65,7 @@ storage:
   s3:
     access-key: ${AWS_ACCESS_KEY}
     secret-key: ${AWS_SECRET_KEY}
-    region: ${AWS_S3_REGION}
+    region: ${AWS_REGION}
     bucket: ${AWS_S3_BUCKET}
     cloudfront: ${AWS_CLOUDFRONT_DOMAIN}
 
@@ -70,4 +89,8 @@ weather:
 kakao:
   api:
     rest-key: ${KAKAO_REST_API_KEY}
+
+openai:
+  api:
+    key: ${OPENAI_API_KEY}
 

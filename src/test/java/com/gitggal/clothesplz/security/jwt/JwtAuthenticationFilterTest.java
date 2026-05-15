@@ -140,6 +140,6 @@ class JwtAuthenticationFilterTest {
         UserRole.USER,
         false
     );
-    return new ClothesUserDetails(userDto, "encoded-password");
+    return new ClothesUserDetails(userDto, "encoded-password",null,null);
   }
 }

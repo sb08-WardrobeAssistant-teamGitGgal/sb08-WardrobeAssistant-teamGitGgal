@@ -1,5 +1,6 @@
 package com.gitggal.clothesplz.controller.auth;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
@@ -11,8 +12,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gitggal.clothesplz.config.TestSecurityConfig;
-import com.gitggal.clothesplz.controller.user.UserController;
+import com.gitggal.clothesplz.dto.user.ResetPasswordRequest;
 import com.gitggal.clothesplz.dto.user.UserDto;
 import com.gitggal.clothesplz.entity.user.UserRole;
 import com.gitggal.clothesplz.exception.BusinessException;
@@ -31,11 +33,11 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseCookie;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -58,6 +60,9 @@ class AuthControllerTest {
 
   @Autowired
   private MockMvc mockMvc;
+
+  @Autowired
+  ObjectMapper objectMapper;
 
   @MockitoBean
   private AuthService authService;
@@ -105,7 +110,7 @@ class AuthControllerTest {
   class GetCsrfToken {
 
     @Test
-    @DisplayName("성공 - CSRF 토큰 요청 시 204 No Content를 반환한다")
+    @DisplayName("성공")
     void success_getCsrfToken() throws Exception {
       // when & then
       mockMvc.perform(get("/api/auth/csrf-token"))
@@ -119,7 +124,7 @@ class AuthControllerTest {
   class RefreshToken {
 
     @Test
-    @DisplayName("토큰 재발급 성공")
+    @DisplayName("성공")
     void refreshToken_success() throws Exception {
       // given
       String oldRefreshToken = "old.refresh.token";
@@ -157,7 +162,7 @@ class AuthControllerTest {
     }
 
     @Test
-    @DisplayName("토큰 재발급 실패 - 유효하지 않은 Refresh Token")
+    @DisplayName("실패 - 유효하지 않은 Refresh Token")
     void refreshToken_fail_invalidToken() throws Exception {
       // given
       String invalidRefreshToken = "invalid.refresh.token";
@@ -177,7 +182,7 @@ class AuthControllerTest {
     }
 
     @Test
-    @DisplayName("토큰 재발급 실패 - 만료된 Refresh Token")
+    @DisplayName("실패 - 만료된 Refresh Token")
     void refreshToken_fail_expiredToken() throws Exception {
       // given
       String expiredRefreshToken = "expired.refresh.token";
@@ -194,6 +199,44 @@ class AuthControllerTest {
           .andExpect(jsonPath("$.exceptionName").value(UserErrorCode.INVALID_TOKEN.name()));
 
       verify(authService).refresh(expiredRefreshToken);
+    }
+  }
+
+  @Nested
+  @DisplayName("임시 비밀번호 발급")
+  class sendTempPassword {
+
+    @Test
+    @DisplayName("성공")
+    void success_sendTempPassword() throws Exception {
+      // given
+      ResetPasswordRequest request =
+          new ResetPasswordRequest("test@test.com");
+
+      // when & then
+      mockMvc.perform(post("/api/auth/reset-password")
+              .with(csrf())
+              .contentType(MediaType.APPLICATION_JSON)
+              .content(objectMapper.writeValueAsString(request)))
+          .andExpect(status().isNoContent());
+
+      verify(authService).sendTempPassword(any(ResetPasswordRequest.class));
+    }
+
+    @Test
+    @DisplayName("실패 - 이메일이 없는 경우")
+    void sendTempPassword_validation_fail() throws Exception {
+      // given
+      ResetPasswordRequest invalidRequest =
+          new ResetPasswordRequest("");
+
+      // when & then
+      mockMvc.perform(post("/api/auth/reset-password")
+              .with(csrf())
+              .contentType(MediaType.APPLICATION_JSON)
+              .content(objectMapper.writeValueAsString(invalidRequest)))
+          .andDo(print())
+          .andExpect(status().isBadRequest());
     }
   }
 }
