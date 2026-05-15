@@ -25,6 +25,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
@@ -88,6 +89,27 @@ class AttributeDefServiceImplTest {
     assertThat(exception).isNotNull();
     assertThat(exception.getErrorCode()).isEqualTo(ClothesErrorCode.DUPLICATE_ATTRIBUTE_NAME);
     verify(clothesAttributeDefRepository, never()).save(any(ClothesAttributeDef.class));
+    verifyNoInteractions(attributeDefMapper);
+  }
+
+  @Test
+  @DisplayName("실패 - 저장 시 유니크 제약 위반이면 DUPLICATE_ATTRIBUTE_NAME 예외를 던진다")
+  void createAttributeDef_duplicateNameOnSave_throwsException() {
+    ClothesAttributeDefCreateRequest request = new ClothesAttributeDefCreateRequest(
+        "색상",
+        List.of("WHITE", "BLACK")
+    );
+    given(clothesAttributeDefRepository.existsByName("색상")).willReturn(false);
+    given(clothesAttributeDefRepository.save(any(ClothesAttributeDef.class)))
+        .willThrow(new DataIntegrityViolationException("duplicate key"));
+
+    BusinessException exception = catchThrowableOfType(
+        () -> attributeDefService.createAttributeDef(request),
+        BusinessException.class
+    );
+
+    assertThat(exception).isNotNull();
+    assertThat(exception.getErrorCode()).isEqualTo(ClothesErrorCode.DUPLICATE_ATTRIBUTE_NAME);
     verifyNoInteractions(attributeDefMapper);
   }
 }
