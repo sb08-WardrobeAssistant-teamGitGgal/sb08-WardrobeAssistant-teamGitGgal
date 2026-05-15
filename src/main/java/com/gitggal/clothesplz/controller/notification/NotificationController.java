@@ -3,6 +3,7 @@ package com.gitggal.clothesplz.controller.notification;
 import com.gitggal.clothesplz.dto.notification.NotificationDtoCursorResponse;
 import com.gitggal.clothesplz.security.ClothesUserDetails;
 import com.gitggal.clothesplz.service.notification.NotificationService;
+import com.gitggal.clothesplz.util.AuthenticationUtil;
 import jakarta.validation.constraints.Positive;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -39,7 +40,7 @@ public class NotificationController {
       @RequestParam @Positive int limit,
       @AuthenticationPrincipal ClothesUserDetails userDetails) {
 
-    UUID receiverId = userDetails.getUserDto().id();
+    UUID receiverId = AuthenticationUtil.extractUserId(userDetails);
 
     log.info("[Controller] 알림 목록 조회 요청 시작: receiverId={}", receiverId);
 
@@ -56,7 +57,7 @@ public class NotificationController {
       @PathVariable UUID notificationId,
       @AuthenticationPrincipal ClothesUserDetails userDetails) {
 
-    UUID requesterId = userDetails.getUserDto().id();
+    UUID requesterId = AuthenticationUtil.extractUserId(userDetails);
 
     log.info("[Controller] 알림 읽음 처리 요청 시작: notificationId={}, requesterId={}", notificationId, requesterId);
 

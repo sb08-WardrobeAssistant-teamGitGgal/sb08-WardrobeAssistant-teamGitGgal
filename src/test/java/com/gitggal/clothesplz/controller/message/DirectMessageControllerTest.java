@@ -2,7 +2,10 @@ package com.gitggal.clothesplz.controller.message;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.then;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -75,6 +78,9 @@ public class DirectMessageControllerTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.hasNext").value(false))
         .andExpect(jsonPath("$.sortBy").value("createdAt"));
+
+    then(directMessageService).should()
+        .getMessages(eq(userId), eq(userId), isNull(), isNull(), eq(20));
   }
 
   @Test

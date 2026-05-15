@@ -3,6 +3,8 @@ package com.gitggal.clothesplz.controller.message;
 import com.gitggal.clothesplz.dto.message.DirectMessageDtoCursorResponse;
 import com.gitggal.clothesplz.security.ClothesUserDetails;
 import com.gitggal.clothesplz.service.message.DirectMessageService;
+import com.gitggal.clothesplz.util.AuthenticationUtil;
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Positive;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -32,11 +34,11 @@ public class DirectMessageController {
       @RequestParam UUID userId,
       @RequestParam(required = false) String cursor,
       @RequestParam(required = false) UUID idAfter,
-      @RequestParam @Positive int limit,
+      @RequestParam @Positive @Max(100) int limit,
       @AuthenticationPrincipal ClothesUserDetails userDetails) {
 
     // 인증된 유저
-    UUID myId = userDetails.getUserDto().id();
+    UUID myId = AuthenticationUtil.extractUserId(userDetails);
 
     log.info("[Controller] DM 목록 조회 요청 시작: myId={}, partnerId={}", myId, userId);
 

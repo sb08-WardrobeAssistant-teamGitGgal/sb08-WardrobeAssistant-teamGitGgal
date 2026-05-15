@@ -1,5 +1,6 @@
 package com.gitggal.clothesplz.util.message;
 
+import java.util.Objects;
 import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
@@ -14,6 +15,10 @@ import lombok.NoArgsConstructor;
 public class DmKeyGenerator {
 
   public static String generateKey(UUID a, UUID b) {
+
+    Objects.requireNonNull(a, "a");
+
+    Objects.requireNonNull(b, "b");
 
     String sa = a.toString();
 

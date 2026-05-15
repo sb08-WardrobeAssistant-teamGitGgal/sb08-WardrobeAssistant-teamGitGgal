@@ -6,6 +6,7 @@ import com.gitggal.clothesplz.dto.follow.FollowListResponse;
 import com.gitggal.clothesplz.dto.follow.FollowSummaryDto;
 import com.gitggal.clothesplz.security.ClothesUserDetails;
 import com.gitggal.clothesplz.service.follow.FollowService;
+import com.gitggal.clothesplz.util.AuthenticationUtil;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
 import java.util.UUID;
@@ -105,7 +106,7 @@ public class FollowController {
       @RequestParam UUID userId,
       @AuthenticationPrincipal ClothesUserDetails userDetails) {   // 현재 로그인 사용자
 
-    UUID requesterId = userDetails.getUserDto().id();
+    UUID requesterId = AuthenticationUtil.extractUserId(userDetails);
 
     log.info("[Controller] 팔로우 요약 조회 요청 시작: userId={}", userId);
 

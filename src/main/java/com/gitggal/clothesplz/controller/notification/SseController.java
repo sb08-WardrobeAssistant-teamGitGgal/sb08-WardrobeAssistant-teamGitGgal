@@ -2,6 +2,7 @@ package com.gitggal.clothesplz.controller.notification;
 
 import com.gitggal.clothesplz.repository.notification.SseEmitterRepository;
 import com.gitggal.clothesplz.security.ClothesUserDetails;
+import com.gitggal.clothesplz.util.AuthenticationUtil;
 import java.io.IOException;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -27,7 +28,7 @@ public class SseController {
   @GetMapping(produces = MediaType.TEXT_EVENT_STREAM_VALUE)
   public SseEmitter subscribe(@AuthenticationPrincipal ClothesUserDetails userDetails) {
 
-    UUID userId = userDetails.getUserDto().id();
+    UUID userId = AuthenticationUtil.extractUserId(userDetails);
 
     log.info("[Controller] SSE 연결 요청 시작: userId={}", userId);
 

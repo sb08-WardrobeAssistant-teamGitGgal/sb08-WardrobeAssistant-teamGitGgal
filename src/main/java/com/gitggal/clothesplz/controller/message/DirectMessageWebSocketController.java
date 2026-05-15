@@ -29,7 +29,7 @@ public class DirectMessageWebSocketController {
 
     UUID authUserId = StompPrincipalResolver.getUserId(accessor);
 
-    log.info("[WS] DM 송신: authUserId={}, request={}", authUserId, request);
+    log.info("[WS] DM 송신: authUserId={}, senderId={}, receiverId={}", authUserId, request.senderId(), request.receiverId());
 
     directMessageService.send(request, authUserId);
   }
