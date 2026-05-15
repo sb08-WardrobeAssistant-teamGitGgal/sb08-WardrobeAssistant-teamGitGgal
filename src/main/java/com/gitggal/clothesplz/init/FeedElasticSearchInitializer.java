@@ -11,6 +11,7 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Profile;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -45,7 +46,7 @@ public class FeedElasticSearchInitializer implements CommandLineRunner {
     long totalIndexed = 0;
 
     while (true) {
-      Page<Feed> feedPage = feedRepository.findAll(PageRequest.of(page, BATCH_SIZE));
+      Page<Feed> feedPage = feedRepository.findAll(PageRequest.of(page, BATCH_SIZE, Sort.by(Sort.Direction.ASC, "id")));
       if (feedPage.isEmpty()) break;
 
       List<FeedDocument> documents = feedPage.getContent().stream()

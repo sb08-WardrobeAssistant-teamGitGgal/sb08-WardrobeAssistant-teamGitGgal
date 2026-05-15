@@ -210,6 +210,14 @@ public class FeedServiceTest extends ServiceTestSupport {
     void updateFeed_Success() {
       // given
       given(feedRepository.findWithDetailsById(eq(feedId))).willReturn(Optional.of(mockFeed));
+      given(mockFeed.getContent()).willReturn(feedUpdateRequest.content());
+      given(mockFeed.getAuthor()).willReturn(mockAuthor);
+      given(mockFeed.getWeather()).willReturn(mockWeather);
+      given(mockFeed.getLikeCount()).willReturn(0L);
+      given(mockFeed.getCreatedAt()).willReturn(Instant.now());
+      given(mockAuthor.getId()).willReturn(authorId);
+      given(mockWeather.getSkyStatus()).willReturn(SkyStatus.CLEAR);
+      given(mockWeather.getPrecipitationType()).willReturn(PrecipitationType.NONE);
 
       FeedDto expectedDto = mock(FeedDto.class);
       given(feedMapper.toDto(any(Feed.class))).willReturn(expectedDto);
