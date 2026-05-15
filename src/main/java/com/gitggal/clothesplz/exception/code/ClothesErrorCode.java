@@ -10,7 +10,9 @@ public enum ClothesErrorCode implements ErrorCode {
   DUPLICATE_CLOTHES_ATTRIBUTE_DEFINITION_ID(7002, HttpStatus.BAD_REQUEST, "중복된 의상 속성 정의 ID가 포함되었습니다."),
   CLOTHES_ATTRIBUTE_DEFINITION_NOT_FOUND(7003, HttpStatus.BAD_REQUEST, "존재하지 않는 의상 속성 정의 ID가 포함되었습니다."),
   INVALID_CLOTHES_ATTRIBUTE_VALUE(7004, HttpStatus.BAD_REQUEST, "허용되지 않는 의상 속성 값입니다."),
-  INVALID_CURSOR_FORMAT(7005, HttpStatus.BAD_REQUEST, "cursor 형식이 올바르지 않습니다.");
+  INVALID_CURSOR_FORMAT(7005, HttpStatus.BAD_REQUEST, "cursor 형식이 올바르지 않습니다."),
+  ATTRIBUTE_NOT_FOUND(7006, HttpStatus.BAD_REQUEST, "존재하지 않는 의상 속성 이름입니다."),
+  DUPLICATE_ATTRIBUTE_NAME(7007, HttpStatus.BAD_REQUEST, "중복된 의상 속성 이름입니다.");
 
   private final int code;
   private final HttpStatus httpStatus;
