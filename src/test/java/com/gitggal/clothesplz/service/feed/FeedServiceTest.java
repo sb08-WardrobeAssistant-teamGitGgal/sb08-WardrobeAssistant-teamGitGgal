@@ -209,9 +209,7 @@ public class FeedServiceTest extends ServiceTestSupport {
     @DisplayName("피드 수정 성공인 경우")
     void updateFeed_Success() {
       // given
-      FeedDocument mockDoc = mock(FeedDocument.class);
       given(feedRepository.findWithDetailsById(eq(feedId))).willReturn(Optional.of(mockFeed));
-      given(feedSearchRepository.findById(eq(feedId.toString()))).willReturn(Optional.of(mockDoc));
 
       FeedDto expectedDto = mock(FeedDto.class);
       given(feedMapper.toDto(any(Feed.class))).willReturn(expectedDto);
