@@ -4,8 +4,10 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
+import static org.mockito.internal.verification.VerificationModeFactory.times;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -17,6 +19,8 @@ import com.gitggal.clothesplz.config.TestSecurityConfig;
 import com.gitggal.clothesplz.dto.user.ChangePasswordRequest;
 import com.gitggal.clothesplz.dto.user.UserCreateRequest;
 import com.gitggal.clothesplz.dto.user.UserDto;
+import com.gitggal.clothesplz.dto.user.UserDtoCursorRequest;
+import com.gitggal.clothesplz.dto.user.UserDtoCursorResponse;
 import com.gitggal.clothesplz.dto.user.UserRoleUpdateRequest;
 import com.gitggal.clothesplz.entity.user.UserRole;
 import com.gitggal.clothesplz.exception.BusinessException;
@@ -26,6 +30,7 @@ import com.gitggal.clothesplz.security.ClothesUserDetails;
 import com.gitggal.clothesplz.security.jwt.JwtAuthenticationFilter;
 import com.gitggal.clothesplz.service.user.UserService;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -243,4 +248,66 @@ public class UserControllerTest {
     }
   }
 
+  @Nested
+  @DisplayName("계정 목록 조회")
+  class finaAll {
+
+    @Test
+    @DisplayName("계정 목록 조회 성공")
+    void findAll_success() throws Exception {
+
+      // given
+      UserDtoCursorRequest request = new UserDtoCursorRequest(
+          null,
+          null,
+          5,
+          "email",
+          "ASCENDING",
+          null,
+          null,
+          null
+      );
+
+      UserDtoCursorResponse response = new UserDtoCursorResponse(
+          List.of(userDto),
+          null,
+          null,
+          false,
+          1,
+          "email",
+          "ASCENDING"
+      );
+
+      given(userService.findAll(eq(request))).willReturn(response);
+
+      mockMvc.perform(get("/api/users")
+              .with(csrf())
+              .param("limit", "5")
+              .param("sortBy", "email")
+              .param("sortDirection", "ASCENDING")
+              .contentType(MediaType.APPLICATION_JSON))
+          .andDo(print())
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$.data").isArray())
+          .andExpect(jsonPath("$.data.length()").value(1))
+          .andExpect(jsonPath("$.hasNext").value(false))
+          .andExpect(jsonPath("$.totalCount").value(1))
+          .andExpect(jsonPath("$.sortBy").value("email"))
+          .andExpect(jsonPath("$.sortDirection").value("ASCENDING"));
+
+      verify(userService, times(1)).findAll(any(UserDtoCursorRequest.class));
+    }
+  }
+
+  @Test
+  @DisplayName("계정 목록 조회 실패")
+  void findAll_fail() throws Exception {
+
+    mockMvc.perform(get("/api/users")
+            .with(csrf())
+            .param("sortDirection", "ASCENDING")
+            .contentType(MediaType.APPLICATION_JSON))
+        .andDo(print())
+        .andExpect(status().isBadRequest());
+  }
 }

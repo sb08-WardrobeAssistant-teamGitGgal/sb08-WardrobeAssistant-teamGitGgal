@@ -8,10 +8,13 @@ import static org.mockito.BDDMockito.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.never;
 import static org.mockito.BDDMockito.verify;
+import static org.mockito.Mockito.times;
 
 import com.gitggal.clothesplz.dto.user.ChangePasswordRequest;
 import com.gitggal.clothesplz.dto.user.UserCreateRequest;
 import com.gitggal.clothesplz.dto.user.UserDto;
+import com.gitggal.clothesplz.dto.user.UserDtoCursorRequest;
+import com.gitggal.clothesplz.dto.user.UserDtoCursorResponse;
 import com.gitggal.clothesplz.dto.user.UserRoleUpdateRequest;
 import com.gitggal.clothesplz.entity.profile.Profile;
 import com.gitggal.clothesplz.entity.user.User;
@@ -23,6 +26,7 @@ import com.gitggal.clothesplz.repository.profile.ProfileRepository;
 import com.gitggal.clothesplz.repository.user.UserRepository;
 import com.gitggal.clothesplz.security.jwt.JwtRegistry;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,6 +38,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("UserService 비즈니스 로직 테스트")
@@ -58,7 +63,7 @@ class UserServiceTest {
   private JwtRegistry jwtRegistry;
 
   private UserCreateRequest request;
-  private UserDto responseDto;
+  private UserDto userDto;
   private String encodedPassword;
   private User user;
   private UUID userId;
@@ -67,8 +72,8 @@ class UserServiceTest {
   void setUp() {
     request = new UserCreateRequest("홍길동", "test@test.com", "rawPassword");
     encodedPassword = "encodedPassword";
-    responseDto = new UserDto(
-        UUID.randomUUID(),
+    userDto = new UserDto(
+        userId,
         Instant.now(),
         "test@test.com",
         "홍길동",
@@ -97,7 +102,7 @@ class UserServiceTest {
 
       given(profileRepository.save(any(Profile.class)))
           .willAnswer(invocation -> invocation.getArgument(0));
-      given(userMapper.toDto(any(User.class))).willReturn(responseDto);
+      given(userMapper.toDto(any(User.class))).willReturn(userDto);
 
       // when
       UserDto result = userService.create(request);
@@ -243,7 +248,7 @@ class UserServiceTest {
       UserRoleUpdateRequest request = new UserRoleUpdateRequest(UserRole.USER);
 
       given(userRepository.findById(userId)).willReturn(Optional.of(user));
-      given(userMapper.toDto(user)).willReturn(responseDto);
+      given(userMapper.toDto(user)).willReturn(userDto);
 
       // when
       UserDto result = userService.updateRole(userId, request);
@@ -265,6 +270,90 @@ class UserServiceTest {
           .isInstanceOf(BusinessException.class);
 
       verify(jwtRegistry, never()).invalidateJwtInformationByUserId(any());
+    }
+  }
+
+  @Nested
+  @DisplayName("계정 목록 조회")
+  class findAll {
+
+    @Test
+    @DisplayName("성공 - 다음 페이지 없음")
+    void findAll_success() {
+
+      // given
+      UserDtoCursorRequest request = new UserDtoCursorRequest(
+          null,
+          null,
+          5,
+          "email",
+          "ASCENDING",
+          null,
+          null,
+          null
+      );
+
+      given(userRepository.getAllUsers(request)).willReturn(List.of(user));
+      given(userMapper.toDto(user)).willReturn(userDto);
+
+      // when
+      UserDtoCursorResponse response = userService.findAll(request);
+
+      // then
+      assertThat(response).isNotNull();
+      assertThat(response.data()).hasSize(1);
+      assertThat(response.data().get(0)).isEqualTo(userDto);
+      assertThat(response.nextCursor()).isNull();
+      assertThat(response.hasNext()).isFalse();
+      assertThat(response.totalCount()).isEqualTo(1);
+      assertThat(response.sortBy()).isEqualTo("email");
+      assertThat(response.sortDirection()).isEqualTo("ASCENDING");
+
+      verify(userRepository, times(1)).getAllUsers(request);
+    }
+
+    @Test
+    @DisplayName("성공 - 다음 페이지 있음")
+    void findAll_nextPage_success() {
+
+      // given
+      UserDtoCursorRequest request = new UserDtoCursorRequest(
+          null,
+          null,
+          2,
+          "email",
+          "ASCENDING",
+          null,
+          null,
+          null
+      );
+
+      User user1 = new User("a", "a@com", "pw");
+      User user2 = new User("b", "b@com", "pw");
+      ReflectionTestUtils.setField(user1, "id", UUID.randomUUID());
+
+      UserDto userDto1 = new UserDto(user1.getId(), Instant.now(), user1.getEmail(),
+          user1.getName(), UserRole.USER, false);
+
+      given(userRepository.getAllUsers(request)).willReturn(List.of(user, user1, user2));
+      given(userMapper.toDto(user)).willReturn(userDto);
+      given(userMapper.toDto(user1)).willReturn(userDto1);
+
+      // when
+      UserDtoCursorResponse response = userService.findAll(request);
+
+      // then
+      assertThat(response).isNotNull();
+      assertThat(response.data()).hasSize(2);
+      assertThat(response.data().get(0)).isEqualTo(userDto);
+      assertThat(response.nextCursor()).isNotNull();
+      assertThat(response.nextIdAfter()).isNotNull();
+      assertThat(response.hasNext()).isTrue();
+      assertThat(response.totalCount()).isEqualTo(2);
+      assertThat(response.sortBy()).isEqualTo("email");
+      assertThat(response.sortDirection()).isEqualTo("ASCENDING");
+
+      verify(userRepository, times(1)).getAllUsers(request);
     }
   }
 }
