@@ -3,13 +3,16 @@ package com.gitggal.clothesplz.component.batch.weather;
 import com.gitggal.clothesplz.entity.weather.Location;
 import com.gitggal.clothesplz.entity.weather.Weather;
 import com.gitggal.clothesplz.repository.weather.WeatherRepository;
+import com.gitggal.clothesplz.service.weather.WeatherAlertService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.item.Chunk;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
@@ -23,6 +26,7 @@ import java.util.stream.Collectors;
 public class WeatherItemWriter implements ItemWriter<List<Weather>> {
 
     private final WeatherRepository weatherRepository;
+    private final WeatherAlertService weatherAlertService;
 
     @Override
     public void write(Chunk<? extends List<Weather>> chunk) {
@@ -57,6 +61,11 @@ public class WeatherItemWriter implements ItemWriter<List<Weather>> {
 
         weatherRepository.saveAll(toSave);
         log.debug("[Batch] 날씨 저장: {}건 (중복 제외: {}건)", toSave.size(), allWeathers.size() - toSave.size());
+
+        LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul"));
+        toSave.stream()
+                .filter(w -> w.getForecastAt().toLocalDate().equals(today))
+                .forEach(weatherAlertService::sendAlertsIfNeeded);
     }
 
     private String toKey(UUID locationId, OffsetDateTime forecastAt) {
