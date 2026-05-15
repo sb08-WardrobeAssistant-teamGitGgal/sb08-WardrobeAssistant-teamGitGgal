@@ -111,17 +111,15 @@ public class FeedServiceImpl implements FeedService {
 
     feed.update(newContent);
 
-    feedSearchRepository.findById(feedId.toString()).ifPresent(doc ->
-        feedSearchRepository.save(FeedDocument.builder()
-            .id(doc.getId())
-            .content(feed.getContent())
-            .authorId(doc.getAuthorId())
-            .skyStatus(doc.getSkyStatus())
-            .precipitationType(doc.getPrecipitationType())
-            .likeCount(doc.getLikeCount())
-            .createdAt(doc.getCreatedAt())
-            .build())
-    );
+    feedSearchRepository.save(FeedDocument.builder()
+        .id(feedId.toString())
+        .content(feed.getContent())
+        .authorId(feed.getAuthor().getId().toString())
+        .skyStatus(feed.getWeather().getSkyStatus().name())
+        .precipitationType(feed.getWeather().getPrecipitationType().name())
+        .likeCount(feed.getLikeCount())
+        .createdAt(feed.getCreatedAt())
+        .build());
 
     log.info("[Service] 피드 수정 요청 완료 - feedId: {}", feedId);
 
