@@ -19,7 +19,7 @@ import org.hibernate.type.SqlTypes;
 @AllArgsConstructor
 public class ClothesAttributeDef extends BaseUpdatableEntity {
 
-  @Column(name = "name", nullable = false)
+  @Column(name = "name", nullable = false, unique = true)
   private String name;
 
   @JdbcTypeCode(SqlTypes.JSON)
