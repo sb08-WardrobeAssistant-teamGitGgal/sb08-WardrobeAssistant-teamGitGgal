@@ -14,7 +14,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gitggal.clothesplz.config.TestSecurityConfig;
 import com.gitggal.clothesplz.dto.clothes.ClothesAttributeDefCreateRequest;
 import com.gitggal.clothesplz.dto.clothes.ClothesAttributeDefDto;
+import com.gitggal.clothesplz.exception.BusinessException;
 import com.gitggal.clothesplz.exception.GlobalExceptionHandler;
+import com.gitggal.clothesplz.exception.code.ClothesErrorCode;
 import com.gitggal.clothesplz.security.jwt.JwtAuthenticationFilter;
 import com.gitggal.clothesplz.service.clothes.AttributeDefService;
 import java.util.List;
@@ -100,5 +102,95 @@ class AttributeDefControllerTest {
         .andExpect(status().isBadRequest());
 
     verifyNoInteractions(attributeDefService);
+  }
+
+  @Test
+  @DisplayName("실패 - name이 null이면 400을 반환한다")
+  void createAttributeDef_nullName_returns400() throws Exception {
+    ClothesAttributeDefCreateRequest request = new ClothesAttributeDefCreateRequest(
+        null,
+        List.of("WHITE", "BLACK")
+    );
+
+    mockMvc.perform(post("/api/clothes/attribute-defs")
+            .with(user("admin").roles("ADMIN"))
+            .with(csrf())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(request)))
+        .andExpect(status().isBadRequest());
+
+    verifyNoInteractions(attributeDefService);
+  }
+
+  @Test
+  @DisplayName("실패 - name이 공백이면 400을 반환한다")
+  void createAttributeDef_blankName_returns400() throws Exception {
+    ClothesAttributeDefCreateRequest request = new ClothesAttributeDefCreateRequest(
+        " ",
+        List.of("WHITE", "BLACK")
+    );
+
+    mockMvc.perform(post("/api/clothes/attribute-defs")
+            .with(user("admin").roles("ADMIN"))
+            .with(csrf())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(request)))
+        .andExpect(status().isBadRequest());
+
+    verifyNoInteractions(attributeDefService);
+  }
+
+  @Test
+  @DisplayName("실패 - selectableValues가 null이면 400을 반환한다")
+  void createAttributeDef_nullSelectableValues_returns400() throws Exception {
+    ClothesAttributeDefCreateRequest request = new ClothesAttributeDefCreateRequest(
+        "색상",
+        null
+    );
+
+    mockMvc.perform(post("/api/clothes/attribute-defs")
+            .with(user("admin").roles("ADMIN"))
+            .with(csrf())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(request)))
+        .andExpect(status().isBadRequest());
+
+    verifyNoInteractions(attributeDefService);
+  }
+
+  @Test
+  @DisplayName("실패 - selectableValues가 빈 리스트면 400을 반환한다")
+  void createAttributeDef_emptySelectableValues_returns400() throws Exception {
+    ClothesAttributeDefCreateRequest request = new ClothesAttributeDefCreateRequest(
+        "색상",
+        List.of()
+    );
+
+    mockMvc.perform(post("/api/clothes/attribute-defs")
+            .with(user("admin").roles("ADMIN"))
+            .with(csrf())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(request)))
+        .andExpect(status().isBadRequest());
+
+    verifyNoInteractions(attributeDefService);
+  }
+
+  @Test
+  @DisplayName("실패 - 중복된 name이면 400을 반환한다")
+  void createAttributeDef_duplicateName_returns400() throws Exception {
+    ClothesAttributeDefCreateRequest request = new ClothesAttributeDefCreateRequest(
+        "색상",
+        List.of("WHITE", "BLACK")
+    );
+    given(attributeDefService.createAttributeDef(any(ClothesAttributeDefCreateRequest.class)))
+        .willThrow(new BusinessException(ClothesErrorCode.DUPLICATE_ATTRIBUTE_NAME));
+
+    mockMvc.perform(post("/api/clothes/attribute-defs")
+            .with(user("admin").roles("ADMIN"))
+            .with(csrf())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(request)))
+        .andExpect(status().isBadRequest());
   }
 }
