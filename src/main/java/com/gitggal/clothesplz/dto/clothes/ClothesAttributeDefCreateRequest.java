@@ -6,8 +6,8 @@ import jakarta.validation.constraints.Size;
 import java.util.List;
 
 public record ClothesAttributeDefCreateRequest(
-    @NotNull
     @NotBlank(message = "name은 공백일 수 없습니다.")
+    @Size(min = 1, max = 20, message = "name은 2자 이상 20자 이하로 입력해주세요.")
     String name,
 
     @NotNull
