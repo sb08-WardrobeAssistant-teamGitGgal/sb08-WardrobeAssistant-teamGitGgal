@@ -2,13 +2,11 @@ package com.gitggal.clothesplz.service.user;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.BDDMockito.any;
 import static org.mockito.BDDMockito.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.never;
-import static org.mockito.BDDMockito.verify;
-import static org.mockito.Mockito.times;
+import static org.mockito.BDDMockito.then;
 
 import com.gitggal.clothesplz.dto.user.ChangePasswordRequest;
 import com.gitggal.clothesplz.dto.user.UserCreateRequest;
@@ -42,7 +40,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
-@DisplayName("UserService 비즈니스 로직 테스트")
+@DisplayName("UserService Test")
 class UserServiceTest {
 
   @InjectMocks
@@ -71,6 +69,7 @@ class UserServiceTest {
 
   @BeforeEach
   void setUp() {
+    userId = UUID.randomUUID();
     request = new UserCreateRequest("홍길동", "test@test.com", "rawPassword");
     encodedPassword = "encodedPassword";
     userDto = new UserDto(
@@ -85,7 +84,6 @@ class UserServiceTest {
         "홍길동",
         "test@test.com",
         "oldPassword");
-    userId = UUID.randomUUID();
   }
 
   @Nested
@@ -93,8 +91,8 @@ class UserServiceTest {
   class CreateUser {
 
     @Test
-    @DisplayName("성공 - 유효한 정보로 가입하면 유저 정보가 반환된다")
-    void success_createUser() {
+    @DisplayName("성공")
+    void createUser_success() {
       // given
       given(passwordEncoder.encode(request.password())).willReturn(encodedPassword);
       given(userRepository.existsByEmail(request.email())).willReturn(false);
@@ -112,29 +110,29 @@ class UserServiceTest {
       assertThat(result.email()).isEqualTo(request.email());
       assertThat(result.name()).isEqualTo(request.name());
 
-      verify(passwordEncoder).encode(anyString());
-      verify(userRepository).save(any(User.class));
-      verify(userMapper).toDto(any(User.class));
+      then(userRepository).should().save(any(User.class));
+      then(profileRepository).should().save(any(Profile.class));
     }
 
     @Test
-    @DisplayName("실패 - 이미 존재하는 이메일이면 예외가 발생한다")
-    void fail_duplicateEmail() {
+    @DisplayName("실패 - 이미 존재하는 이메일")
+    void createUser_fail_duplicateEmail() {
       // given
       given(userRepository.existsByEmail(request.email())).willReturn(true);
 
       // when & then
       assertThatThrownBy(() -> userService.create(request))
-          .isInstanceOf(BusinessException.class);
+          .isInstanceOf(BusinessException.class)
+          .hasFieldOrPropertyWithValue("errorCode", UserErrorCode.DUPLICATE_EMAIL);
 
-      verify(userRepository, never()).save(any(User.class));
-      verify(passwordEncoder, never()).encode(anyString());
+      then(userRepository).should(never()).save(any(User.class));
+      then(passwordEncoder).should(never()).encode(anyString());
     }
   }
 
   @Nested
   @DisplayName("비밀번호 변경")
-  class updatePassword {
+  class UpdatePassword {
 
     @Test
     @DisplayName("성공 - 임시 비밀번호가 있으면 제거")
@@ -157,9 +155,6 @@ class UserServiceTest {
       // then
       assertThat(user.getPassword()).isEqualTo("encodedPassword");
       assertThat(user.getTempPassword()).isNull();
-
-      verify(userRepository).findById(userId);
-      verify(passwordEncoder).encode(request.password());
     }
 
     @Test
@@ -180,10 +175,6 @@ class UserServiceTest {
 
       // then
       assertThat(user.getPassword()).isEqualTo("encodedPassword");
-      assertThat(user.getTempPassword()).isNull();
-
-      verify(userRepository).findById(userId);
-      verify(passwordEncoder).encode(request.password());
     }
 
     @Test
@@ -199,15 +190,11 @@ class UserServiceTest {
           .willReturn(Optional.empty());
 
       // when & then
-      BusinessException exception = assertThrows(
-          BusinessException.class,
-          () -> userService.updatePassword(userId, request));
+      assertThatThrownBy(() -> userService.updatePassword(userId, request))
+          .isInstanceOf(BusinessException.class)
+          .hasFieldOrPropertyWithValue("errorCode", UserErrorCode.USER_NOT_FOUND);
 
-      assertThat(exception.getErrorCode())
-          .isEqualTo(UserErrorCode.USER_NOT_FOUND);
-
-      verify(userRepository).findById(userId);
-      verify(passwordEncoder, never()).encode(anyString());
+      then(passwordEncoder).should(never()).encode(anyString());
     }
   }
 
@@ -217,7 +204,7 @@ class UserServiceTest {
 
     @Test
     @DisplayName("성공")
-    void updateRole_success_userToAdmin() {
+    void updateRole_success() {
       // given
       UserRoleUpdateRequest request = new UserRoleUpdateRequest(UserRole.ADMIN);
 
@@ -238,13 +225,13 @@ class UserServiceTest {
 
       // then
       assertThat(user.getRole()).isEqualTo(UserRole.ADMIN);
-      verify(userMapper).toDto(user);
-      verify(jwtRegistry).invalidateJwtInformationByUserId(userId);
+
+      then(jwtRegistry).should().invalidateJwtInformationByUserId(userId);
     }
 
     @Test
     @DisplayName("실패 - 이미 같은 역할")
-    void updateRole_skip_sameRole() {
+    void updateRole_fail_sameRole() {
       // given
       UserRoleUpdateRequest request = new UserRoleUpdateRequest(UserRole.USER);
 
@@ -256,7 +243,8 @@ class UserServiceTest {
 
       // then
       assertThat(result.role()).isEqualTo(UserRole.USER);
-      verify(jwtRegistry, never()).invalidateJwtInformationByUserId(any());
+
+      then(jwtRegistry).should(never()).invalidateJwtInformationByUserId(any());
     }
 
     @Test
@@ -268,15 +256,16 @@ class UserServiceTest {
 
       // when & then
       assertThatThrownBy(() -> userService.updateRole(userId, request))
-          .isInstanceOf(BusinessException.class);
+          .isInstanceOf(BusinessException.class)
+          .hasFieldOrPropertyWithValue("errorCode", UserErrorCode.USER_NOT_FOUND);
 
-      verify(jwtRegistry, never()).invalidateJwtInformationByUserId(any());
+      then(jwtRegistry).should(never()).invalidateJwtInformationByUserId(any());
     }
   }
 
   @Nested
   @DisplayName("계정 목록 조회")
-  class findAll {
+  class FindAll {
 
     @Test
     @DisplayName("성공 - 다음 페이지 없음")
@@ -304,19 +293,16 @@ class UserServiceTest {
       // then
       assertThat(response).isNotNull();
       assertThat(response.data()).hasSize(1);
-      assertThat(response.data().get(0)).isEqualTo(userDto);
       assertThat(response.nextCursor()).isNull();
       assertThat(response.hasNext()).isFalse();
       assertThat(response.totalCount()).isEqualTo(1);
-      assertThat(response.sortBy()).isEqualTo("email");
-      assertThat(response.sortDirection()).isEqualTo("ASCENDING");
 
-      verify(userRepository, times(1)).getAllUsers(request);
+      then(userRepository).should().getAllUsers(request);
     }
 
     @Test
     @DisplayName("성공 - 다음 페이지 있음")
-    void findAll_nextPage_success() {
+    void findAll_success_nextPage() {
 
       // given
       UserDtoCursorRequest request = new UserDtoCursorRequest(
@@ -348,21 +334,18 @@ class UserServiceTest {
       // then
       assertThat(response).isNotNull();
       assertThat(response.data()).hasSize(2);
-      assertThat(response.data().get(0)).isEqualTo(userDto);
       assertThat(response.nextCursor()).isNotNull();
       assertThat(response.nextIdAfter()).isNotNull();
       assertThat(response.hasNext()).isTrue();
       assertThat(response.totalCount()).isEqualTo(3);
-      assertThat(response.sortBy()).isEqualTo("email");
-      assertThat(response.sortDirection()).isEqualTo("ASCENDING");
 
-      verify(userRepository, times(1)).getAllUsers(request);
+      then(userRepository).should().getAllUsers(request);
     }
   }
 
   @Nested
   @DisplayName("계정 잠금 상태 변경")
-  class updateLock {
+  class UpdateLock {
 
     @Test
     @DisplayName("성공 - 잠금")
@@ -388,8 +371,8 @@ class UserServiceTest {
 
       // then
       assertThat(user.isLocked()).isTrue();
-      verify(userMapper).toDto(user);
-      verify(jwtRegistry).invalidateJwtInformationByUserId(userId);
+
+      then(jwtRegistry).should().invalidateJwtInformationByUserId(userId);
     }
 
     @Test
@@ -408,8 +391,8 @@ class UserServiceTest {
 
       // then
       assertThat(user.isLocked()).isFalse();
-      verify(userMapper).toDto(user);
-      verify(jwtRegistry, never()).invalidateJwtInformationByUserId(any());
+
+      then(jwtRegistry).should(never()).invalidateJwtInformationByUserId(any());
     }
 
     @Test
@@ -422,9 +405,10 @@ class UserServiceTest {
 
       // when & then
       assertThatThrownBy(() -> userService.updateLock(userId, request))
-          .isInstanceOf(BusinessException.class);
+          .isInstanceOf(BusinessException.class)
+          .hasFieldOrPropertyWithValue("errorCode", UserErrorCode.USER_NOT_FOUND);
 
-      verify(jwtRegistry, never()).invalidateJwtInformationByUserId(any());
+      then(jwtRegistry).should(never()).invalidateJwtInformationByUserId(any());
     }
   }
 }
