@@ -55,11 +55,21 @@ public interface AttributeDefControllerApi {
       String keywordLike
   );
 
-  @Operation(summary = "의상 속성 정의 삭제", description = "의상 속성 정의 목록을 삭제합니다.")
+  @Operation(summary = "의상 속성 정의 삭제", description = "의상 속성 정의를 삭제합니다.")
   @ApiResponse(responseCode = "204", description = "의상 속성 정의 삭제 성공")
   @ApiResponse(
       responseCode = "400",
       description = "의상 속성 정의 삭제 실패",
+      content = @Content(schema = @Schema(implementation = ErrorResponse.class))
+  )
+  @ApiResponse(
+      responseCode = "401",
+      description = "인증되지 않은 사용자",
+      content = @Content(schema = @Schema(implementation = ErrorResponse.class))
+  )
+  @ApiResponse(
+      responseCode = "403",
+      description = "권한이 없는 사용자",
       content = @Content(schema = @Schema(implementation = ErrorResponse.class))
   )
   ResponseEntity<Void> deleteAttributeDefs(
