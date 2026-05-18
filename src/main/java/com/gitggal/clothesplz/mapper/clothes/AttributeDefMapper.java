@@ -11,6 +11,12 @@ public interface AttributeDefMapper {
   @Mapping(target = "definitionId", source = "id")
   @Mapping(target = "definitionName", source = "name")
   @Mapping(target = "selectableValues", source = "selectableValues")
-  @Mapping(target = "value", ignore = true)
+  @Mapping(target = "name", ignore = true)
   ClothesAttributeDefDto toClothesAttributeDefDto(ClothesAttributeDef attributeDef);
+
+  @Mapping(target = "definitionId", source = "id")
+  @Mapping(target = "definitionName", source = "name")
+  @Mapping(target = "selectableValues", source = "selectableValues")
+  @Mapping(target = "name", source = "name")
+  ClothesAttributeDefDto toClothesAttributeDefDtoForSearch(ClothesAttributeDef attributeDef);
 }

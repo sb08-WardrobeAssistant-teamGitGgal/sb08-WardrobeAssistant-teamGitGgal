@@ -8,6 +8,7 @@ import com.gitggal.clothesplz.exception.code.ClothesErrorCode;
 import com.gitggal.clothesplz.mapper.clothes.AttributeDefMapper;
 import com.gitggal.clothesplz.repository.clothes.ClothesAttributeDefRepository;
 import com.gitggal.clothesplz.service.clothes.AttributeDefService;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -46,5 +47,23 @@ public class AttributeDefServiceImpl implements AttributeDefService {
 
     log.info("[Service] 의상 속성 생성 완료");
     return attributeDefMapper.toClothesAttributeDefDto(savedAttributeDef);
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public List<ClothesAttributeDefDto> getAttributeDefs(
+      String sortBy,
+      String sortDirection,
+      String keywordLike
+  ) {
+    log.info("[Service] 의상 속성 조회 요청");
+
+    List<ClothesAttributeDefDto> response = clothesAttributeDefRepository
+        .findAllByConditions(sortBy, sortDirection, keywordLike).stream()
+        .map(attributeDefMapper::toClothesAttributeDefDtoForSearch)
+        .toList();
+
+    log.info("[Service] 의상 속성 조회 완료");
+    return response;
   }
 }

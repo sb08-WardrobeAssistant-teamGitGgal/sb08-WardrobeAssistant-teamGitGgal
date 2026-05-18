@@ -6,7 +6,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface ClothesAttributeDefRepository extends JpaRepository<ClothesAttributeDef, UUID> {
+public interface ClothesAttributeDefRepository
+    extends JpaRepository<ClothesAttributeDef, UUID>, ClothesAttributeDefRepositoryCustom {
 
   boolean existsByName(String name);
 }

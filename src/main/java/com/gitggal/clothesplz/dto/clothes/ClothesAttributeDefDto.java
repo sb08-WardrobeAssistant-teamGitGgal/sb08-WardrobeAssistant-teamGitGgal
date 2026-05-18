@@ -7,6 +7,6 @@ public record ClothesAttributeDefDto(
     UUID definitionId,
     String definitionName,
     List<String> selectableValues,
-    String value
+    String name
 ) {
 }
