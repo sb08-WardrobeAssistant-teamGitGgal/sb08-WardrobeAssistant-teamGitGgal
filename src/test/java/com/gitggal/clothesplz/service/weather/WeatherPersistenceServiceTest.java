@@ -195,6 +195,34 @@ class WeatherPersistenceServiceTest {
         assertWindPhrase(9.0, WindPhrase.STRONG);
     }
 
+    // ===== findWeatherOrThrow =====
+
+    @Test
+    @DisplayName("위치와 예보 시각으로 Weather가 있으면 반환한다")
+    void findWeatherOrThrow_exists_returns() {
+        Location location = mock(Location.class);
+        Weather existing = mock(Weather.class);
+        OffsetDateTime forecastAt = LocalDate.of(2026, 5, 18).atStartOfDay().atZone(KST).toOffsetDateTime();
+
+        when(weatherRepository.findFirstByLocationAndForecastAt(location, forecastAt)).thenReturn(Optional.of(existing));
+
+        Weather result = weatherPersistenceService.findWeatherOrThrow(location, forecastAt);
+
+        assertThat(result).isSameAs(existing);
+    }
+
+    @Test
+    @DisplayName("위치와 예보 시각으로 Weather가 없으면 NoSuchElementException을 던진다")
+    void findWeatherOrThrow_notExists_throws() {
+        Location location = mock(Location.class);
+        OffsetDateTime forecastAt = LocalDate.of(2026, 5, 18).atStartOfDay().atZone(KST).toOffsetDateTime();
+
+        when(weatherRepository.findFirstByLocationAndForecastAt(location, forecastAt)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> weatherPersistenceService.findWeatherOrThrow(location, forecastAt))
+                .isInstanceOf(NoSuchElementException.class);
+    }
+
     // ===== helpers =====
 
     private DailyWeatherForecastDto makeDto(LocalDate date, PrecipitationType precipitationType, Double windSpeed) {
