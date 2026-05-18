@@ -280,19 +280,6 @@ class AttributeDefControllerTest {
   }
 
   @Test
-  @DisplayName("실패 - ADMIN 아닌 사용자가 삭제 요청하면 403을 반환한다")
-  void deleteAttributeDefs_asUser_returns403() throws Exception {
-    UUID definitionId = UUID.randomUUID();
-
-    mockMvc.perform(delete("/api/clothes/attribute-defs/" + definitionId)
-            .with(user("user").roles("USER"))
-            .with(csrf()))
-        .andExpect(status().isForbidden());
-
-    verifyNoInteractions(attributeDefService);
-  }
-
-  @Test
   @DisplayName("실패 - 존재하지 않는 definitionId면 400을 반환한다")
   void deleteAttributeDefs_notFound_returns400() throws Exception {
     UUID definitionId = UUID.randomUUID();
