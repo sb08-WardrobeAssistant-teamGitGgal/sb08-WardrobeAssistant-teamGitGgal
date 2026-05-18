@@ -2,12 +2,16 @@ package com.gitggal.clothesplz.security;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.then;
+import static org.mockito.Mockito.never;
 
 import com.gitggal.clothesplz.dto.user.UserDto;
 import com.gitggal.clothesplz.entity.user.User;
 import com.gitggal.clothesplz.entity.user.UserRole;
 import com.gitggal.clothesplz.exception.BusinessException;
+import com.gitggal.clothesplz.exception.code.UserErrorCode;
 import com.gitggal.clothesplz.mapper.user.UserMapper;
 import com.gitggal.clothesplz.repository.user.UserRepository;
 import java.time.Instant;
@@ -53,8 +57,8 @@ class ClothesUserDetailsServiceTest {
   @Test
   @DisplayName("사용자를 조회 - 이메일")
   void loadUserByUsername() {
-    when(userRepository.findByEmail("test@test.com")).thenReturn(Optional.of(user));
-    when(userMapper.toDto(user)).thenReturn(userDto);
+    given(userRepository.findByEmail("test@test.com")).willReturn(Optional.of(user));
+    given(userMapper.toDto(user)).willReturn(userDto);
 
     UserDetails userDetails = userDetailsService.loadUserByUsername("test@test.com");
 
@@ -65,8 +69,8 @@ class ClothesUserDetailsServiceTest {
   @Test
   @DisplayName("사용자를 조회 - userId")
   void loadUserById() {
-    when(userRepository.findById(userId)).thenReturn(Optional.of(user));
-    when(userMapper.toDto(user)).thenReturn(userDto);
+    given(userRepository.findById(userId)).willReturn(Optional.of(user));
+    given(userMapper.toDto(user)).willReturn(userDto);
 
     UserDetails userDetails = userDetailsService.loadUserById(userId);
 
@@ -76,10 +80,13 @@ class ClothesUserDetailsServiceTest {
 
   @Test
   @DisplayName("사용자 조회 실패")
-  void loadUserByUsername_UserNotFound() {
-    when(userRepository.findByEmail("not@example.com")).thenReturn(Optional.empty());
+  void loadUserByUsername_fail_UserNotFound() {
+    given(userRepository.findByEmail("not@example.com")).willReturn(Optional.empty());
 
     assertThatThrownBy(() -> userDetailsService.loadUserByUsername("not@example.com"))
-        .isInstanceOf(BusinessException.class);
+        .isInstanceOf(BusinessException.class)
+        .hasFieldOrPropertyWithValue("errorCode", UserErrorCode.USER_NOT_FOUND);
+
+    then(userMapper).should(never()).toDto(any(User.class));
   }
 }
