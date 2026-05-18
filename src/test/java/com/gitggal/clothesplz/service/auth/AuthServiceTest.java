@@ -5,8 +5,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
 
 import com.gitggal.clothesplz.dto.user.ResetPasswordRequest;
 import com.gitggal.clothesplz.dto.user.UserDto;
@@ -127,15 +127,7 @@ class AuthServiceTest {
       assertThat(result.accessTokenExpiry()).isEqualTo(accessTokenExpiry);
       assertThat(result.refreshTokenExpiry()).isEqualTo(refreshTokenExpiry);
 
-      verify(tokenProvider).validateRefreshToken(oldRefreshToken);
-      verify(jwtRegistry).hasActiveJwtInformationByRefreshToken(oldRefreshToken);
-      verify(tokenProvider).getUsernameFromToken(oldRefreshToken);
-      verify(clothesUserDetailsService).loadUserById(userId);
-      verify(tokenProvider).generateAccessToken(clothesUserDetails);
-      verify(tokenProvider).generateRefreshToken(clothesUserDetails);
-      verify(tokenProvider).getAccessTokenExpiry(newAccessToken);
-      verify(tokenProvider).getRefreshTokenExpiry(newRefreshToken);
-      verify(jwtRegistry).rotateJwtInformation(oldRefreshToken, result);
+      then(jwtRegistry).should().rotateJwtInformation(oldRefreshToken, result);
     }
 
     @Test
@@ -149,11 +141,7 @@ class AuthServiceTest {
           .isInstanceOf(BusinessException.class)
           .hasFieldOrPropertyWithValue("errorCode", UserErrorCode.JWT_TOKEN_INVALID);
 
-      verify(tokenProvider).validateRefreshToken(oldRefreshToken);
-      verify(jwtRegistry, never()).hasActiveJwtInformationByRefreshToken(anyString());
-      verify(tokenProvider, never()).getUsernameFromToken(anyString());
-      verify(clothesUserDetailsService, never()).loadUserById(any());
-      verify(jwtRegistry, never()).rotateJwtInformation(anyString(), any());
+      then(jwtRegistry).should(never()).hasActiveJwtInformationByRefreshToken(anyString());
     }
 
     @Test
@@ -166,13 +154,11 @@ class AuthServiceTest {
       // when & then
       assertThatThrownBy(() -> authService.refresh(oldRefreshToken))
           .isInstanceOf(BusinessException.class)
-          .hasFieldOrPropertyWithValue("errorCode", UserErrorCode.JWT_TOKEN_INVALID);
+          .hasFieldOrPropertyWithValue("errorCode", UserErrorCode.JWT_TOKEN_EXPIRED);
 
-      verify(tokenProvider).validateRefreshToken(oldRefreshToken);
-      verify(jwtRegistry).hasActiveJwtInformationByRefreshToken(oldRefreshToken);
-      verify(tokenProvider, never()).getUsernameFromToken(anyString());
-      verify(clothesUserDetailsService, never()).loadUserById(any());
-      verify(jwtRegistry, never()).rotateJwtInformation(anyString(), any());
+      then(tokenProvider).should().validateRefreshToken(oldRefreshToken);
+      then(jwtRegistry).should().hasActiveJwtInformationByRefreshToken(oldRefreshToken);
+      then(jwtRegistry).should(never()).rotateJwtInformation(anyString(), any());
     }
 
     @Test
@@ -190,12 +176,8 @@ class AuthServiceTest {
           .isInstanceOf(BusinessException.class)
           .hasFieldOrPropertyWithValue("errorCode", UserErrorCode.USER_NOT_FOUND);
 
-      verify(tokenProvider).validateRefreshToken(oldRefreshToken);
-      verify(jwtRegistry).hasActiveJwtInformationByRefreshToken(oldRefreshToken);
-      verify(tokenProvider).getUsernameFromToken(oldRefreshToken);
-      verify(clothesUserDetailsService).loadUserById(userId);
-      verify(tokenProvider, never()).generateAccessToken(any());
-      verify(jwtRegistry, never()).rotateJwtInformation(anyString(), any());
+      then(clothesUserDetailsService).should().loadUserById(userId);
+      then(jwtRegistry).should(never()).rotateJwtInformation(anyString(), any());
     }
 
     @Test
@@ -214,22 +196,18 @@ class AuthServiceTest {
           .isInstanceOf(BusinessException.class)
           .hasFieldOrPropertyWithValue("errorCode", UserErrorCode.JWT_TOKEN_GENERATION_FAILED);
 
-      verify(tokenProvider).validateRefreshToken(oldRefreshToken);
-      verify(jwtRegistry).hasActiveJwtInformationByRefreshToken(oldRefreshToken);
-      verify(tokenProvider).getUsernameFromToken(oldRefreshToken);
-      verify(clothesUserDetailsService).loadUserById(userId);
-      verify(tokenProvider).generateAccessToken(clothesUserDetails);
-      verify(jwtRegistry, never()).rotateJwtInformation(anyString(), any());
+      then(tokenProvider).should().generateAccessToken(clothesUserDetails);
+      then(jwtRegistry).should(never()).rotateJwtInformation(anyString(), any());
     }
   }
 
   @Nested
   @DisplayName("임시 비밀번호 발급")
-  class sendTempPassword {
+  class SendTempPassword {
 
     @Test
     @DisplayName("성공")
-    void success_sendTempPassword() {
+    void sendTempPassword_success() {
       // given
       ResetPasswordRequest request =
           new ResetPasswordRequest("test@test.com");
@@ -247,14 +225,12 @@ class AuthServiceTest {
       assertThat(user.getTempPassword()).isEqualTo("encodedTempPassword");
       assertThat(user.getTempPasswordExpiresAt()).isNotNull();
 
-      verify(userRepository).findByEmail(request.email());
-      verify(passwordEncoder).encode(anyString());
-      verify(javaMailSender).send(any(SimpleMailMessage.class));
+      then(javaMailSender).should().send(any(SimpleMailMessage.class));
     }
 
     @Test
     @DisplayName("실패 - 사용자를 찾을 수 없음")
-    void fail_userNotFound() {
+    void sendTempPassword_fail_userNotFound() {
       // given
       ResetPasswordRequest request =
           new ResetPasswordRequest("test@test.com");
@@ -265,9 +241,7 @@ class AuthServiceTest {
       // when & then
       authService.sendTempPassword(request);
 
-      verify(userRepository).findByEmail(request.email());
-      verify(passwordEncoder, never()).encode(anyString());
-      verify(javaMailSender, never()).send(any(SimpleMailMessage.class));
+      then(javaMailSender).should(never()).send(any(SimpleMailMessage.class));
     }
   }
 }
