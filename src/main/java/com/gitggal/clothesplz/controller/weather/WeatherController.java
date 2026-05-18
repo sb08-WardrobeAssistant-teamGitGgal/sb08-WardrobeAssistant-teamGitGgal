@@ -35,8 +35,10 @@ public class WeatherController {
                     .doOnNext(res -> log.info("[Controller] 날씨 조회 성공 - count: {}", res.size()))
                     .block();
             return result != null ? result : List.of();
+        } catch (BusinessException e) {
+            throw e;
         } catch (Exception e) {
-            log.error("[Controller] 날씨 조회 실패: {}", e.getMessage());
+            log.error("[Controller] 날씨 조회 실패", e);
             throw new BusinessException(WeatherErrorCode.WEATHER_API_ERROR);
         }
     }
@@ -52,8 +54,10 @@ public class WeatherController {
             return weatherService.getWeatherLocation(latitude, longitude)
                     .doOnNext(res -> log.info("[Controller] 날씨 위치 조회 성공 - x: {}, y: {}", res.x(), res.y()))
                     .block();
+        } catch (BusinessException e) {
+            throw e;
         } catch (Exception e) {
-            log.error("[Controller] 날씨 위치 조회 실패: {}", e.getMessage());
+            log.error("[Controller] 날씨 위치 조회 실패", e);
             throw new BusinessException(WeatherErrorCode.WEATHER_API_ERROR);
         }
     }
