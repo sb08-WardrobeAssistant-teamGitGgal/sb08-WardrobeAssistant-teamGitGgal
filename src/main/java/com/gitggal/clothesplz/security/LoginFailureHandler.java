@@ -24,17 +24,17 @@ public class LoginFailureHandler implements AuthenticationFailureHandler {
   public void onAuthenticationFailure(HttpServletRequest request, HttpServletResponse response,
       AuthenticationException exception) throws IOException, ServletException {
 
-    ErrorResponse errorResponse;
+    UserErrorCode errorCode;
 
     if (exception instanceof LockedException) {
-      errorResponse = ErrorResponse.of(UserErrorCode.ACCOUNT_LOCKED);
+      errorCode = UserErrorCode.ACCOUNT_LOCKED;
     } else {
-      errorResponse = ErrorResponse.of(UserErrorCode.AUTHENTICATION_FAILED);
+      errorCode = UserErrorCode.AUTHENTICATION_FAILED;
     }
 
     response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
     response.setContentType(MediaType.APPLICATION_JSON_VALUE);
     response.setCharacterEncoding("UTF-8");
-    response.getWriter().write(objectMapper.writeValueAsString(errorResponse));
+    response.getWriter().write(objectMapper.writeValueAsString(ErrorResponse.of(errorCode)));
   }
 }

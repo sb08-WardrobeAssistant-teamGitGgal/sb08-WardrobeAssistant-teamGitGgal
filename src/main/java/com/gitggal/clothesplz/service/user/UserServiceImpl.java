@@ -145,6 +145,7 @@ public class UserServiceImpl implements UserService {
   }
 
 
+  @PreAuthorize("hasRole('ADMIN')")
   @Transactional
   @Override
   public UserDto updateLock(UUID userId, UserLockUpdateRequest request) {

@@ -409,6 +409,7 @@ class UserServiceTest {
       // then
       assertThat(user.isLocked()).isFalse();
       verify(userMapper).toDto(user);
+      verify(jwtRegistry, never()).invalidateJwtInformationByUserId(any());
     }
 
     @Test
