@@ -1,6 +1,7 @@
 package com.gitggal.clothesplz.service.feed.impl;
 
 import com.gitggal.clothesplz.document.feed.FeedDocument;
+import com.gitggal.clothesplz.dto.clothes.ClothesAttributeWithDefDto;
 import com.gitggal.clothesplz.dto.clothes.OotdDto;
 import com.gitggal.clothesplz.dto.feed.CommentCreateRequest;
 import com.gitggal.clothesplz.dto.feed.CommentDto;
@@ -18,11 +19,15 @@ import com.gitggal.clothesplz.entity.feed.FeedLike;
 import com.gitggal.clothesplz.entity.user.User;
 import com.gitggal.clothesplz.entity.weather.Weather;
 import com.gitggal.clothesplz.exception.BusinessException;
+import com.gitggal.clothesplz.exception.code.ClothesErrorCode;
 import com.gitggal.clothesplz.exception.code.FeedErrorCode;
 import com.gitggal.clothesplz.exception.code.UserErrorCode;
 import com.gitggal.clothesplz.exception.code.WeatherErrorCode;
+import com.gitggal.clothesplz.mapper.clothes.ClothesMapper;
 import com.gitggal.clothesplz.mapper.feed.CommentMapper;
 import com.gitggal.clothesplz.mapper.feed.FeedMapper;
+import com.gitggal.clothesplz.repository.clothes.ClothesAttributeRepository;
+import com.gitggal.clothesplz.repository.clothes.ClothesRepository;
 import com.gitggal.clothesplz.repository.feed.FeedCommentRepository;
 import com.gitggal.clothesplz.repository.feed.FeedLikeRepository;
 import com.gitggal.clothesplz.repository.feed.FeedRepository;
@@ -33,8 +38,10 @@ import com.gitggal.clothesplz.service.feed.FeedService;
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -59,6 +66,9 @@ public class FeedServiceImpl implements FeedService {
   private final FeedMapper feedMapper;
   private final CommentMapper commentMapper;
   private final FeedSearchRepository feedSearchRepository;
+  private final ClothesRepository clothesRepository;
+  private final ClothesMapper clothesMapper;
+  private final ClothesAttributeRepository clothesAttributeRepository;
 
   @Override
   @Transactional
@@ -67,7 +77,7 @@ public class FeedServiceImpl implements FeedService {
         feedCreateRequest.authorId(), feedCreateRequest.weatherId());
     UUID weatherId = feedCreateRequest.weatherId();
     UUID authorId = feedCreateRequest.authorId();
-    List<UUID> clothesId = feedCreateRequest.clothesIds();
+    List<UUID> clothesIds = feedCreateRequest.clothesIds();
     String content = feedCreateRequest.content();
 
     Weather weather = weatherRepository.findById(weatherId)
@@ -76,9 +86,23 @@ public class FeedServiceImpl implements FeedService {
     User author = userRepository.findById(authorId)
         .orElseThrow(() -> new BusinessException(UserErrorCode.USER_NOT_FOUND));
 
-    // TODO: clothesService 구현 후 교체
-    // 현재 clothesIds는 수신되지만 ootds에 반영되지 않음 (의상 추천 기능 미구현 상태)
-    List<OotdDto> ootds = List.of();
+    Map<UUID, List<ClothesAttributeWithDefDto>> attributesByClothesId =
+        clothesAttributeRepository.findAllByClothesIdIn(clothesIds).stream()
+            .collect(Collectors.groupingBy(
+                attr -> attr.getClothes().getId(), // clothes의 id 기준으로 group화(OotdDto 변환 시 각 의상에 속성을 매핑하기 위함)
+                Collectors.mapping(
+                    attr -> clothesMapper.toClothesAttributeWithDefDto(attr.getDefinition(), attr.getValue()),  // 각 요소를 DTO로 변환
+                    Collectors.toList()
+                )
+            ));
+
+    List<OotdDto> ootds = clothesIds.stream()
+        .map(clotheId -> clothesMapper.toOotdDto(
+            clothesRepository.findById(clotheId)
+                .orElseThrow(() -> new BusinessException(ClothesErrorCode.CLOTHES_NOT_FOUND)),
+            attributesByClothesId.getOrDefault(clotheId, List.of())) // 속성 Dto를 반환하거나 해당 옷에 속성이 없으면 빈 리스트 반환
+        )
+        .toList();
 
     Feed feed = new Feed(weather, author, ootds, content);
 

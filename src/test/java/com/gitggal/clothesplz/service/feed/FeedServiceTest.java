@@ -22,6 +22,7 @@ import com.gitggal.clothesplz.dto.feed.FeedPageRequest;
 import com.gitggal.clothesplz.dto.feed.FeedUpdateRequest;
 import com.gitggal.clothesplz.dto.user.AuthorDto;
 import java.time.Instant;
+import com.gitggal.clothesplz.entity.clothes.Clothes;
 import com.gitggal.clothesplz.entity.feed.Feed;
 import com.gitggal.clothesplz.entity.feed.FeedComment;
 import com.gitggal.clothesplz.entity.feed.FeedLike;
@@ -152,6 +153,10 @@ public class FeedServiceTest extends ServiceTestSupport {
       // given
       given(weatherRepository.findById(eq(weatherId))).willReturn(Optional.of(mockWeather));
       given(userRepository.findById(authorId)).willReturn(Optional.of(mockAuthor));
+      UUID clotheId = feedCreateRequest.clothesIds().get(0);
+      Clothes mockClothes = mock(Clothes.class);
+      given(clothesAttributeRepository.findAllByClothesIdIn(feedCreateRequest.clothesIds())).willReturn(List.of());
+      given(clothesRepository.findById(clotheId)).willReturn(Optional.of(mockClothes));
       given(mockFeed.getId()).willReturn(feedId);
       given(mockFeed.getContent()).willReturn(feedCreateRequest.content());
       given(mockFeed.getAuthor()).willReturn(mockAuthor);
