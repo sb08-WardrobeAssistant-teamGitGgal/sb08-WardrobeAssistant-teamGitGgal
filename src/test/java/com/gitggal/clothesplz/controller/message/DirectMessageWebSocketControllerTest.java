@@ -57,7 +57,7 @@ public class DirectMessageWebSocketControllerTest {
   }
 
   @Test
-  @DisplayName("세션 속성이 null이면 JWT_TOKEN_INVALID 예외가 발생한다.")
+  @DisplayName("세션 속성이 null이면 JWT_TOKEN_NOT_FOUND 예외가 발생한다.")
   void sendDirectMessage_sessionNull_throwsBusinessException() {
 
     // given
@@ -72,7 +72,7 @@ public class DirectMessageWebSocketControllerTest {
     assertThatThrownBy(() -> controller.sendDirectMessage(request, accessor))
         .isInstanceOf(BusinessException.class)
         .extracting("errorCode")
-        .isEqualTo(UserErrorCode.JWT_TOKEN_INVALID);
+        .isEqualTo(UserErrorCode.JWT_TOKEN_NOT_FOUND);
   }
 
   @Test

@@ -34,6 +34,8 @@ public class DirectMessageRepositoryImpl implements DirectMessageRepositoryCusto
 
     return queryFactory
         .selectFrom(directMessage)
+        .leftJoin(directMessage.sender).fetchJoin()
+        .leftJoin(directMessage.receiver).fetchJoin()
         .where(
             betweenUsers(userAId, userBId),
             cursorCondition(cursor, idAfter)

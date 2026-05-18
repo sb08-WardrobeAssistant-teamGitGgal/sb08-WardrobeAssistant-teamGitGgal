@@ -72,7 +72,7 @@ class StompAuthChannelInterceptorTest {
         .isInstanceOf(BusinessException.class)
         .satisfies(ex ->
             assertThat(((BusinessException) ex).getErrorCode())
-                .isEqualTo(UserErrorCode.JWT_TOKEN_INVALID));
+                .isEqualTo(UserErrorCode.JWT_TOKEN_NOT_FOUND));
   }
 
   @Test
@@ -84,7 +84,7 @@ class StompAuthChannelInterceptorTest {
         .isInstanceOf(BusinessException.class)
         .satisfies(ex ->
             assertThat(((BusinessException) ex).getErrorCode())
-                .isEqualTo(UserErrorCode.JWT_TOKEN_INVALID));
+                .isEqualTo(UserErrorCode.JWT_TOKEN_NOT_FOUND));
   }
 
   @Test
@@ -113,7 +113,7 @@ class StompAuthChannelInterceptorTest {
         .isInstanceOf(BusinessException.class)
         .satisfies(ex ->
             assertThat(((BusinessException) ex).getErrorCode())
-                .isEqualTo(UserErrorCode.JWT_TOKEN_INVALID));
+                .isEqualTo(UserErrorCode.JWT_TOKEN_EXPIRED));
   }
 
   @Test

@@ -3,10 +3,9 @@ package com.gitggal.clothesplz.service.message.impl;
 import com.gitggal.clothesplz.dto.message.DirectMessageCreateRequest;
 import com.gitggal.clothesplz.dto.message.DirectMessageDto;
 import com.gitggal.clothesplz.dto.message.DirectMessageDtoCursorResponse;
-import com.gitggal.clothesplz.dto.notification.NotificationRequest;
 import com.gitggal.clothesplz.entity.message.DirectMessage;
-import com.gitggal.clothesplz.entity.notification.NotificationLevel;
 import com.gitggal.clothesplz.entity.user.User;
+import com.gitggal.clothesplz.event.message.DirectMessageSentEvent;
 import com.gitggal.clothesplz.exception.BusinessException;
 import com.gitggal.clothesplz.exception.code.MessageErrorCode;
 import com.gitggal.clothesplz.exception.code.UserErrorCode;
@@ -14,14 +13,13 @@ import com.gitggal.clothesplz.mapper.message.DirectMessageMapper;
 import com.gitggal.clothesplz.repository.message.DirectMessageRepository;
 import com.gitggal.clothesplz.repository.user.UserRepository;
 import com.gitggal.clothesplz.service.message.DirectMessageService;
-import com.gitggal.clothesplz.service.notification.NotificationService;
 import com.gitggal.clothesplz.util.message.DmKeyGenerator;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,8 +36,8 @@ public class DirectMessageServiceImpl implements DirectMessageService {
   private final DirectMessageRepository directMessageRepository;
   private final UserRepository userRepository;
   private final DirectMessageMapper directMessageMapper;
-  private final SimpMessagingTemplate messagingTemplate;
-  private final NotificationService notificationService;
+
+  private final ApplicationEventPublisher eventPublisher;
 
   /**
    * DM 송신: 저장 + 푸시 + 알림 발송
@@ -85,17 +83,14 @@ public class DirectMessageServiceImpl implements DirectMessageService {
 
     String destination = SUB_PREFIX + dmKey;
 
-    messagingTemplate.convertAndSend(destination, dto);
-
     log.info("[Service] DM 푸시: destination={}", destination);
 
-    // 받는 사람에게 알림 발송
-    NotificationRequest notificationRequest = new NotificationRequest(request.receiverId(),
-        "[DM]" + " " + sender.getName(),
-        dto.content(),
-        NotificationLevel.INFO);
-
-    notificationService.send(notificationRequest);
+    eventPublisher.publishEvent(new DirectMessageSentEvent(
+        dto,
+        request.receiverId(),
+        destination,
+        sender.getName()
+    ));
 
     log.info("[Service] DM 송신 요청 완료: messageId={}", savedMessage.getId());
 

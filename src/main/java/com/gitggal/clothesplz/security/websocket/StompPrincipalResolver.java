@@ -17,7 +17,7 @@ public final class StompPrincipalResolver {
 
     Map<String, Object> attrs = accessor.getSessionAttributes();
 
-    if (attrs == null) throw new BusinessException(UserErrorCode.JWT_TOKEN_INVALID);
+    if (attrs == null) throw new BusinessException(UserErrorCode.JWT_TOKEN_NOT_FOUND);
 
     Object v = attrs.get(StompAuthChannelInterceptor.USER_ID_KEY);
 

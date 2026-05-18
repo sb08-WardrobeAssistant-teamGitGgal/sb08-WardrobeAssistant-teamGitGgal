@@ -54,7 +54,7 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
 
       if (!StringUtils.hasText(token)) {
         log.warn("[STOMP] CONNECT 실패: Authorization 헤더 없음");
-        throw new BusinessException(UserErrorCode.JWT_TOKEN_INVALID);
+        throw new BusinessException(UserErrorCode.JWT_TOKEN_NOT_FOUND);
       }
       if (!tokenProvider.validateAccessToken(token)) {
         log.warn("[STOMP] CONNECT 실패: 토큰 검증 실패");
@@ -62,7 +62,7 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
       }
       if (!jwtRegistry.hasActiveJwtInformationByAccessToken(token)) {
         log.warn("[STOMP] CONNECT 실패: 활성 토큰이 아님");
-        throw new BusinessException(UserErrorCode.JWT_TOKEN_INVALID);
+        throw new BusinessException(UserErrorCode.JWT_TOKEN_EXPIRED);
       }
 
       UUID userId = tokenProvider.getUserId(token);

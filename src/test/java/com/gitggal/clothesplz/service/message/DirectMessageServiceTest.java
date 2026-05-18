@@ -3,7 +3,6 @@ package com.gitggal.clothesplz.service.message;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.mock;
@@ -13,7 +12,7 @@ import com.gitggal.clothesplz.dto.follow.UserSummary;
 import com.gitggal.clothesplz.dto.message.DirectMessageCreateRequest;
 import com.gitggal.clothesplz.dto.message.DirectMessageDto;
 import com.gitggal.clothesplz.dto.message.DirectMessageDtoCursorResponse;
-import com.gitggal.clothesplz.dto.notification.NotificationRequest;
+import com.gitggal.clothesplz.event.message.DirectMessageSentEvent;
 import com.gitggal.clothesplz.entity.message.DirectMessage;
 import com.gitggal.clothesplz.entity.user.User;
 import com.gitggal.clothesplz.exception.BusinessException;
@@ -22,7 +21,6 @@ import com.gitggal.clothesplz.mapper.message.DirectMessageMapper;
 import com.gitggal.clothesplz.repository.message.DirectMessageRepository;
 import com.gitggal.clothesplz.repository.user.UserRepository;
 import com.gitggal.clothesplz.service.message.impl.DirectMessageServiceImpl;
-import com.gitggal.clothesplz.service.notification.NotificationService;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -33,7 +31,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.context.ApplicationEventPublisher;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("DM 서비스 테스트")
@@ -46,9 +44,7 @@ public class DirectMessageServiceTest {
   @Mock
   private DirectMessageMapper directMessageMapper;
   @Mock
-  private SimpMessagingTemplate messagingTemplate;
-  @Mock
-  private NotificationService notificationService;
+  private ApplicationEventPublisher eventPublisher;
 
   @InjectMocks
   private DirectMessageServiceImpl directMessageService;
@@ -89,8 +85,7 @@ public class DirectMessageServiceTest {
 
     // then
     assertThat(result).isEqualTo(dto);
-    then(messagingTemplate).should().convertAndSend(anyString(), any(DirectMessageDto.class));
-    then(notificationService).should().send(any(NotificationRequest.class));
+    then(eventPublisher).should().publishEvent(any(DirectMessageSentEvent.class));
   }
 
   @Test
@@ -112,8 +107,7 @@ public class DirectMessageServiceTest {
                 .isEqualTo(MessageErrorCode.UNAUTHORIZED_MESSAGE_ACCESS));
 
     then(directMessageRepository).should(never()).save(any());
-    then(messagingTemplate).should(never()).convertAndSend(anyString(), (Object) any());
-    then(notificationService).should(never()).send(any());
+    then(eventPublisher).should(never()).publishEvent(any());
   }
 
   @Test
@@ -133,8 +127,7 @@ public class DirectMessageServiceTest {
                 .isEqualTo(MessageErrorCode.SELF_MESSAGE_NOT_ALLOWED));
 
     then(directMessageRepository).should(never()).save(any());
-    then(messagingTemplate).should(never()).convertAndSend(anyString(), (Object) any());
-    then(notificationService).should(never()).send(any());
+    then(eventPublisher).should(never()).publishEvent(any());
   }
 
   @Test
