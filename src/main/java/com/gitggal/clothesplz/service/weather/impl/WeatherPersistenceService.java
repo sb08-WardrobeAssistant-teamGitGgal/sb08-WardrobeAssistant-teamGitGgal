@@ -43,6 +43,12 @@ public class WeatherPersistenceService {
         return locationRepository.findByGridXAndGridY(nx, ny).orElseThrow();
     }
 
+    // race condition 발생 시 호출되는 재조회 — 별도 REQUIRES_NEW 트랜잭션으로 rollback-only 상태 회피
+    @Transactional(propagation = Propagation.REQUIRES_NEW, readOnly = true)
+    public Weather findWeatherOrThrow(Location location, OffsetDateTime forecastAt) {
+        return weatherRepository.findFirstByLocationAndForecastAt(location, forecastAt).orElseThrow();
+    }
+
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public Weather findOrCreateWeather(Location location, DailyWeatherForecastDto dto) {
         OffsetDateTime forecastAt = dto.date().atStartOfDay().atZone(KST).toOffsetDateTime();

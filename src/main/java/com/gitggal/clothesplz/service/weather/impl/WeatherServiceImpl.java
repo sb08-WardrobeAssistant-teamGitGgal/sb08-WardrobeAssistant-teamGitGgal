@@ -2,6 +2,7 @@ package com.gitggal.clothesplz.service.weather.impl;
 
 import com.gitggal.clothesplz.dto.weather.WeatherDto;
 import com.gitggal.clothesplz.dto.weather.WeatherAPILocationDto;
+import com.gitggal.clothesplz.dto.weather.DailyWeatherForecastDto;
 import com.gitggal.clothesplz.entity.weather.Location;
 import com.gitggal.clothesplz.entity.weather.Weather;
 import com.gitggal.clothesplz.mapper.weather.WeatherMapper;
@@ -18,6 +19,8 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.List;
 
 @Service
@@ -49,7 +52,7 @@ public class WeatherServiceImpl implements WeatherService {
                     Location location = findOrCreateLocationSafely(latitude, longitude, grid.nx(), grid.ny(), locationNamesStr);
 
                     List<Weather> weathers = daily.stream()
-                            .map(dto -> weatherPersistenceService.findOrCreateWeather(location, dto))
+                            .map(dto -> findOrCreateWeatherSafely(location, dto))
                             .toList();
 
                     List<WeatherDto> result = weatherMapper.toWeatherDtoList(
@@ -74,6 +77,16 @@ public class WeatherServiceImpl implements WeatherService {
             return weatherPersistenceService.findOrCreateLocation(lat, lon, nx, ny, locationNamesStr);
         } catch (DataIntegrityViolationException e) {
             return weatherPersistenceService.findLocationOrThrow(nx, ny);
+        }
+    }
+
+    // REQUIRES_NEW 트랜잭션 실패(동시 insert 충돌) 시 별도 트랜잭션으로 재조회
+    private Weather findOrCreateWeatherSafely(Location location, DailyWeatherForecastDto dto) {
+        try {
+            return weatherPersistenceService.findOrCreateWeather(location, dto);
+        } catch (DataIntegrityViolationException e) {
+            OffsetDateTime forecastAt = dto.date().atStartOfDay().atZone(ZoneId.of("Asia/Seoul")).toOffsetDateTime();
+            return weatherPersistenceService.findWeatherOrThrow(location, forecastAt);
         }
     }
 }
