@@ -42,4 +42,9 @@ public class ClothesUserDetails implements UserDetails {
   public String getUsername() {
     return userDto.email();
   }
+
+  @Override
+  public boolean isAccountNonLocked() {
+    return !userDto.locked();
+  }
 }
