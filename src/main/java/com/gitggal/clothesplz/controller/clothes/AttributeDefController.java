@@ -43,7 +43,7 @@ public class AttributeDefController implements AttributeDefControllerApi {
   }
 
   @GetMapping
-  @PreAuthorize("hasRole('ADMIN')")
+  @PreAuthorize("isAuthenticated()")
   @Override
   public ResponseEntity<List<ClothesAttributeDefDto>> getAttributeDefs(
       @RequestParam("sortBy") String sortBy,

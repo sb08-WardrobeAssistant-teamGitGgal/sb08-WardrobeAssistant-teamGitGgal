@@ -1,11 +1,14 @@
 package com.gitggal.clothesplz.controller.clothes;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -65,7 +68,8 @@ class AttributeDefControllerTest {
     ClothesAttributeDefDto response = new ClothesAttributeDefDto(
         definitionId,
         "색상",
-        List.of("WHITE", "BLACK")
+        List.of("WHITE", "BLACK"),
+        null
     );
     given(attributeDefService.createAttributeDef(any(ClothesAttributeDefCreateRequest.class)))
         .willReturn(response);
@@ -170,6 +174,73 @@ class AttributeDefControllerTest {
             .with(csrf())
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(request)))
+        .andExpect(status().isBadRequest());
+
+    verifyNoInteractions(attributeDefService);
+  }
+
+  @Test
+  @DisplayName("성공 - 인증된 사용자가 의상 속성 목록 조회 시 200과 목록을 반환한다")
+  void getAttributeDefs_asAuthenticatedUser_returns200() throws Exception {
+    UUID id1 = UUID.randomUUID();
+    UUID id2 = UUID.randomUUID();
+    List<ClothesAttributeDefDto> response = List.of(
+        new ClothesAttributeDefDto(id1, "색상", List.of("WHITE", "BLACK"), null),
+        new ClothesAttributeDefDto(id2, "소재", List.of("COTTON", "WOOL"), null)
+    );
+    given(attributeDefService.getAttributeDefs(eq("name"), eq("ASCENDING"), isNull()))
+        .willReturn(response);
+
+    mockMvc.perform(get("/api/clothes/attribute-defs")
+            .with(user("user").roles("USER"))
+            .with(csrf())
+            .param("sortBy", "name")
+            .param("sortDirection", "ASCENDING"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$[0].id").value(id1.toString()))
+        .andExpect(jsonPath("$[0].name").value("색상"))
+        .andExpect(jsonPath("$[1].id").value(id2.toString()))
+        .andExpect(jsonPath("$[1].name").value("소재"));
+
+    verify(attributeDefService).getAttributeDefs("name", "ASCENDING", null);
+  }
+
+  @Test
+  @DisplayName("성공 - keywordLike 파라미터를 포함하면 서비스에 전달한다")
+  void getAttributeDefs_withKeyword_passesKeyword() throws Exception {
+    given(attributeDefService.getAttributeDefs(eq("name"), eq("DESCENDING"), eq("색")))
+        .willReturn(List.of());
+
+    mockMvc.perform(get("/api/clothes/attribute-defs")
+            .with(user("user").roles("USER"))
+            .with(csrf())
+            .param("sortBy", "name")
+            .param("sortDirection", "DESCENDING")
+            .param("keywordLike", "색"))
+        .andExpect(status().isOk());
+
+    verify(attributeDefService).getAttributeDefs("name", "DESCENDING", "색");
+  }
+
+  @Test
+  @DisplayName("실패 - 필수 파라미터 sortBy가 없으면 400을 반환한다")
+  void getAttributeDefs_missingSortBy_returns400() throws Exception {
+    mockMvc.perform(get("/api/clothes/attribute-defs")
+            .with(user("user").roles("USER"))
+            .with(csrf())
+            .param("sortDirection", "ASCENDING"))
+        .andExpect(status().isBadRequest());
+
+    verifyNoInteractions(attributeDefService);
+  }
+
+  @Test
+  @DisplayName("실패 - 필수 파라미터 sortDirection이 없으면 400을 반환한다")
+  void getAttributeDefs_missingSortDirection_returns400() throws Exception {
+    mockMvc.perform(get("/api/clothes/attribute-defs")
+            .with(user("user").roles("USER"))
+            .with(csrf())
+            .param("sortBy", "name"))
         .andExpect(status().isBadRequest());
 
     verifyNoInteractions(attributeDefService);
