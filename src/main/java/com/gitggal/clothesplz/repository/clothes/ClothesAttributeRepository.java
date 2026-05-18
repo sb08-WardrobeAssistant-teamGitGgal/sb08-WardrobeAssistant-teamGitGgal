@@ -4,6 +4,7 @@ import com.gitggal.clothesplz.entity.clothes.ClothesAttribute;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -22,5 +23,7 @@ public interface ClothesAttributeRepository extends JpaRepository<ClothesAttribu
       @Param("clothesIds") List<UUID> clothesIds
   );
 
-  void deleteAllByClothesId(UUID clothesId);
+  @Modifying
+  @Query("DELETE FROM ClothesAttribute ca WHERE ca.clothes.id = :clothesId")
+  void deleteAllByClothesId(@Param("clothesId") UUID clothesId);
 }
