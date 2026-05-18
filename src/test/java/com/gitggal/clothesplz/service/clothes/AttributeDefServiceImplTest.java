@@ -54,8 +54,7 @@ class AttributeDefServiceImplTest {
     ClothesAttributeDefDto response = new ClothesAttributeDefDto(
         definitionId,
         "색상",
-        List.of("WHITE", "BLACK"),
-        null
+        List.of("WHITE", "BLACK")
     );
 
     given(clothesAttributeDefRepository.existsByName("색상")).willReturn(false);

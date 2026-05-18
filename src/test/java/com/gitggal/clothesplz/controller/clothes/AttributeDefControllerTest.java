@@ -65,8 +65,7 @@ class AttributeDefControllerTest {
     ClothesAttributeDefDto response = new ClothesAttributeDefDto(
         definitionId,
         "색상",
-        List.of("WHITE", "BLACK"),
-        null
+        List.of("WHITE", "BLACK")
     );
     given(attributeDefService.createAttributeDef(any(ClothesAttributeDefCreateRequest.class)))
         .willReturn(response);
@@ -78,8 +77,8 @@ class AttributeDefControllerTest {
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isCreated())
-        .andExpect(jsonPath("$.definitionId").value(definitionId.toString()))
-        .andExpect(jsonPath("$.definitionName").value("색상"))
+        .andExpect(jsonPath("$.id").value(definitionId.toString()))
+        .andExpect(jsonPath("$.name").value("색상"))
         .andExpect(jsonPath("$.selectableValues[0]").value("WHITE"))
         .andExpect(jsonPath("$.selectableValues[1]").value("BLACK"));
 

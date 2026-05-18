@@ -4,9 +4,8 @@ import java.util.List;
 import java.util.UUID;
 
 public record ClothesAttributeDefDto(
-    UUID definitionId,
-    String definitionName,
-    List<String> selectableValues,
-    String name
+    UUID id,
+    String name,
+    List<String> selectableValues
 ) {
 }
