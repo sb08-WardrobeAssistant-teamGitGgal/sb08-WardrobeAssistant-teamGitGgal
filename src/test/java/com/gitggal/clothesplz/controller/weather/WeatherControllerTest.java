@@ -23,7 +23,6 @@ import org.springframework.context.annotation.FilterType;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
 import reactor.core.publisher.Mono;
 
 import java.time.LocalDateTime;
@@ -32,9 +31,7 @@ import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.BDDMockito.given;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -76,13 +73,9 @@ class WeatherControllerTest {
                 .willReturn(Mono.just(List.of(response)));
 
         // when & then
-        MvcResult mvcResult = mockMvc.perform(get("/api/weathers")
+        mockMvc.perform(get("/api/weathers")
                         .param("latitude", "37.5665")
                         .param("longitude", "126.9780"))
-                .andExpect(request().asyncStarted())
-                .andReturn();
-
-        mockMvc.perform(asyncDispatch(mvcResult))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].skyStatus").value("CLEAR"))
                 .andExpect(jsonPath("$[0].location.x").value(60))
@@ -101,13 +94,9 @@ class WeatherControllerTest {
                 .willReturn(Mono.error(new RuntimeException("downstream error")));
 
         // when & then
-        MvcResult mvcResult = mockMvc.perform(get("/api/weathers")
+        mockMvc.perform(get("/api/weathers")
                         .param("latitude", "37.5665")
                         .param("longitude", "126.9780"))
-                .andExpect(request().asyncStarted())
-                .andReturn();
-
-        mockMvc.perform(asyncDispatch(mvcResult))
                 .andExpect(status().isInternalServerError())
                 .andExpect(jsonPath("$.exceptionName").value("WEATHER_API_ERROR"))
                 .andExpect(jsonPath("$.message").value(WeatherErrorCode.WEATHER_API_ERROR.getMessage()));
@@ -141,13 +130,9 @@ class WeatherControllerTest {
         given(weatherService.getWeatherLocation(anyDouble(), anyDouble())).willReturn(Mono.just(response));
 
         // when & then
-        MvcResult mvcResult = mockMvc.perform(get("/api/weathers/location")
+        mockMvc.perform(get("/api/weathers/location")
                         .param("latitude", "37.5665")
                         .param("longitude", "126.9780"))
-                .andExpect(request().asyncStarted())
-                .andReturn();
-
-        mockMvc.perform(asyncDispatch(mvcResult))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.x").value(60))
                 .andExpect(jsonPath("$.y").value(127))
@@ -162,13 +147,9 @@ class WeatherControllerTest {
                 .willReturn(Mono.error(new RuntimeException("location error")));
 
         // when & then
-        MvcResult mvcResult = mockMvc.perform(get("/api/weathers/location")
+        mockMvc.perform(get("/api/weathers/location")
                         .param("latitude", "37.5665")
                         .param("longitude", "126.9780"))
-                .andExpect(request().asyncStarted())
-                .andReturn();
-
-        mockMvc.perform(asyncDispatch(mvcResult))
                 .andExpect(status().isInternalServerError())
                 .andExpect(jsonPath("$.exceptionName").value("WEATHER_API_ERROR"))
                 .andExpect(jsonPath("$.message").value(WeatherErrorCode.WEATHER_API_ERROR.getMessage()));
