@@ -115,6 +115,7 @@ class AuthServiceTest {
       given(tokenProvider.generateRefreshToken(clothesUserDetails)).willReturn(newRefreshToken);
       given(tokenProvider.getAccessTokenExpiry(newAccessToken)).willReturn(accessTokenExpiry);
       given(tokenProvider.getRefreshTokenExpiry(newRefreshToken)).willReturn(refreshTokenExpiry);
+      given(jwtRegistry.rotateJwtInformation(anyString(), any(JwtInformation.class))).willReturn(true);
 
       // when
       JwtInformation result = authService.refresh(oldRefreshToken);
@@ -198,6 +199,24 @@ class AuthServiceTest {
 
       then(tokenProvider).should().generateAccessToken(clothesUserDetails);
       then(jwtRegistry).should(never()).rotateJwtInformation(anyString(), any());
+    }
+
+    @Test
+    @DisplayName("실패 - token rotate")
+    void refresh_fail_rotationFailed() throws JOSEException {
+      // given
+      given(tokenProvider.validateRefreshToken(oldRefreshToken)).willReturn(true);
+      given(jwtRegistry.hasActiveJwtInformationByRefreshToken(oldRefreshToken)).willReturn(true);
+      given(tokenProvider.getUsernameFromToken(oldRefreshToken)).willReturn(userId.toString());
+      given(clothesUserDetailsService.loadUserById(userId)).willReturn(clothesUserDetails);
+      given(tokenProvider.generateAccessToken(clothesUserDetails)).willReturn(newAccessToken);
+      given(tokenProvider.generateRefreshToken(clothesUserDetails)).willReturn(newRefreshToken);
+      given(jwtRegistry.rotateJwtInformation(anyString(), any(JwtInformation.class))).willReturn(false);
+
+      // when & then
+      assertThatThrownBy(() -> authService.refresh(oldRefreshToken))
+          .isInstanceOf(BusinessException.class)
+          .hasFieldOrPropertyWithValue("errorCode", UserErrorCode.JWT_TOKEN_INVALID);
     }
   }
 

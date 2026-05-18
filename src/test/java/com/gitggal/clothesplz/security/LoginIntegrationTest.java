@@ -129,7 +129,7 @@ class LoginIntegrationTest {
             .contentType(MediaType.APPLICATION_FORM_URLENCODED)
             .param("username", TEST_EMAIL)
             .param("password", TEST_PASSWORD))
-        .andExpect(status().isUnauthorized())
+        .andExpect(status().isForbidden())
         .andExpect(jsonPath("$.exceptionName").value("ACCOUNT_LOCKED"));
   }
 

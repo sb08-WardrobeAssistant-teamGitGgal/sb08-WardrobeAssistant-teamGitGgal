@@ -3,6 +3,7 @@ package com.gitggal.clothesplz.controller.user;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.then;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -165,6 +166,26 @@ public class UserControllerTest {
               .contentType(MediaType.APPLICATION_JSON)
               .content(objectMapper.writeValueAsString(invalidRequest)))
           .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("실패 - 본인이 아닐 경우")
+    void updatePassword_fail_forbidden_anotherUserRequest() throws Exception {
+      // given
+      UUID anotherUserId = UUID.randomUUID();
+      ChangePasswordRequest request = new ChangePasswordRequest("newPassword123!");
+      ClothesUserDetails principal = new ClothesUserDetails(userDto, "encodedPassword");
+
+      // when & then
+      mockMvc.perform(patch("/api/users/{userId}/password", anotherUserId)
+              .with(user(principal))
+              .with(csrf())
+              .contentType(MediaType.APPLICATION_JSON)
+              .content(objectMapper.writeValueAsString(request)))
+          .andExpect(status().isForbidden())
+          .andExpect(jsonPath("$.exceptionName").value(UserErrorCode.FORBIDDEN.name()));
+
+      then(userService).shouldHaveNoInteractions();
     }
   }
 

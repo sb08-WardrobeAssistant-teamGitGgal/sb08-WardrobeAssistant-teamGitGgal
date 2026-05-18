@@ -195,6 +195,18 @@ class AuthControllerTest {
 
       then(authService).should().refresh(expiredRefreshToken);
     }
+
+    @Test
+    @DisplayName("실패 - 쿠키 누락")
+    void refreshToken_fail_cookieNotFound() throws Exception {
+      // given & when & then
+      mockMvc.perform(post("/api/auth/refresh")
+              .with(csrf()))
+          .andExpect(status().isUnauthorized())
+          .andExpect(jsonPath("$.exceptionName").value(UserErrorCode.JWT_TOKEN_NOT_FOUND.name()));
+
+      then(authService).shouldHaveNoInteractions();
+    }
   }
 
   @Nested
