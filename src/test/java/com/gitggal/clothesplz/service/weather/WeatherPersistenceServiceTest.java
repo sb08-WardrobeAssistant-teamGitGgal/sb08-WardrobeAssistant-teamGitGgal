@@ -147,7 +147,7 @@ class WeatherPersistenceServiceTest {
     void findOrCreateWeather_nullNumerics_savesAsZero() {
         Location location = mock(Location.class);
         DailyWeatherForecastDto dto = new DailyWeatherForecastDto(
-                LocalDate.of(2026, 5, 18), null,
+                LocalDate.of(2026, 5, 18), SkyStatus.CLEAR,
                 null, null, null, null, null, null,
                 null, null, null, null);
         OffsetDateTime forecastAt = LocalDate.of(2026, 5, 18).atStartOfDay().atZone(KST).toOffsetDateTime();
