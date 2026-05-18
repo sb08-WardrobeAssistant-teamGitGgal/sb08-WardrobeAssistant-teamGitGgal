@@ -21,6 +21,7 @@ import com.gitggal.clothesplz.dto.user.UserCreateRequest;
 import com.gitggal.clothesplz.dto.user.UserDto;
 import com.gitggal.clothesplz.dto.user.UserDtoCursorRequest;
 import com.gitggal.clothesplz.dto.user.UserDtoCursorResponse;
+import com.gitggal.clothesplz.dto.user.UserLockUpdateRequest;
 import com.gitggal.clothesplz.dto.user.UserRoleUpdateRequest;
 import com.gitggal.clothesplz.entity.user.UserRole;
 import com.gitggal.clothesplz.exception.BusinessException;
@@ -308,6 +309,54 @@ public class UserControllerTest {
               .contentType(MediaType.APPLICATION_JSON))
           .andDo(print())
           .andExpect(status().isBadRequest());
+    }
+  }
+
+  @Nested
+  @DisplayName("계정 잠금 상태 변경")
+  class updateLock {
+
+    @Test
+    @DisplayName("계정 잠금 상태 변경 성공")
+    void updateLock_success() throws Exception {
+
+      UserDto userTrueDto = new UserDto(
+          userId,
+          Instant.now(),
+          "Git@git.git",
+          "GitGit",
+          UserRole.USER,
+          true
+      );
+
+      UserLockUpdateRequest request = new UserLockUpdateRequest(true);
+
+      given(userService.updateLock(eq(userId), any(UserLockUpdateRequest.class)))
+          .willReturn(userTrueDto);
+
+      mockMvc.perform(patch("/api/users/{userId}/lock", userId)
+              .with(csrf())
+              .contentType(MediaType.APPLICATION_JSON)
+              .content(objectMapper.writeValueAsString(request)))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$.locked").value(true));
+
+      verify(userService, times(1)).updateLock(eq(userId), any(UserLockUpdateRequest.class));
+    }
+
+    @Test
+    @DisplayName("계정 잠금 상태 변경 실패")
+    void updateLock_fail() throws Exception {
+      UserLockUpdateRequest request = new UserLockUpdateRequest(true);
+
+      given(userService.updateLock(eq(userId), any(UserLockUpdateRequest.class)))
+          .willThrow(new BusinessException(UserErrorCode.USER_NOT_FOUND));
+
+      mockMvc.perform(patch("/api/users/{userId}/lock", userId)
+              .with(csrf())
+              .contentType(MediaType.APPLICATION_JSON)
+              .content(objectMapper.writeValueAsString(request)))
+          .andExpect(status().isNotFound());
     }
   }
 

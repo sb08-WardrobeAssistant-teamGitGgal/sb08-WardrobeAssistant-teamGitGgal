@@ -5,6 +5,7 @@ import com.gitggal.clothesplz.exception.BusinessException;
 import com.gitggal.clothesplz.exception.ErrorResponse;
 import com.gitggal.clothesplz.exception.code.ErrorCode;
 import com.gitggal.clothesplz.exception.code.UserErrorCode;
+import com.gitggal.clothesplz.security.ClothesUserDetails;
 import com.gitggal.clothesplz.security.ClothesUserDetailsService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -46,8 +47,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
           throw new BusinessException(UserErrorCode.JWT_TOKEN_INVALID);
         }
 
+
         UUID userId = tokenProvider.getUserId(token);
         UserDetails userDetails = userDetailsService.loadUserById(userId);
+
+        if (!userDetails.isAccountNonLocked()) {
+          throw new BusinessException(UserErrorCode.ACCOUNT_LOCKED);
+        }
 
         UsernamePasswordAuthenticationToken authentication =
             new UsernamePasswordAuthenticationToken(

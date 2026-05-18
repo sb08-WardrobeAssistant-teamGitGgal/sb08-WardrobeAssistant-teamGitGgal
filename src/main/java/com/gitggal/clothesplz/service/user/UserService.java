@@ -5,6 +5,7 @@ import com.gitggal.clothesplz.dto.user.UserCreateRequest;
 import com.gitggal.clothesplz.dto.user.UserDto;
 import com.gitggal.clothesplz.dto.user.UserDtoCursorRequest;
 import com.gitggal.clothesplz.dto.user.UserDtoCursorResponse;
+import com.gitggal.clothesplz.dto.user.UserLockUpdateRequest;
 import com.gitggal.clothesplz.dto.user.UserRoleUpdateRequest;
 import java.util.UUID;
 
@@ -17,4 +18,6 @@ public interface UserService {
   UserDto updateRole(UUID userId, UserRoleUpdateRequest request);
 
   UserDtoCursorResponse findAll(UserDtoCursorRequest request);
+
+  UserDto updateLock(UUID userId, UserLockUpdateRequest request);
 }

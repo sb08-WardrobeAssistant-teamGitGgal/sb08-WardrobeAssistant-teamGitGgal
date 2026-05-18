@@ -119,10 +119,25 @@ class LoginIntegrationTest {
   }
 
   @Test
+  @DisplayName("로그인 실패 - 잠김 계정")
+  void loginFailure_LockedAccount() throws Exception {
+    User user = userRepository.findByEmail(TEST_EMAIL).get();
+    user.updateLock(true);
+
+    mockMvc.perform(post("/api/auth/sign-in")
+            .with(csrf())
+            .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+            .param("username", TEST_EMAIL)
+            .param("password", TEST_PASSWORD))
+        .andExpect(status().isUnauthorized())
+        .andExpect(jsonPath("$.exceptionName").value("ACCOUNT_LOCKED"));
+  }
+
+  @Test
   @DisplayName("로그인 성공 후 기존 세션 무효화")
   void loginSuccess_InvalidatesPreviousSession() throws Exception {
 
-    String firstAccessToken = mockMvc.perform(post("/api/auth/sign-in")
+    mockMvc.perform(post("/api/auth/sign-in")
             .with(csrf())
             .contentType(MediaType.APPLICATION_FORM_URLENCODED)
             .param("username", TEST_EMAIL)

@@ -73,7 +73,7 @@ class JwtAuthenticationFilterTest {
   @DisplayName("유효한 Bearer Token이면 SecurityContext에 인증 정보를 저장")
   void doFilterWithValidAccessToken() throws Exception {
     UUID userId = UUID.randomUUID();
-    ClothesUserDetails userDetails = userDetails(userId);
+    ClothesUserDetails userDetails = userDetails(userId, false);
     MockHttpServletRequest request = new MockHttpServletRequest();
     request.addHeader("Authorization", "Bearer access-token");
     MockHttpServletResponse response = new MockHttpServletResponse();
@@ -131,15 +131,38 @@ class JwtAuthenticationFilterTest {
     verify(userDetailsService, never()).loadUserById(any(UUID.class));
   }
 
-  private ClothesUserDetails userDetails(UUID userId) {
+  @Test
+  @DisplayName("잠김 계정 인증 실패")
+  void doFilterWithLockedAccount() throws Exception {
+    UUID userId = UUID.randomUUID();
+    ClothesUserDetails userDetails = userDetails(userId, true);
+    MockHttpServletRequest request = new MockHttpServletRequest();
+    request.addHeader("Authorization", "Bearer access-token");
+    MockHttpServletResponse response = new MockHttpServletResponse();
+    MockFilterChain filterChain = new MockFilterChain();
+
+    when(tokenProvider.validateAccessToken("access-token")).thenReturn(true);
+    when(jwtRegistry.hasActiveJwtInformationByAccessToken("access-token")).thenReturn(true);
+    when(tokenProvider.getUserId("access-token")).thenReturn(userId);
+    when(userDetailsService.loadUserById(userId)).thenReturn(userDetails);
+
+    filter.doFilter(request, response, filterChain);
+
+    assertThat(response.getStatus()).isEqualTo(403);
+    assertThat(response.getContentAsString()).contains("ACCOUNT_LOCKED");
+    assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
+    assertThat(filterChain.getRequest()).isNull();
+  }
+
+  private ClothesUserDetails userDetails(UUID userId, boolean locked) {
     UserDto userDto = new UserDto(
         userId,
         Instant.now(),
         "test@test.com",
         "홍길동",
         UserRole.USER,
-        false
+        locked
     );
-    return new ClothesUserDetails(userDto, "encoded-password",null,null);
+    return new ClothesUserDetails(userDto, "encoded-password", null, null);
   }
 }

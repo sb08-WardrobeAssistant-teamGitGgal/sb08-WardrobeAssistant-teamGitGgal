@@ -20,6 +20,7 @@ public enum UserErrorCode implements ErrorCode {
   EXPIRED_TEMP_PASSWORD(1104, HttpStatus.UNAUTHORIZED, "임시 비밀번호가 만료되었습니다."),
   FORBIDDEN(1105, HttpStatus.FORBIDDEN, "접근 권한이 없습니다."),
   TEMP_PASSWORD_GENERATION_FAILED(1106, HttpStatus.INTERNAL_SERVER_ERROR, "임시 비밀번호 생성에 실패했습니다."),
+  ACCOUNT_LOCKED(1107, HttpStatus.FORBIDDEN, "잠긴 계정입니다."),
 
   // JWT
   JWT_TOKEN_INVALID(1201, HttpStatus.UNAUTHORIZED, "토큰이 유효하지 않습니다."),
