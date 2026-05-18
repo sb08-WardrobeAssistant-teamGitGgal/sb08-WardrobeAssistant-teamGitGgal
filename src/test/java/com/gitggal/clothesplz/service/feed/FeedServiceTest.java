@@ -204,6 +204,20 @@ public class FeedServiceTest extends ServiceTestSupport {
       assertThatThrownBy(() -> feedService.createFeed(feedCreateRequest))
           .isInstanceOf(BusinessException.class);
     }
+
+    @Test
+    @DisplayName("의상 정보를 찾을 수 없는 경우 예외 발생")
+    void createFeed_ClothesNotFound_ThrowsException() {
+      // given
+      given(weatherRepository.findById(eq(weatherId))).willReturn(Optional.of(mockWeather));
+      given(userRepository.findById(eq(authorId))).willReturn(Optional.of(mockAuthor));
+      given(clothesAttributeRepository.findAllByClothesIdIn(feedCreateRequest.clothesIds())).willReturn(List.of());
+      given(clothesRepository.findAllById(feedCreateRequest.clothesIds())).willReturn(List.of());
+
+      // when & then
+      assertThatThrownBy(() -> feedService.createFeed(feedCreateRequest))
+          .isInstanceOf(BusinessException.class);
+    }
   }
 
   @Nested
