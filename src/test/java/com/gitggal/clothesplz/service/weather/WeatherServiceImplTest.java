@@ -7,8 +7,7 @@ import com.gitggal.clothesplz.dto.weather.WeatherAPILocationDto;
 import com.gitggal.clothesplz.entity.weather.Location;
 import com.gitggal.clothesplz.entity.weather.Weather;
 import com.gitggal.clothesplz.mapper.weather.WeatherMapper;
-import com.gitggal.clothesplz.repository.weather.LocationRepository;
-import com.gitggal.clothesplz.repository.weather.WeatherRepository;
+import com.gitggal.clothesplz.service.weather.impl.WeatherPersistenceService;
 import com.gitggal.clothesplz.service.weather.impl.WeatherServiceImpl;
 import com.gitggal.clothesplz.util.weather.KmaGridCoordinateConverter;
 import org.junit.jupiter.api.DisplayName;
@@ -17,16 +16,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.transaction.TransactionStatus;
-import org.springframework.transaction.support.TransactionCallback;
-import org.springframework.transaction.support.TransactionTemplate;
 import reactor.core.publisher.Mono;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -51,13 +45,7 @@ class WeatherServiceImplTest {
     private WeatherMapper weatherMapper;
 
     @MockitoBean
-    private LocationRepository locationRepository;
-
-    @MockitoBean
-    private WeatherRepository weatherRepository;
-
-    @MockitoBean
-    private TransactionTemplate transactionTemplate;
+    private WeatherPersistenceService weatherPersistenceService;
 
     @Autowired
     private WeatherServiceImpl weatherServiceImpl;
@@ -85,21 +73,15 @@ class WeatherServiceImplTest {
         );
 
         KmaGridCoordinateConverter.KmaGridPoint point = KmaGridCoordinateConverter.toGrid(latitude, longitude);
-
         Location mockLocation = mock(Location.class);
         Weather mockWeather = mock(Weather.class);
-        when(mockWeather.getForecastedAt()).thenReturn(OffsetDateTime.now());
-        when(mockWeather.getForecastAt()).thenReturn(OffsetDateTime.now());
 
         when(weatherApiService.fetchWeather(point.nx(), point.ny())).thenReturn(Mono.just(apiResponse));
         when(kakaoLocalApiService.getLocationNames(latitude, longitude)).thenReturn(Mono.just(List.of()));
         when(weatherParserService.parseDailyForecast(apiResponse)).thenReturn(parsed);
-        when(locationRepository.findByGridXAndGridY(point.nx(), point.ny())).thenReturn(Optional.of(mockLocation));
-        when(weatherRepository.findByLocationAndForecastAt(any(), any())).thenReturn(Optional.of(mockWeather));
-        when(transactionTemplate.execute(any())).thenAnswer(inv -> {
-            TransactionCallback<?> callback = inv.getArgument(0);
-            return callback.doInTransaction(mock(TransactionStatus.class));
-        });
+        when(weatherPersistenceService.findOrCreateLocation(eq(latitude), eq(longitude), eq(point.nx()), eq(point.ny()), any()))
+                .thenReturn(mockLocation);
+        when(weatherPersistenceService.findOrCreateWeather(eq(mockLocation), any())).thenReturn(mockWeather);
         when(weatherMapper.toWeatherDtoList(anyList(), eq(latitude), eq(longitude), eq(point.nx()), eq(point.ny()), eq(List.of())))
                 .thenReturn(mapped);
 
@@ -110,6 +92,7 @@ class WeatherServiceImplTest {
         assertThat(result).isEqualTo(mapped);
         verify(weatherApiService).fetchWeather(point.nx(), point.ny());
         verify(weatherParserService).parseDailyForecast(apiResponse);
+        verify(weatherPersistenceService).findOrCreateLocation(eq(latitude), eq(longitude), eq(point.nx()), eq(point.ny()), any());
         verify(weatherMapper).toWeatherDtoList(anyList(), eq(latitude), eq(longitude), eq(point.nx()), eq(point.ny()), eq(List.of()));
     }
 
