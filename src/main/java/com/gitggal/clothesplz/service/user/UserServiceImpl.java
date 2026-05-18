@@ -5,6 +5,7 @@ import com.gitggal.clothesplz.dto.user.UserCreateRequest;
 import com.gitggal.clothesplz.dto.user.UserDto;
 import com.gitggal.clothesplz.dto.user.UserDtoCursorRequest;
 import com.gitggal.clothesplz.dto.user.UserDtoCursorResponse;
+import com.gitggal.clothesplz.dto.user.UserLockUpdateRequest;
 import com.gitggal.clothesplz.dto.user.UserRoleUpdateRequest;
 import com.gitggal.clothesplz.entity.profile.Profile;
 import com.gitggal.clothesplz.entity.user.User;
@@ -141,6 +142,25 @@ public class UserServiceImpl implements UserService {
     log.info("[Service] 목록 조회 요청 완료");
     return new UserDtoCursorResponse(userDtos, nextCursor, nextIdAfter, hasNext, totalCount,
         request.sortBy(), request.sortDirection());
+  }
+
+
+  @Transactional
+  @Override
+  public UserDto updateLock(UUID userId, UserLockUpdateRequest request) {
+    log.info("[Service] 계정 잠금 상태 변경 요청 시작 : userId = {}", userId);
+
+    User user = userRepository.findById(userId)
+        .orElseThrow(() -> new BusinessException(UserErrorCode.USER_NOT_FOUND));
+
+    user.updateLock(request.locked());
+
+    if (request.locked()) {
+      jwtRegistry.invalidateJwtInformationByUserId(userId);
+    }
+
+    log.info("[Service] 계정 잠금 상태 변경 요청 완료 : userId = {}", userId);
+    return userMapper.toDto(user);
   }
 }
 

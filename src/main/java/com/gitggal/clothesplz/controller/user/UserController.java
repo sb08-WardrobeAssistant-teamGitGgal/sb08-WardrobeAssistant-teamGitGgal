@@ -5,13 +5,13 @@ import com.gitggal.clothesplz.dto.user.UserCreateRequest;
 import com.gitggal.clothesplz.dto.user.UserDto;
 import com.gitggal.clothesplz.dto.user.UserDtoCursorRequest;
 import com.gitggal.clothesplz.dto.user.UserDtoCursorResponse;
+import com.gitggal.clothesplz.dto.user.UserLockUpdateRequest;
 import com.gitggal.clothesplz.dto.user.UserRoleUpdateRequest;
 import com.gitggal.clothesplz.exception.BusinessException;
 import com.gitggal.clothesplz.exception.code.UserErrorCode;
 import com.gitggal.clothesplz.security.ClothesUserDetails;
 import com.gitggal.clothesplz.service.user.UserService;
 import jakarta.validation.Valid;
-import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,7 +19,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -72,11 +71,22 @@ public class UserController {
 
   @PreAuthorize("hasRole('ADMIN')")
   @GetMapping
-  public ResponseEntity<UserDtoCursorResponse> findAll(@Valid @ModelAttribute UserDtoCursorRequest request) {
+  public ResponseEntity<UserDtoCursorResponse> findAll(
+      @Valid @ModelAttribute UserDtoCursorRequest request) {
     log.info("[Controller] 목록 조회 요청 시작");
-    UserDtoCursorResponse response =  userService.findAll(request);
+    UserDtoCursorResponse response = userService.findAll(request);
     log.info("[Controller] 목록 조회 요청 완료");
     return ResponseEntity.status(HttpStatus.OK).body(response);
+  }
+
+  @PreAuthorize("hasRole('ADMIN')")
+  @PatchMapping("/{userId}/lock")
+  public ResponseEntity<UserDto> updateLock(@PathVariable UUID userId,
+      @RequestBody UserLockUpdateRequest request) {
+    log.info("[Controller] 계정 잠근 상태 변경 요청 시작");
+    UserDto dto = userService.updateLock(userId, request);
+    log.info("[Controller] 계정 잠근 상태 변경 요청 완료");
+    return ResponseEntity.status(HttpStatus.OK).body(dto);
   }
 
 }
