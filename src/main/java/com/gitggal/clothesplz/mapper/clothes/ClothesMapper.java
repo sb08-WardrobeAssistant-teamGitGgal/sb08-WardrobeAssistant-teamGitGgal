@@ -3,6 +3,7 @@ package com.gitggal.clothesplz.mapper.clothes;
 import com.gitggal.clothesplz.dto.clothes.ClothesAttributeWithDefDto;
 import com.gitggal.clothesplz.dto.clothes.ClothesCreateRequest;
 import com.gitggal.clothesplz.dto.clothes.ClothesDto;
+import com.gitggal.clothesplz.dto.clothes.OotdDto;
 import com.gitggal.clothesplz.entity.clothes.Clothes;
 import com.gitggal.clothesplz.entity.clothes.ClothesAttribute;
 import com.gitggal.clothesplz.entity.clothes.ClothesAttributeDef;
@@ -32,4 +33,10 @@ public interface ClothesMapper {
 
   @Mapping(target = "definition", source = "attributeDef")
   ClothesAttribute toClothesAttribute(Clothes clothes, ClothesAttributeDef attributeDef, String value);
+
+  @Mapping(target = "clothesId", source = "clothes.id")
+  @Mapping(target = "name", source = "clothes.name")
+  @Mapping(target = "imageUrl", source = "clothes.imageUrl")
+  @Mapping(target = "type", source = "clothes.type")
+  OotdDto toOotdDto(Clothes clothes, List<ClothesAttributeWithDefDto> attributes);
 }

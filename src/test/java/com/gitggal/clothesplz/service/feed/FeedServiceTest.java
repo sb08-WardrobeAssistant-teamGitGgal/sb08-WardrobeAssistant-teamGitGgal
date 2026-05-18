@@ -22,6 +22,7 @@ import com.gitggal.clothesplz.dto.feed.FeedPageRequest;
 import com.gitggal.clothesplz.dto.feed.FeedUpdateRequest;
 import com.gitggal.clothesplz.dto.user.AuthorDto;
 import java.time.Instant;
+import com.gitggal.clothesplz.entity.clothes.Clothes;
 import com.gitggal.clothesplz.entity.feed.Feed;
 import com.gitggal.clothesplz.entity.feed.FeedComment;
 import com.gitggal.clothesplz.entity.feed.FeedLike;
@@ -152,6 +153,11 @@ public class FeedServiceTest extends ServiceTestSupport {
       // given
       given(weatherRepository.findById(eq(weatherId))).willReturn(Optional.of(mockWeather));
       given(userRepository.findById(authorId)).willReturn(Optional.of(mockAuthor));
+      UUID clotheId = feedCreateRequest.clothesIds().get(0);
+      Clothes mockClothes = mock(Clothes.class);
+      given(mockClothes.getId()).willReturn(clotheId);
+      given(clothesAttributeRepository.findAllByClothesIdIn(feedCreateRequest.clothesIds())).willReturn(List.of());
+      given(clothesRepository.findAllById(feedCreateRequest.clothesIds())).willReturn(List.of(mockClothes));
       given(mockFeed.getId()).willReturn(feedId);
       given(mockFeed.getContent()).willReturn(feedCreateRequest.content());
       given(mockFeed.getAuthor()).willReturn(mockAuthor);
@@ -193,6 +199,20 @@ public class FeedServiceTest extends ServiceTestSupport {
       // given
       given(weatherRepository.findById(eq(weatherId))).willReturn(Optional.of(mockWeather));
       given(userRepository.findById(eq(authorId))).willReturn(Optional.empty());
+
+      // when & then
+      assertThatThrownBy(() -> feedService.createFeed(feedCreateRequest))
+          .isInstanceOf(BusinessException.class);
+    }
+
+    @Test
+    @DisplayName("의상 정보를 찾을 수 없는 경우 예외 발생")
+    void createFeed_ClothesNotFound_ThrowsException() {
+      // given
+      given(weatherRepository.findById(eq(weatherId))).willReturn(Optional.of(mockWeather));
+      given(userRepository.findById(eq(authorId))).willReturn(Optional.of(mockAuthor));
+      given(clothesAttributeRepository.findAllByClothesIdIn(feedCreateRequest.clothesIds())).willReturn(List.of());
+      given(clothesRepository.findAllById(feedCreateRequest.clothesIds())).willReturn(List.of());
 
       // when & then
       assertThatThrownBy(() -> feedService.createFeed(feedCreateRequest))
