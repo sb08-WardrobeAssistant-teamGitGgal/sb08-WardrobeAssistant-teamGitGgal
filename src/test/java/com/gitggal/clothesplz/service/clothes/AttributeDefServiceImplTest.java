@@ -93,6 +93,57 @@ class AttributeDefServiceImplTest {
   }
 
   @Test
+  @DisplayName("성공 - 조건에 맞는 속성 목록을 조회하여 DTO 리스트로 반환한다")
+  void getAttributeDefs_success_returnsMappedList() {
+    UUID id1 = UUID.randomUUID();
+    UUID id2 = UUID.randomUUID();
+    ClothesAttributeDef def1 = new ClothesAttributeDef("색상", List.of("WHITE", "BLACK"));
+    ClothesAttributeDef def2 = new ClothesAttributeDef("소재", List.of("COTTON", "WOOL"));
+    ReflectionTestUtils.setField(def1, "id", id1);
+    ReflectionTestUtils.setField(def2, "id", id2);
+    ClothesAttributeDefDto dto1 = new ClothesAttributeDefDto(id1, "색상", List.of("WHITE", "BLACK"), null);
+    ClothesAttributeDefDto dto2 = new ClothesAttributeDefDto(id2, "소재", List.of("COTTON", "WOOL"), null);
+
+    given(clothesAttributeDefRepository.findAllByConditions("name", "ASCENDING", null))
+        .willReturn(List.of(def1, def2));
+    given(attributeDefMapper.toClothesAttributeDefDtoForSearch(def1)).willReturn(dto1);
+    given(attributeDefMapper.toClothesAttributeDefDtoForSearch(def2)).willReturn(dto2);
+
+    List<ClothesAttributeDefDto> result = attributeDefService.getAttributeDefs("name", "ASCENDING", null);
+
+    assertThat(result).hasSize(2);
+    assertThat(result.get(0)).isEqualTo(dto1);
+    assertThat(result.get(1)).isEqualTo(dto2);
+    verify(clothesAttributeDefRepository).findAllByConditions("name", "ASCENDING", null);
+    verify(attributeDefMapper).toClothesAttributeDefDtoForSearch(def1);
+    verify(attributeDefMapper).toClothesAttributeDefDtoForSearch(def2);
+  }
+
+  @Test
+  @DisplayName("성공 - 결과가 없으면 빈 리스트를 반환한다")
+  void getAttributeDefs_noResults_returnsEmptyList() {
+    given(clothesAttributeDefRepository.findAllByConditions("name", "DESCENDING", "없는키워드"))
+        .willReturn(List.of());
+
+    List<ClothesAttributeDefDto> result = attributeDefService.getAttributeDefs(
+        "name", "DESCENDING", "없는키워드");
+
+    assertThat(result).isEmpty();
+    verifyNoInteractions(attributeDefMapper);
+  }
+
+  @Test
+  @DisplayName("성공 - keywordLike 파라미터를 repository에 그대로 전달한다")
+  void getAttributeDefs_withKeyword_passesKeywordToRepository() {
+    given(clothesAttributeDefRepository.findAllByConditions("name", "ASCENDING", "색"))
+        .willReturn(List.of());
+
+    attributeDefService.getAttributeDefs("name", "ASCENDING", "색");
+
+    verify(clothesAttributeDefRepository).findAllByConditions("name", "ASCENDING", "색");
+  }
+
+  @Test
   @DisplayName("실패 - 저장 시 유니크 제약 위반이면 DUPLICATE_ATTRIBUTE_NAME 예외를 던진다")
   void createAttributeDef_duplicateNameOnSave_throwsException() {
     ClothesAttributeDefCreateRequest request = new ClothesAttributeDefCreateRequest(

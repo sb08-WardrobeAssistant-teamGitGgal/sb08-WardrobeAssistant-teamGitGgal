@@ -4,10 +4,12 @@ import com.gitggal.clothesplz.dto.clothes.ClothesAttributeDefCreateRequest;
 import com.gitggal.clothesplz.dto.clothes.ClothesAttributeDefDto;
 import com.gitggal.clothesplz.exception.ErrorResponse;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import java.util.List;
 import org.springframework.http.ResponseEntity;
 
 
@@ -27,5 +29,27 @@ public interface AttributeDefControllerApi {
   )
   ResponseEntity<ClothesAttributeDefDto> createAttributeDef(
       ClothesAttributeDefCreateRequest request
+  );
+
+  @Operation(summary = "의상 속성 정의 목록 조회", description = "의상 속성 정의 목록을 조회합니다.")
+  @ApiResponse(
+      responseCode = "200",
+      description = "의상 속성 정의 목록 조회 성공",
+      content = @Content(array = @ArraySchema(schema = @Schema(implementation = ClothesAttributeDefDto.class)))
+  )
+  @ApiResponse(
+      responseCode = "400",
+      description = "필수 쿼리 파라미터(sortBy, sortDirection) 누락",
+      content = @Content(schema = @Schema(implementation = ErrorResponse.class))
+  )
+  @ApiResponse(
+      responseCode = "401",
+      description = "인증되지 않은 사용자",
+      content = @Content(schema = @Schema(implementation = ErrorResponse.class))
+  )
+  ResponseEntity<List<ClothesAttributeDefDto>> getAttributeDefs(
+      String sortBy,
+      String sortDirection,
+      String keywordLike
   );
 }
