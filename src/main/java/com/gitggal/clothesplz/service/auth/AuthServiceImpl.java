@@ -82,10 +82,15 @@ public class AuthServiceImpl implements AuthService {
               newAccessTokenExpiry,
               newRefreshTokenExpiry
           );
-      jwtRegistry.rotateJwtInformation(
+      boolean rotated = jwtRegistry.rotateJwtInformation(
           refreshToken,
           jwtInformation
       );
+
+      if(!rotated){
+        throw new BusinessException(UserErrorCode.JWT_TOKEN_INVALID);
+      }
+
       return jwtInformation;
     } catch (JOSEException e) {
       throw new BusinessException(UserErrorCode.JWT_TOKEN_GENERATION_FAILED);
