@@ -155,8 +155,9 @@ public class FeedServiceTest extends ServiceTestSupport {
       given(userRepository.findById(authorId)).willReturn(Optional.of(mockAuthor));
       UUID clotheId = feedCreateRequest.clothesIds().get(0);
       Clothes mockClothes = mock(Clothes.class);
+      given(mockClothes.getId()).willReturn(clotheId);
       given(clothesAttributeRepository.findAllByClothesIdIn(feedCreateRequest.clothesIds())).willReturn(List.of());
-      given(clothesRepository.findById(clotheId)).willReturn(Optional.of(mockClothes));
+      given(clothesRepository.findAllById(feedCreateRequest.clothesIds())).willReturn(List.of(mockClothes));
       given(mockFeed.getId()).willReturn(feedId);
       given(mockFeed.getContent()).willReturn(feedCreateRequest.content());
       given(mockFeed.getAuthor()).willReturn(mockAuthor);

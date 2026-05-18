@@ -13,6 +13,7 @@ import com.gitggal.clothesplz.dto.feed.FeedDto;
 import com.gitggal.clothesplz.dto.feed.FeedDtoCursorResponse;
 import com.gitggal.clothesplz.dto.feed.FeedPageRequest;
 import com.gitggal.clothesplz.dto.feed.FeedUpdateRequest;
+import com.gitggal.clothesplz.entity.clothes.Clothes;
 import com.gitggal.clothesplz.entity.feed.Feed;
 import com.gitggal.clothesplz.entity.feed.FeedComment;
 import com.gitggal.clothesplz.entity.feed.FeedLike;
@@ -96,12 +97,20 @@ public class FeedServiceImpl implements FeedService {
                 )
             ));
 
+    // 벌크 조회
+    Map<UUID, Clothes> clothesById = clothesRepository.findAllById(clothesIds).stream()
+        .collect(Collectors.toMap(Clothes::getId, c -> c));
+
+    // 존재하지 않는 의상 검증
+    clothesIds.forEach(id -> {
+      if (!clothesById.containsKey(id))
+        throw new BusinessException(ClothesErrorCode.CLOTHES_NOT_FOUND);
+    });
+
     List<OotdDto> ootds = clothesIds.stream()
-        .map(clotheId -> clothesMapper.toOotdDto(
-            clothesRepository.findById(clotheId)
-                .orElseThrow(() -> new BusinessException(ClothesErrorCode.CLOTHES_NOT_FOUND)),
-            attributesByClothesId.getOrDefault(clotheId, List.of())) // 속성 Dto를 반환하거나 해당 옷에 속성이 없으면 빈 리스트 반환
-        )
+        .map(id -> clothesMapper.toOotdDto(
+            clothesById.get(id),
+            attributesByClothesId.getOrDefault(id, List.of()))) // 속성 dto를 반환하거나 속성이 없을 경우 디폴트 빈 리스트 반환
         .toList();
 
     Feed feed = new Feed(weather, author, ootds, content);
