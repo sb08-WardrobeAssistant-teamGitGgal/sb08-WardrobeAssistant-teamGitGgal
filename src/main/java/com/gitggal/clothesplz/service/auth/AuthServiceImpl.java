@@ -42,9 +42,12 @@ public class AuthServiceImpl implements AuthService {
 
   @Override
   public JwtInformation refresh(String refreshToken) {
-    if (!tokenProvider.validateRefreshToken(refreshToken)
-        || !jwtRegistry.hasActiveJwtInformationByRefreshToken(refreshToken)) {
+    if (!tokenProvider.validateRefreshToken(refreshToken)) {
       throw new BusinessException(UserErrorCode.JWT_TOKEN_INVALID);
+    }
+
+    if (!jwtRegistry.hasActiveJwtInformationByRefreshToken(refreshToken)) {
+      throw new BusinessException(UserErrorCode.JWT_TOKEN_EXPIRED);
     }
 
     String userId = tokenProvider.getUsernameFromToken(refreshToken);
