@@ -4,7 +4,9 @@ import com.gitggal.clothesplz.dto.follow.FollowCreateRequest;
 import com.gitggal.clothesplz.dto.follow.FollowDto;
 import com.gitggal.clothesplz.dto.follow.FollowListResponse;
 import com.gitggal.clothesplz.dto.follow.FollowSummaryDto;
+import com.gitggal.clothesplz.security.ClothesUserDetails;
 import com.gitggal.clothesplz.service.follow.FollowService;
+import com.gitggal.clothesplz.util.AuthenticationUtil;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
 import java.util.UUID;
@@ -12,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -101,7 +104,9 @@ public class FollowController {
   @GetMapping("/summary")
   public ResponseEntity<FollowSummaryDto> getFollowSummary(
       @RequestParam UUID userId,
-      @RequestParam(required = false) UUID requesterId) {   // 현재 로그인 사용자
+      @AuthenticationPrincipal ClothesUserDetails userDetails) {   // 현재 로그인 사용자
+
+    UUID requesterId = AuthenticationUtil.extractUserId(userDetails);
 
     log.info("[Controller] 팔로우 요약 조회 요청 시작: userId={}", userId);
 

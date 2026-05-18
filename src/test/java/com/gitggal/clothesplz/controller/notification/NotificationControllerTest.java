@@ -7,6 +7,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.BDDMockito.willThrow;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -14,11 +15,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.gitggal.clothesplz.config.TestSecurityConfig;
 import com.gitggal.clothesplz.dto.notification.NotificationDtoCursorResponse;
+import com.gitggal.clothesplz.dto.user.UserDto;
+import com.gitggal.clothesplz.entity.user.UserRole;
 import com.gitggal.clothesplz.exception.BusinessException;
 import com.gitggal.clothesplz.exception.GlobalExceptionHandler;
 import com.gitggal.clothesplz.exception.code.NotificationErrorCode;
+import com.gitggal.clothesplz.security.ClothesUserDetails;
 import com.gitggal.clothesplz.security.jwt.JwtAuthenticationFilter;
 import com.gitggal.clothesplz.service.notification.NotificationService;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -53,6 +58,11 @@ class NotificationControllerTest {
   @MockitoBean
   private NotificationService notificationService;
 
+  private ClothesUserDetails mockUserDetails(UUID userId) {
+    UserDto userDto = new UserDto(userId, Instant.now(), "test@test.com", "테스터", UserRole.USER, false);
+    return new ClothesUserDetails(userDto, "password");
+  }
+
   // ─── GET /api/notifications ────────────────────────────────────────────────
 
   @Test
@@ -68,7 +78,7 @@ class NotificationControllerTest {
 
     // when & then
     mockMvc.perform(get("/api/notifications")
-            .param("receiverId", receiverId.toString())
+            .with(user(mockUserDetails(receiverId)))
             .param("limit", "10")
             .with(csrf()))
         .andExpect(status().isOk())
@@ -84,14 +94,6 @@ class NotificationControllerTest {
         .andExpect(status().isBadRequest());
   }
 
-  @Test
-  @DisplayName("receiverId 파라미터 없이 요청하면 400을 반환한다")
-  void getNotifications_missingReceiverId_returns400() throws Exception {
-    mockMvc.perform(get("/api/notifications")
-            .param("limit", "10"))
-        .andExpect(status().isBadRequest());
-  }
-
   // ─── DELETE /api/notifications/{notificationId} ────────────────────────────
 
   @Test
@@ -103,7 +105,7 @@ class NotificationControllerTest {
 
     // when & then
     mockMvc.perform(delete("/api/notifications/{notificationId}", notificationId)
-            .param("requesterId", requesterId.toString())
+            .with(user(mockUserDetails(requesterId)))
             .with(csrf()))
         .andExpect(status().isNoContent());
 
@@ -122,7 +124,7 @@ class NotificationControllerTest {
 
     // when & then
     mockMvc.perform(delete("/api/notifications/{notificationId}", notificationId)
-            .param("requesterId", requesterId.toString())
+            .with(user(mockUserDetails(requesterId)))
             .with(csrf()))
         .andExpect(status().isNotFound());
   }

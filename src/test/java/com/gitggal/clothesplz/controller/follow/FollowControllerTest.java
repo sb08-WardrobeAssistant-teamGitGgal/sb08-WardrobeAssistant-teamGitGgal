@@ -9,6 +9,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.BDDMockito.willThrow;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -21,11 +22,15 @@ import com.gitggal.clothesplz.dto.follow.FollowDto;
 import com.gitggal.clothesplz.dto.follow.FollowListResponse;
 import com.gitggal.clothesplz.dto.follow.FollowSummaryDto;
 import com.gitggal.clothesplz.dto.follow.UserSummary;
+import com.gitggal.clothesplz.dto.user.UserDto;
+import com.gitggal.clothesplz.entity.user.UserRole;
 import com.gitggal.clothesplz.exception.BusinessException;
 import com.gitggal.clothesplz.exception.GlobalExceptionHandler;
 import com.gitggal.clothesplz.exception.code.FollowErrorCode;
+import com.gitggal.clothesplz.security.ClothesUserDetails;
 import com.gitggal.clothesplz.security.jwt.JwtAuthenticationFilter;
 import com.gitggal.clothesplz.service.follow.FollowService;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -66,6 +71,12 @@ public class FollowControllerTest {
 
   @MockitoBean
   private FollowService followService;
+
+  private ClothesUserDetails mockUserDetails(UUID userId) {
+    UserDto userDto =
+        new UserDto(userId, Instant.now(), "test@test.com", "테스터", UserRole.USER, false);
+    return new ClothesUserDetails(userDto, "password");
+  }
 
   // 팔로우 생성
   @Test
@@ -324,7 +335,7 @@ public class FollowControllerTest {
     // when & then
     mockMvc.perform(get("/api/follows/summary")
             .param("userId", userId.toString())
-            .param("requesterId", requesterId.toString()))
+            .with(user(mockUserDetails(requesterId))))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.followerCount").value(10))
         .andExpect(jsonPath("$.followingCount").value(5))
@@ -339,21 +350,5 @@ public class FollowControllerTest {
     mockMvc.perform(get("/api/follows/summary")
             .param("requesterId", UUID.randomUUID().toString()))
         .andExpect(status().isBadRequest());
-  }
-
-  @Test
-  @DisplayName("requesterId 없이 요청하면 서비스에 null이 전달되어 200을 반환한다.")
-  void getFollowSummary_withoutRequesterId_passes200() throws Exception {
-
-    // given: requesterId=null → 서비스가 null 반환 (비로그인 사용자)
-    UUID userId = UUID.randomUUID();
-
-    given(followService.getFollowSummary(eq(userId), isNull()))
-        .willReturn(null);
-
-    // when & then
-    mockMvc.perform(get("/api/follows/summary")
-            .param("userId", userId.toString()))
-        .andExpect(status().isOk());
   }
 }
