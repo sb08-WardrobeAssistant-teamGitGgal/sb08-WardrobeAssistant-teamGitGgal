@@ -15,6 +15,7 @@ import com.gitggal.clothesplz.dto.user.UserCreateRequest;
 import com.gitggal.clothesplz.dto.user.UserDto;
 import com.gitggal.clothesplz.dto.user.UserDtoCursorRequest;
 import com.gitggal.clothesplz.dto.user.UserDtoCursorResponse;
+import com.gitggal.clothesplz.dto.user.UserLockUpdateRequest;
 import com.gitggal.clothesplz.dto.user.UserRoleUpdateRequest;
 import com.gitggal.clothesplz.entity.profile.Profile;
 import com.gitggal.clothesplz.entity.user.User;
@@ -356,6 +357,73 @@ class UserServiceTest {
       assertThat(response.sortDirection()).isEqualTo("ASCENDING");
 
       verify(userRepository, times(1)).getAllUsers(request);
+    }
+  }
+
+  @Nested
+  @DisplayName("계정 잠금 상태 변경")
+  class updateLock {
+
+    @Test
+    @DisplayName("성공 - 잠금")
+    void updateLock_success_lock() {
+
+      // given
+      UserLockUpdateRequest request = new UserLockUpdateRequest(true);
+      UserDto userTrueDto = new UserDto(
+          userId,
+          Instant.now(),
+          "Git@git.git",
+          "GitGit",
+          UserRole.USER,
+          true
+      );
+
+      given(userRepository.findById(userId))
+          .willReturn(Optional.of(user));
+      given(userMapper.toDto(user)).willReturn(userTrueDto);
+
+      // when
+      userService.updateLock(userId, request);
+
+      // then
+      assertThat(user.isLocked()).isTrue();
+      verify(userMapper).toDto(user);
+      verify(jwtRegistry).invalidateJwtInformationByUserId(userId);
+    }
+
+    @Test
+    @DisplayName("성공 - 해제")
+    void updateLock_success_unlock() {
+
+      // given
+      UserLockUpdateRequest request = new UserLockUpdateRequest(false);
+
+      given(userRepository.findById(userId))
+          .willReturn(Optional.of(user));
+      given(userMapper.toDto(user)).willReturn(userDto);
+
+      // when
+      userService.updateLock(userId, request);
+
+      // then
+      assertThat(user.isLocked()).isFalse();
+      verify(userMapper).toDto(user);
+    }
+
+    @Test
+    @DisplayName("실패 - 사용자를 찾을 수 없음")
+    void updateLock_fail_userNotFound() {
+
+      // given
+      UserLockUpdateRequest request = new UserLockUpdateRequest(true);
+      given(userRepository.findById(userId)).willReturn(Optional.empty());
+
+      // when & then
+      assertThatThrownBy(() -> userService.updateLock(userId, request))
+          .isInstanceOf(BusinessException.class);
+
+      verify(jwtRegistry, never()).invalidateJwtInformationByUserId(any());
     }
   }
 }
