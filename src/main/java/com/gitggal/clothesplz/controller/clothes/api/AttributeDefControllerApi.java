@@ -4,12 +4,14 @@ import com.gitggal.clothesplz.dto.clothes.ClothesAttributeDefCreateRequest;
 import com.gitggal.clothesplz.dto.clothes.ClothesAttributeDefDto;
 import com.gitggal.clothesplz.exception.ErrorResponse;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
+import java.util.UUID;
 import org.springframework.http.ResponseEntity;
 
 
@@ -51,5 +53,17 @@ public interface AttributeDefControllerApi {
       String sortBy,
       String sortDirection,
       String keywordLike
+  );
+
+  @Operation(summary = "의상 속성 정의 삭제", description = "의상 속성 정의 목록을 삭제합니다.")
+  @ApiResponse(responseCode = "204", description = "의상 속성 정의 삭제 성공")
+  @ApiResponse(
+      responseCode = "400",
+      description = "의상 속성 정의 삭제 실패",
+      content = @Content(schema = @Schema(implementation = ErrorResponse.class))
+  )
+  ResponseEntity<Void> deleteAttributeDefs(
+      @Parameter(description = "속성 정의 ID", required = true)
+      UUID definitionId
   );
 }
