@@ -1,10 +1,12 @@
 package com.gitggal.clothesplz.security.websocket;
 
 import com.gitggal.clothesplz.exception.BusinessException;
+import com.gitggal.clothesplz.exception.code.CommonErrorCode;
 import com.gitggal.clothesplz.exception.code.UserErrorCode;
 import com.gitggal.clothesplz.security.jwt.JwtRegistry;
 import com.gitggal.clothesplz.security.jwt.JwtTokenProvider;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -67,7 +69,14 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
 
       UUID userId = tokenProvider.getUserId(token);
 
-      accessor.getSessionAttributes().put(USER_ID_KEY, userId);
+      Map<String, Object> sessionAttributes = accessor.getSessionAttributes();
+
+      if (sessionAttributes == null) {
+        log.warn("[STOMP] CONNECT 실패: 세션 속성을 찾을 수 없음");
+        throw new BusinessException(CommonErrorCode.INTERNAL_SERVER_ERROR);
+      }
+
+      sessionAttributes.put(USER_ID_KEY, userId);
 
       log.info("[STOMP] CONNECT 성공: userId={}", userId);
     }
