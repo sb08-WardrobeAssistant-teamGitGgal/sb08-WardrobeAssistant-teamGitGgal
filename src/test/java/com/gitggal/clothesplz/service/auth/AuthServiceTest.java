@@ -2,7 +2,6 @@ package com.gitggal.clothesplz.service.auth;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
@@ -91,7 +90,7 @@ class AuthServiceTest {
         "oldPassword"
     );
 
-    clothesUserDetails = new ClothesUserDetails(userDto, "password",null,null);
+    clothesUserDetails = new ClothesUserDetails(userDto, "password", null, null);
 
     oldRefreshToken = "old.refresh.token";
     newAccessToken = "new.access.token";
@@ -148,7 +147,7 @@ class AuthServiceTest {
       // when & then
       assertThatThrownBy(() -> authService.refresh(oldRefreshToken))
           .isInstanceOf(BusinessException.class)
-          .hasFieldOrPropertyWithValue("errorCode", UserErrorCode.INVALID_TOKEN);
+          .hasFieldOrPropertyWithValue("errorCode", UserErrorCode.JWT_TOKEN_INVALID);
 
       verify(tokenProvider).validateRefreshToken(oldRefreshToken);
       verify(jwtRegistry, never()).hasActiveJwtInformationByRefreshToken(anyString());
@@ -167,7 +166,7 @@ class AuthServiceTest {
       // when & then
       assertThatThrownBy(() -> authService.refresh(oldRefreshToken))
           .isInstanceOf(BusinessException.class)
-          .hasFieldOrPropertyWithValue("errorCode", UserErrorCode.INVALID_TOKEN);
+          .hasFieldOrPropertyWithValue("errorCode", UserErrorCode.JWT_TOKEN_INVALID);
 
       verify(tokenProvider).validateRefreshToken(oldRefreshToken);
       verify(jwtRegistry).hasActiveJwtInformationByRefreshToken(oldRefreshToken);
@@ -226,7 +225,7 @@ class AuthServiceTest {
 
   @Nested
   @DisplayName("임시 비밀번호 발급")
-  class sendTempPassword{
+  class sendTempPassword {
 
     @Test
     @DisplayName("성공")

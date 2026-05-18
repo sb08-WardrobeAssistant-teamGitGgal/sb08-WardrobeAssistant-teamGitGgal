@@ -44,25 +44,25 @@ public class AuthServiceImpl implements AuthService {
   public JwtInformation refresh(String refreshToken) {
     if (!tokenProvider.validateRefreshToken(refreshToken)
         || !jwtRegistry.hasActiveJwtInformationByRefreshToken(refreshToken)) {
-      throw new BusinessException(UserErrorCode.INVALID_TOKEN);
+      throw new BusinessException(UserErrorCode.JWT_TOKEN_INVALID);
     }
 
     String userId = tokenProvider.getUsernameFromToken(refreshToken);
     if (userId == null || userId.isBlank()) {
-      throw new BusinessException(UserErrorCode.INVALID_TOKEN);
+      throw new BusinessException(UserErrorCode.JWT_TOKEN_INVALID);
     }
 
     UUID parsedUserId;
     try {
       parsedUserId = UUID.fromString(userId);
     } catch (IllegalArgumentException e) {
-      throw new BusinessException(UserErrorCode.INVALID_TOKEN);
+      throw new BusinessException(UserErrorCode.JWT_TOKEN_INVALID);
     }
 
     UserDetails userDetails = clothesUserDetailsService.loadUserById(parsedUserId);
 
     if (!(userDetails instanceof ClothesUserDetails clothesUserDetails)) {
-      throw new BusinessException(UserErrorCode.INVALID_TOKEN);
+      throw new BusinessException(UserErrorCode.JWT_TOKEN_INVALID);
     }
 
     try {

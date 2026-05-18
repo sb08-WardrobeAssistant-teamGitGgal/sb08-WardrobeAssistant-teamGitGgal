@@ -168,7 +168,7 @@ class AuthControllerTest {
       String invalidRefreshToken = "invalid.refresh.token";
 
       given(authService.refresh(anyString()))
-          .willThrow(new BusinessException(UserErrorCode.INVALID_TOKEN));
+          .willThrow(new BusinessException(UserErrorCode.JWT_TOKEN_INVALID));
 
       // when & then
       mockMvc.perform(post("/api/auth/refresh")
@@ -176,7 +176,7 @@ class AuthControllerTest {
               .cookie(new Cookie("REFRESH_TOKEN", invalidRefreshToken)))
           .andDo(print())
           .andExpect(status().isUnauthorized())
-          .andExpect(jsonPath("$.exceptionName").value(UserErrorCode.INVALID_TOKEN.name()));
+          .andExpect(jsonPath("$.exceptionName").value(UserErrorCode.JWT_TOKEN_INVALID.name()));
 
       verify(authService).refresh(invalidRefreshToken);
     }
@@ -188,7 +188,7 @@ class AuthControllerTest {
       String expiredRefreshToken = "expired.refresh.token";
 
       given(authService.refresh(expiredRefreshToken))
-          .willThrow(new BusinessException(UserErrorCode.INVALID_TOKEN));
+          .willThrow(new BusinessException(UserErrorCode.JWT_TOKEN_INVALID));
 
       // when & then
       mockMvc.perform(post("/api/auth/refresh")
@@ -196,7 +196,7 @@ class AuthControllerTest {
               .cookie(new Cookie("REFRESH_TOKEN", expiredRefreshToken)))
           .andDo(print())
           .andExpect(status().isUnauthorized())
-          .andExpect(jsonPath("$.exceptionName").value(UserErrorCode.INVALID_TOKEN.name()));
+          .andExpect(jsonPath("$.exceptionName").value(UserErrorCode.JWT_TOKEN_INVALID.name()));
 
       verify(authService).refresh(expiredRefreshToken);
     }
