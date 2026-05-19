@@ -3,6 +3,7 @@ package com.gitggal.clothesplz.component.batch.weather;
 import com.gitggal.clothesplz.entity.weather.*;
 import com.gitggal.clothesplz.repository.weather.WeatherRepository;
 import com.gitggal.clothesplz.service.weather.WeatherAlertService;
+import com.gitggal.clothesplz.service.weather.WeatherCacheService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -36,6 +37,9 @@ class WeatherItemWriterTest {
     @Mock
     private WeatherAlertService weatherAlertService;
 
+    @Mock
+    private WeatherCacheService weatherCacheService;
+
     @InjectMocks
     private WeatherItemWriter writer;
 
@@ -47,6 +51,8 @@ class WeatherItemWriterTest {
         locationId = UUID.randomUUID();
         location = mock(Location.class);
         given(location.getId()).willReturn(locationId);
+        given(location.getGridX()).willReturn(60);
+        given(location.getGridY()).willReturn(127);
     }
 
     @Nested
@@ -177,6 +183,20 @@ class WeatherItemWriterTest {
             writer.write(chunk);
 
             verifyNoInteractions(weatherAlertService);
+        }
+
+        @Test
+        @DisplayName("저장 후 해당 격자 캐시 evict 호출")
+        void write_afterSave_evictsCache() throws Exception {
+            Weather w = makeWeather(OffsetDateTime.now());
+            Chunk<List<Weather>> chunk = new Chunk<>(List.of(List.of(w)));
+
+            given(weatherRepository.findByLocationInAndForecastAtBetween(anyList(), any(), any()))
+                    .willReturn(List.of());
+
+            writer.write(chunk);
+
+            verify(weatherCacheService).evictForecast(60, 127);
         }
     }
 
