@@ -73,8 +73,7 @@ public class UserServiceImpl implements UserService {
   public void updatePassword(UUID userId, ChangePasswordRequest request) {
     log.info("[Service] 비밀번호 변경 요청 시작 : userId = {}", userId);
 
-    User user = userRepository.findById(userId)
-        .orElseThrow(() -> new BusinessException(UserErrorCode.USER_NOT_FOUND));
+    User user = findUser(userId);
 
     String newPassword = passwordEncoder.encode(request.password());
     user.updatePassword(newPassword);
@@ -90,8 +89,7 @@ public class UserServiceImpl implements UserService {
   public UserDto updateRole(UUID userId, UserRoleUpdateRequest request) {
     log.info("[Service] 권한 변경 요청 시작 : userId = {}", userId);
 
-    User user = userRepository.findById(userId)
-        .orElseThrow(() -> new BusinessException(UserErrorCode.USER_NOT_FOUND));
+    User user = findUser(userId);
 
     if (user.getRole() == request.role()) {
       log.info("[Service] 권한 변경 요청 실패: 같은 역할 userId={}", userId);
@@ -151,8 +149,7 @@ public class UserServiceImpl implements UserService {
   public UserDto updateLock(UUID userId, UserLockUpdateRequest request) {
     log.info("[Service] 계정 잠금 상태 변경 요청 시작 : userId = {}", userId);
 
-    User user = userRepository.findById(userId)
-        .orElseThrow(() -> new BusinessException(UserErrorCode.USER_NOT_FOUND));
+    User user = findUser(userId);
 
     user.updateLock(request.locked());
 
@@ -162,6 +159,11 @@ public class UserServiceImpl implements UserService {
 
     log.info("[Service] 계정 잠금 상태 변경 요청 완료 : userId = {}", userId);
     return userMapper.toDto(user);
+  }
+
+  private User findUser(UUID userId) {
+    return userRepository.findById(userId)
+        .orElseThrow(() -> new BusinessException(UserErrorCode.USER_NOT_FOUND));
   }
 }
 

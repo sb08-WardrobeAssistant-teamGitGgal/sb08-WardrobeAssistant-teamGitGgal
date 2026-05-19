@@ -4,8 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
 
 import com.gitggal.clothesplz.entity.profile.Profile;
 import com.gitggal.clothesplz.entity.user.User;
@@ -74,7 +74,7 @@ class AdminInitializerTest {
 
     // then
     ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
-    verify(userRepository).save(userCaptor.capture());
+    then(userRepository).should().save(userCaptor.capture());
 
     User capturedUser = userCaptor.getValue();
     assertThat(capturedUser.getName()).isEqualTo(adminName);
@@ -82,13 +82,12 @@ class AdminInitializerTest {
     assertThat(capturedUser.getRole()).isEqualTo(UserRole.ADMIN);
     assertThat(capturedUser.getPassword()).isEqualTo("encoded_password");
 
-    verify(passwordEncoder).encode(adminPassword);
-    verify(profileRepository).save(any(Profile.class));
+    then(profileRepository).should().save(any(Profile.class));
   }
 
   @Test
   @DisplayName("관리자 계정 생성 실패 - 이미 존재")
-  void createAdminAccount_alreadyExists() throws Exception {
+  void createAdminAccount_fail_alreadyExists() throws Exception {
     // given
     given(userRepository.existsByEmail(adminEmail)).willReturn(true);
 
@@ -96,8 +95,8 @@ class AdminInitializerTest {
     adminInitializer.run(args);
 
     // then
-    verify(userRepository, never()).save(any(User.class));
-    verify(profileRepository, never()).save(any(Profile.class));
-    verify(passwordEncoder, never()).encode(anyString());
+    then(userRepository).should(never()).save(any(User.class));
+    then(profileRepository).should(never()).save(any(Profile.class));
+    then(passwordEncoder).should(never()).encode(anyString());
   }
 }

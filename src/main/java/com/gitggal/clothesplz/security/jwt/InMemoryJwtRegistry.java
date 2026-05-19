@@ -3,6 +3,7 @@ package com.gitggal.clothesplz.security.jwt;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -84,18 +85,20 @@ public class InMemoryJwtRegistry implements JwtRegistry {
 
   // Jwt 토큰 갱신
   @Override
-  public void rotateJwtInformation(String oldRefreshToken, JwtInformation newJwtInformation) {
+  public boolean rotateJwtInformation(String oldRefreshToken, JwtInformation newJwtInformation) {
     UUID userId = newJwtInformation.userDto().id();
+    AtomicBoolean rotated = new AtomicBoolean(false);
 
     origin.computeIfPresent(userId, (key, oldJwt) -> {
       if (oldJwt.refreshToken().equals(oldRefreshToken)) {
         removeTokenIndex(oldJwt.accessToken(), oldJwt.refreshToken());
         addTokenIndex(userId, newJwtInformation.accessToken(), newJwtInformation.refreshToken());
+        rotated.set(true);
         return newJwtInformation;
       }
       return oldJwt;
     });
-
+    return rotated.get();
   }
 
   // 만료된 Jwt 정리

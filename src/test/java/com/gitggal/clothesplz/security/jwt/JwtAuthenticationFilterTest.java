@@ -2,9 +2,9 @@ package com.gitggal.clothesplz.security.jwt;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gitggal.clothesplz.dto.user.UserDto;
@@ -66,7 +66,7 @@ class JwtAuthenticationFilterTest {
 
     assertThat(response.getStatus()).isEqualTo(200);
     assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
-    verify(tokenProvider, never()).validateAccessToken(any());
+    then(tokenProvider).should(never()).validateAccessToken(any());
   }
 
   @Test
@@ -79,10 +79,10 @@ class JwtAuthenticationFilterTest {
     MockHttpServletResponse response = new MockHttpServletResponse();
     MockFilterChain filterChain = new MockFilterChain();
 
-    when(tokenProvider.validateAccessToken("access-token")).thenReturn(true);
-    when(jwtRegistry.hasActiveJwtInformationByAccessToken("access-token")).thenReturn(true);
-    when(tokenProvider.getUserId("access-token")).thenReturn(userId);
-    when(userDetailsService.loadUserById(userId)).thenReturn(userDetails);
+    given(tokenProvider.validateAccessToken("access-token")).willReturn(true);
+    given(jwtRegistry.hasActiveJwtInformationByAccessToken("access-token")).willReturn(true);
+    given(tokenProvider.getUserId("access-token")).willReturn(userId);
+    given(userDetailsService.loadUserById(userId)).willReturn(userDetails);
 
     filter.doFilter(request, response, filterChain);
 
@@ -100,7 +100,7 @@ class JwtAuthenticationFilterTest {
     MockHttpServletResponse response = new MockHttpServletResponse();
     MockFilterChain filterChain = new MockFilterChain();
 
-    when(tokenProvider.validateAccessToken("invalid-token")).thenReturn(false);
+    given(tokenProvider.validateAccessToken("invalid-token")).willReturn(false);
 
     filter.doFilter(request, response, filterChain);
 
@@ -108,7 +108,7 @@ class JwtAuthenticationFilterTest {
     assertThat(response.getContentAsString()).contains("JWT_TOKEN_INVALID");
     assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
     assertThat(filterChain.getRequest()).isNull();
-    verify(tokenProvider, never()).getUserId(any());
+    then(tokenProvider).should(never()).getUserId(any());
   }
 
   @Test
@@ -119,8 +119,8 @@ class JwtAuthenticationFilterTest {
     MockHttpServletResponse response = new MockHttpServletResponse();
     MockFilterChain filterChain = new MockFilterChain();
 
-    when(tokenProvider.validateAccessToken("access-token")).thenReturn(true);
-    when(jwtRegistry.hasActiveJwtInformationByAccessToken("access-token")).thenReturn(false);
+    given(tokenProvider.validateAccessToken("access-token")).willReturn(true);
+    given(jwtRegistry.hasActiveJwtInformationByAccessToken("access-token")).willReturn(false);
 
     filter.doFilter(request, response, filterChain);
 
@@ -128,7 +128,7 @@ class JwtAuthenticationFilterTest {
     assertThat(response.getContentAsString()).contains("JWT_TOKEN_INVALID");
     assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
     assertThat(filterChain.getRequest()).isNull();
-    verify(userDetailsService, never()).loadUserById(any(UUID.class));
+    then(userDetailsService).should(never()).loadUserById(any(UUID.class));
   }
 
   @Test
@@ -141,10 +141,10 @@ class JwtAuthenticationFilterTest {
     MockHttpServletResponse response = new MockHttpServletResponse();
     MockFilterChain filterChain = new MockFilterChain();
 
-    when(tokenProvider.validateAccessToken("access-token")).thenReturn(true);
-    when(jwtRegistry.hasActiveJwtInformationByAccessToken("access-token")).thenReturn(true);
-    when(tokenProvider.getUserId("access-token")).thenReturn(userId);
-    when(userDetailsService.loadUserById(userId)).thenReturn(userDetails);
+    given(tokenProvider.validateAccessToken("access-token")).willReturn(true);
+    given(jwtRegistry.hasActiveJwtInformationByAccessToken("access-token")).willReturn(true);
+    given(tokenProvider.getUserId("access-token")).willReturn(userId);
+    given(userDetailsService.loadUserById(userId)).willReturn(userDetails);
 
     filter.doFilter(request, response, filterChain);
 
