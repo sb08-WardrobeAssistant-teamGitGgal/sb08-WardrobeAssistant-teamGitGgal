@@ -25,4 +25,14 @@ public class ClothesAttributeDef extends BaseUpdatableEntity {
   @JdbcTypeCode(SqlTypes.JSON)
   @Column(name = "selectable_values", columnDefinition = "jsonb", nullable = false)
   private List<String> selectableValues;
+
+  public void update(String name, List<String> selectableValues) {
+    if (name != null) {
+      this.name = name;
+    }
+
+    if (selectableValues != null && !selectableValues.isEmpty()) {
+      this.selectableValues = selectableValues;
+    }
+  }
 }

@@ -6,6 +6,7 @@ import com.gitggal.clothesplz.config.QuerydslConfig;
 import com.gitggal.clothesplz.entity.clothes.ClothesAttributeDef;
 import com.gitggal.clothesplz.repository.RepositoryTestSupport;
 import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -142,5 +143,50 @@ class ClothesAttributeDefRepositoryTest extends RepositoryTestSupport {
     List<ClothesAttributeDef> result = repository.findAllByConditions("name", "ASCENDING", "없는키워드");
 
     assertThat(result).isEmpty();
+  }
+
+  @Test
+  @DisplayName("name과 selectableValues 모두 수정하면 DB에 반영된다")
+  void update_nameAndValues_persistsBoth() {
+    ClothesAttributeDef def = persist("색상", "WHITE", "BLACK");
+    UUID id = def.getId();
+
+    def.update("재질", List.of("COTTON", "WOOL"));
+    em.flush();
+    em.clear();
+
+    ClothesAttributeDef found = repository.findById(id).orElseThrow();
+    assertThat(found.getName()).isEqualTo("재질");
+    assertThat(found.getSelectableValues()).containsExactly("COTTON", "WOOL");
+  }
+
+  @Test
+  @DisplayName("name이 null이면 기존 name이 유지된다")
+  void update_nullName_keepsPreviousName() {
+    ClothesAttributeDef def = persist("색상", "WHITE");
+    UUID id = def.getId();
+
+    def.update(null, List.of("RED"));
+    em.flush();
+    em.clear();
+
+    ClothesAttributeDef found = repository.findById(id).orElseThrow();
+    assertThat(found.getName()).isEqualTo("색상");
+    assertThat(found.getSelectableValues()).containsExactly("RED");
+  }
+
+  @Test
+  @DisplayName("selectableValues가 null이면 기존 selectableValues가 유지된다")
+  void update_nullSelectableValues_keepsPreviousValues() {
+    ClothesAttributeDef def = persist("색상", "WHITE", "BLACK");
+    UUID id = def.getId();
+
+    def.update("재질", null);
+    em.flush();
+    em.clear();
+
+    ClothesAttributeDef found = repository.findById(id).orElseThrow();
+    assertThat(found.getName()).isEqualTo("재질");
+    assertThat(found.getSelectableValues()).containsExactly("WHITE", "BLACK");
   }
 }

@@ -2,6 +2,7 @@ package com.gitggal.clothesplz.service.clothes.impl;
 
 import com.gitggal.clothesplz.dto.clothes.ClothesAttributeDefCreateRequest;
 import com.gitggal.clothesplz.dto.clothes.ClothesAttributeDefDto;
+import com.gitggal.clothesplz.dto.clothes.ClothesAttributeDefUpdateRequest;
 import com.gitggal.clothesplz.entity.clothes.ClothesAttributeDef;
 import com.gitggal.clothesplz.exception.BusinessException;
 import com.gitggal.clothesplz.exception.code.ClothesErrorCode;
@@ -82,5 +83,27 @@ public class AttributeDefServiceImpl implements AttributeDefService {
     clothesAttributeDefRepository.delete(attributeDef);
 
     log.info("[Service] 의상 속성 삭제 완료: definitionId={}", definitionId);
+  }
+
+  @Override
+  @Transactional
+  public ClothesAttributeDefDto updateAttributeDef(UUID definitionId, ClothesAttributeDefUpdateRequest request) {
+    log.info("[Service] 의상 속성 수정 시작");
+
+    ClothesAttributeDef attributeDef = clothesAttributeDefRepository.findById(definitionId)
+        .orElseThrow(() -> new BusinessException(ClothesErrorCode.CLOTHES_ATTRIBUTE_DEFINITION_NOT_FOUND));
+
+    if (
+        !attributeDef.getName().equals(request.name()) &&
+        clothesAttributeDefRepository.existsByName(request.name())
+    ) {
+      log.error("[Service] 중복된 의상 속성 이름");
+      throw new BusinessException(ClothesErrorCode.DUPLICATE_ATTRIBUTE_NAME);
+    }
+
+    attributeDef.update(request.name(), request.selectableValues());
+
+    log.info("[Service] 의상 속성 수정 완료");
+    return attributeDefMapper.toClothesAttributeDefDto(attributeDef);
   }
 }
