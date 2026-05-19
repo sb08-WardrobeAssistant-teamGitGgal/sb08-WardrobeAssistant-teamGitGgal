@@ -14,6 +14,9 @@ spring:
       host: localhost
       port: 6379
 
+  elasticsearch:
+    uris: http://localhost:${ELASTIC_PORT}
+
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:

@@ -32,7 +32,7 @@ public class ProfileController implements ProfileControllerApi {
 
   @Override
   @GetMapping("/{userId}/profiles")
-  @PreAuthorize("#userDetails.userDto.id == #userId or hasRole('ADMIN')")
+  @PreAuthorize("isAuthenticated()")
   public ResponseEntity<ProfileDto> getProfile(
       @PathVariable UUID userId,
       @AuthenticationPrincipal ClothesUserDetails userDetails

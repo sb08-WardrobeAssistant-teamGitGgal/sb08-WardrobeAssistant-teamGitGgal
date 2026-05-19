@@ -15,7 +15,6 @@ import com.gitggal.clothesplz.repository.user.UserRepository;
 import com.gitggal.clothesplz.repository.weather.LocationRepository;
 import com.gitggal.clothesplz.service.image.ImageUploader;
 import com.gitggal.clothesplz.service.profile.ProfileService;
-import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -48,19 +47,13 @@ public class ProfileServiceImpl implements ProfileService {
     WeatherAPILocation location;
 
     if (profile.getGridX() == null || profile.getGridY() == null) {
-      location = WeatherAPILocation.of(null, null, null, null, List.of());
+      location = null;
     } else {
       location = locationRepository.findByGridXAndGridY(
               profile.getGridX(),
               profile.getGridY()
           ).map(profileMapper::toWeatherAPILocation)
-          .orElse(WeatherAPILocation.of(
-              profile.getLatitude(),
-              profile.getLongitude(),
-              profile.getGridX(),
-              profile.getGridY(),
-              List.of())
-          );
+          .orElse(null);
     }
 
     log.info("[Service] 프로필 조회 요청 완료");
@@ -76,9 +69,9 @@ public class ProfileServiceImpl implements ProfileService {
     Profile profile = findProfileOrThrow(user);
     Location location = findLocationOrNull(profile);
 
-     if (request.name() != null) {
+    if (request.name() != null) {
       user.updateName(request.name());
-     }
+    }
 
     String imageUrl = (image != null && !image.isEmpty()) ? imageUploader.upload(image) : null;
 

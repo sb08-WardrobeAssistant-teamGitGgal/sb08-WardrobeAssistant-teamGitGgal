@@ -19,5 +19,8 @@ public record FeedDto(
     int commentCount,
     boolean likedByMe
 ) {
-
+  public FeedDto withLikedByMe(boolean likedByMe) {
+    return new FeedDto(id, createdAt, updatedAt, author, weather,
+        ootds, content, likeCount, commentCount, likedByMe);
+  }
 }

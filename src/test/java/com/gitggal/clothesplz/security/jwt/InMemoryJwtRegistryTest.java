@@ -1,7 +1,7 @@
 package com.gitggal.clothesplz.security.jwt;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
+import static org.mockito.BDDMockito.given;
 
 import com.gitggal.clothesplz.dto.user.UserDto;
 import com.gitggal.clothesplz.entity.user.UserRole;
@@ -40,8 +40,8 @@ class InMemoryJwtRegistryTest {
   @DisplayName("JWT 등록")
   void registerJwtInformation() {
     JwtInformation jwtInformation = jwtInformation("access-token", "refresh-token");
-    when(tokenProvider.validateAccessToken("access-token")).thenReturn(true);
-    when(tokenProvider.validateRefreshToken("refresh-token")).thenReturn(true);
+    given(tokenProvider.validateAccessToken("access-token")).willReturn(true);
+    given(tokenProvider.validateRefreshToken("refresh-token")).willReturn(true);
 
     jwtRegistry.registerJwtInformation(jwtInformation);
 
@@ -54,10 +54,12 @@ class InMemoryJwtRegistryTest {
   @DisplayName("같은 사용자가 새 JWT를 등록하면 기존 JWT 인덱스는 제거")
   void registerJwtInformationRemovesOldTokenIndexes() {
     jwtRegistry.registerJwtInformation(jwtInformation("old-access-token", "old-refresh-token"));
-    jwtRegistry.registerJwtInformation(jwtInformation("new-access-token", "new-refresh-token"));
+    JwtInformation newJwtInformation = jwtInformation("new-access-token", "new-refresh-token");
 
-    when(tokenProvider.validateAccessToken("new-access-token")).thenReturn(true);
-    when(tokenProvider.validateRefreshToken("new-refresh-token")).thenReturn(true);
+    given(tokenProvider.validateAccessToken("new-access-token")).willReturn(true);
+    given(tokenProvider.validateRefreshToken("new-refresh-token")).willReturn(true);
+
+    jwtRegistry.registerJwtInformation(newJwtInformation);
 
     assertThat(jwtRegistry.hasActiveJwtInformationByAccessToken("old-access-token")).isFalse();
     assertThat(jwtRegistry.hasActiveJwtInformationByRefreshToken("old-refresh-token")).isFalse();
@@ -86,8 +88,8 @@ class InMemoryJwtRegistryTest {
         jwtInformation("new-access-token", "new-refresh-token")
     );
 
-    when(tokenProvider.validateAccessToken("new-access-token")).thenReturn(true);
-    when(tokenProvider.validateRefreshToken("new-refresh-token")).thenReturn(true);
+    given(tokenProvider.validateAccessToken("new-access-token")).willReturn(true);
+    given(tokenProvider.validateRefreshToken("new-refresh-token")).willReturn(true);
 
     assertThat(jwtRegistry.hasActiveJwtInformationByAccessToken("old-access-token")).isFalse();
     assertThat(jwtRegistry.hasActiveJwtInformationByRefreshToken("old-refresh-token")).isFalse();
@@ -99,7 +101,7 @@ class InMemoryJwtRegistryTest {
   @DisplayName("만료된 JWT 정리")
   void clearExpiredJwtInformation() {
     jwtRegistry.registerJwtInformation(jwtInformation("access-token", "refresh-token"));
-    when(tokenProvider.validateAccessToken("access-token")).thenReturn(false);
+    given(tokenProvider.validateAccessToken("access-token")).willReturn(false);
 
     jwtRegistry.clearExpiredJwtInformation();
 

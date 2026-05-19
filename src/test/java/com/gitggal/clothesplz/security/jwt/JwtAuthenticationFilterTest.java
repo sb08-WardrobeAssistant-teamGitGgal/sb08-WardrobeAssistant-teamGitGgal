@@ -2,9 +2,9 @@ package com.gitggal.clothesplz.security.jwt;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gitggal.clothesplz.dto.user.UserDto;
@@ -66,23 +66,23 @@ class JwtAuthenticationFilterTest {
 
     assertThat(response.getStatus()).isEqualTo(200);
     assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
-    verify(tokenProvider, never()).validateAccessToken(any());
+    then(tokenProvider).should(never()).validateAccessToken(any());
   }
 
   @Test
   @DisplayName("유효한 Bearer Token이면 SecurityContext에 인증 정보를 저장")
   void doFilterWithValidAccessToken() throws Exception {
     UUID userId = UUID.randomUUID();
-    ClothesUserDetails userDetails = userDetails(userId);
+    ClothesUserDetails userDetails = userDetails(userId, false);
     MockHttpServletRequest request = new MockHttpServletRequest();
     request.addHeader("Authorization", "Bearer access-token");
     MockHttpServletResponse response = new MockHttpServletResponse();
     MockFilterChain filterChain = new MockFilterChain();
 
-    when(tokenProvider.validateAccessToken("access-token")).thenReturn(true);
-    when(jwtRegistry.hasActiveJwtInformationByAccessToken("access-token")).thenReturn(true);
-    when(tokenProvider.getUserId("access-token")).thenReturn(userId);
-    when(userDetailsService.loadUserById(userId)).thenReturn(userDetails);
+    given(tokenProvider.validateAccessToken("access-token")).willReturn(true);
+    given(jwtRegistry.hasActiveJwtInformationByAccessToken("access-token")).willReturn(true);
+    given(tokenProvider.getUserId("access-token")).willReturn(userId);
+    given(userDetailsService.loadUserById(userId)).willReturn(userDetails);
 
     filter.doFilter(request, response, filterChain);
 
@@ -100,7 +100,7 @@ class JwtAuthenticationFilterTest {
     MockHttpServletResponse response = new MockHttpServletResponse();
     MockFilterChain filterChain = new MockFilterChain();
 
-    when(tokenProvider.validateAccessToken("invalid-token")).thenReturn(false);
+    given(tokenProvider.validateAccessToken("invalid-token")).willReturn(false);
 
     filter.doFilter(request, response, filterChain);
 
@@ -108,7 +108,7 @@ class JwtAuthenticationFilterTest {
     assertThat(response.getContentAsString()).contains("JWT_TOKEN_INVALID");
     assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
     assertThat(filterChain.getRequest()).isNull();
-    verify(tokenProvider, never()).getUserId(any());
+    then(tokenProvider).should(never()).getUserId(any());
   }
 
   @Test
@@ -119,8 +119,8 @@ class JwtAuthenticationFilterTest {
     MockHttpServletResponse response = new MockHttpServletResponse();
     MockFilterChain filterChain = new MockFilterChain();
 
-    when(tokenProvider.validateAccessToken("access-token")).thenReturn(true);
-    when(jwtRegistry.hasActiveJwtInformationByAccessToken("access-token")).thenReturn(false);
+    given(tokenProvider.validateAccessToken("access-token")).willReturn(true);
+    given(jwtRegistry.hasActiveJwtInformationByAccessToken("access-token")).willReturn(false);
 
     filter.doFilter(request, response, filterChain);
 
@@ -128,18 +128,41 @@ class JwtAuthenticationFilterTest {
     assertThat(response.getContentAsString()).contains("JWT_TOKEN_INVALID");
     assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
     assertThat(filterChain.getRequest()).isNull();
-    verify(userDetailsService, never()).loadUserById(any(UUID.class));
+    then(userDetailsService).should(never()).loadUserById(any(UUID.class));
   }
 
-  private ClothesUserDetails userDetails(UUID userId) {
+  @Test
+  @DisplayName("잠김 계정 인증 실패")
+  void doFilterWithLockedAccount() throws Exception {
+    UUID userId = UUID.randomUUID();
+    ClothesUserDetails userDetails = userDetails(userId, true);
+    MockHttpServletRequest request = new MockHttpServletRequest();
+    request.addHeader("Authorization", "Bearer access-token");
+    MockHttpServletResponse response = new MockHttpServletResponse();
+    MockFilterChain filterChain = new MockFilterChain();
+
+    given(tokenProvider.validateAccessToken("access-token")).willReturn(true);
+    given(jwtRegistry.hasActiveJwtInformationByAccessToken("access-token")).willReturn(true);
+    given(tokenProvider.getUserId("access-token")).willReturn(userId);
+    given(userDetailsService.loadUserById(userId)).willReturn(userDetails);
+
+    filter.doFilter(request, response, filterChain);
+
+    assertThat(response.getStatus()).isEqualTo(403);
+    assertThat(response.getContentAsString()).contains("ACCOUNT_LOCKED");
+    assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
+    assertThat(filterChain.getRequest()).isNull();
+  }
+
+  private ClothesUserDetails userDetails(UUID userId, boolean locked) {
     UserDto userDto = new UserDto(
         userId,
         Instant.now(),
         "test@test.com",
         "홍길동",
         UserRole.USER,
-        false
+        locked
     );
-    return new ClothesUserDetails(userDto, "encoded-password");
+    return new ClothesUserDetails(userDto, "encoded-password", null, null);
   }
 }

@@ -1,13 +1,29 @@
 package com.gitggal.clothesplz.controller.user;
 
+import com.gitggal.clothesplz.controller.user.api.UserControllerApi;
+import com.gitggal.clothesplz.dto.user.ChangePasswordRequest;
 import com.gitggal.clothesplz.dto.user.UserCreateRequest;
 import com.gitggal.clothesplz.dto.user.UserDto;
+import com.gitggal.clothesplz.dto.user.UserDtoCursorRequest;
+import com.gitggal.clothesplz.dto.user.UserDtoCursorResponse;
+import com.gitggal.clothesplz.dto.user.UserLockUpdateRequest;
+import com.gitggal.clothesplz.dto.user.UserRoleUpdateRequest;
+import com.gitggal.clothesplz.exception.BusinessException;
+import com.gitggal.clothesplz.exception.code.UserErrorCode;
+import com.gitggal.clothesplz.security.ClothesUserDetails;
 import com.gitggal.clothesplz.service.user.UserService;
+import jakarta.validation.Valid;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.annotation.Validated;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -17,16 +33,61 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/users")
-public class UserController {
+public class UserController implements UserControllerApi {
 
   private final UserService userService;
 
   @PostMapping
-  public ResponseEntity<UserDto> create(@Validated @RequestBody UserCreateRequest request) {
+  public ResponseEntity<UserDto> create(@Valid @RequestBody UserCreateRequest request) {
     log.info("[Controller] 회원가입 요청 시작");
     UserDto dto = userService.create(request);
     log.info("[Controller] 회원가입 요청 완료");
     return ResponseEntity.status(HttpStatus.CREATED).body(dto);
+  }
+
+  @PatchMapping("/{userId}/password")
+  public ResponseEntity<Void> changePassword(
+      @PathVariable UUID userId,
+      @AuthenticationPrincipal ClothesUserDetails principal,
+      @Valid @RequestBody ChangePasswordRequest request) {
+    log.info("[Controller] 비밀번호 변경 요청 시작");
+    if (!principal.getUserDto().id().equals(userId)) {
+      throw new BusinessException(UserErrorCode.FORBIDDEN);
+    }
+    userService.updatePassword(userId, request);
+    log.info("[Controller] 비밀번호 변경 요청 완료");
+    return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+  }
+
+  @PreAuthorize("hasRole('ADMIN')")
+  @PatchMapping("/{userId}/role")
+  public ResponseEntity<UserDto> updateRole(
+      @PathVariable UUID userId,
+      @Valid @RequestBody UserRoleUpdateRequest request) {
+    log.info("[Controller] 권한 변경 요청 시작");
+    UserDto dto = userService.updateRole(userId, request);
+    log.info("[Controller] 권한 변경 요청 완료");
+    return ResponseEntity.status(HttpStatus.OK).body(dto);
+  }
+
+  @PreAuthorize("hasRole('ADMIN')")
+  @GetMapping
+  public ResponseEntity<UserDtoCursorResponse> findAll(
+      @Valid @ModelAttribute UserDtoCursorRequest request) {
+    log.info("[Controller] 목록 조회 요청 시작");
+    UserDtoCursorResponse response = userService.findAll(request);
+    log.info("[Controller] 목록 조회 요청 완료");
+    return ResponseEntity.status(HttpStatus.OK).body(response);
+  }
+
+  @PreAuthorize("hasRole('ADMIN')")
+  @PatchMapping("/{userId}/lock")
+  public ResponseEntity<UserDto> updateLock(@PathVariable UUID userId,
+      @RequestBody UserLockUpdateRequest request) {
+    log.info("[Controller] 계정 잠근 상태 변경 요청 시작");
+    UserDto dto = userService.updateLock(userId, request);
+    log.info("[Controller] 계정 잠근 상태 변경 요청 완료");
+    return ResponseEntity.status(HttpStatus.OK).body(dto);
   }
 
 }

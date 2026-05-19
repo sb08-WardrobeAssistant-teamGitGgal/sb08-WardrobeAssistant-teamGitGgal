@@ -1,8 +1,11 @@
 spring:
   flyway:
     enabled: false
+  batch:
+    jdbc:
+      initialize-schema: always  # 테스트는 H2 인메모리 → Flyway 미사용이므로 자동 생성
   datasource:
-    url: jdbc:h2:mem:clothesplz;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    url: jdbc:h2:mem:clothesplz;MODE=PostgreSQL;INIT=CREATE DOMAIN IF NOT EXISTS JSONB AS JSON;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
     driver-class-name: org.h2.Driver
     username: sa
     password:
@@ -26,17 +29,50 @@ spring:
       credentials:
         access-key: dummy-access
         secret-key: dummy-secret
+  mail:
+    username: test
+    password: test
+
+  # Redis
+  data:
+    redis:
+      host: localhost
+      port: 6379
 
 logging:
   level:
     org.hibernate.SQL: DEBUG
     org.hibernate.type.descriptor.sql.BasicBinder: TRACE
 
-
 clothesplz:
+  admin:
+    username: admin
+    password: admin
+    email: admin
   jwt:
     access-token-secret: abcdefghijklmnopqrstuvwxyz123456
     access-token-exp: 900000
     refresh-token-secret: dfghdfghfghijklmnopqrstuvwxyz123456
     refresh-token-exp: 3600000
 
+weather:
+  api:
+    url: http://dummy-weather-api
+    service-key: dummy-service-key
+
+kakao:
+  api:
+    rest-key: dummy-kakao-key
+
+# s3
+storage:
+  s3:
+    access-key: dummy-access
+    secret-key: dummy-secret
+    region: dummy-region
+    bucket: dummy-bucket
+    cloudfront: dummy-cloudfront
+
+openai:
+  api:
+    key: dummy-openai-key

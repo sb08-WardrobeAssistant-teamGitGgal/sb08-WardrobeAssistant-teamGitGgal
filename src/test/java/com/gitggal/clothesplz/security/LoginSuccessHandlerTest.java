@@ -1,9 +1,9 @@
 package com.gitggal.clothesplz.security;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gitggal.clothesplz.dto.user.UserDto;
@@ -66,29 +66,24 @@ class LoginSuccessHandlerTest {
         false
     );
 
-    userDetails = new ClothesUserDetails(userDto, "encoded-password");
+    userDetails = new ClothesUserDetails(userDto, "encoded-password", null, null);
   }
 
   @Test
-  @DisplayName("JWT 생성 ")
+  @DisplayName("JWT 생성")
   void onAuthenticationSuccess() throws Exception {
 
-    when(authentication.getPrincipal()).thenReturn(userDetails);
-    when(tokenProvider.generateAccessToken(any()))
-        .thenReturn("access-token");
-    when(tokenProvider.generateRefreshToken(any()))
-        .thenReturn("refresh-token");
-    when(tokenProvider.getAccessTokenExpiry(any()))
-        .thenReturn(Instant.now().plusSeconds(1800));
-    when(tokenProvider.getRefreshTokenExpiry(any()))
-        .thenReturn(Instant.now().plusSeconds(604800));
-    when(objectMapper.writeValueAsString(any()))
-        .thenReturn("{}");
+    given(authentication.getPrincipal()).willReturn(userDetails);
+    given(tokenProvider.generateAccessToken(any())).willReturn("access-token");
+    given(tokenProvider.generateRefreshToken(any())).willReturn("refresh-token");
+    given(tokenProvider.getAccessTokenExpiry(any())).willReturn(Instant.now().plusSeconds(1800));
+    given(tokenProvider.getRefreshTokenExpiry(any())).willReturn(Instant.now().plusSeconds(604800));
+    given(objectMapper.writeValueAsString(any())).willReturn("{}");
 
     StringWriter stringWriter = new StringWriter();
     PrintWriter writer = new PrintWriter(stringWriter);
 
-    when(response.getWriter()).thenReturn(writer);
+    given(response.getWriter()).willReturn(writer);
 
     loginSuccessHandler.onAuthenticationSuccess(
         request,
@@ -96,44 +91,41 @@ class LoginSuccessHandlerTest {
         authentication
     );
 
-    verify(jwtRegistry).registerJwtInformation(any());
-    verify(tokenProvider).addRefreshCookie(any(), any());
-    verify(response).setStatus(HttpServletResponse.SC_OK);
+    then(response).should().setStatus(HttpServletResponse.SC_OK);
+    then(jwtRegistry).should().registerJwtInformation(any());
+    then(tokenProvider).should().addRefreshCookie(any(), any());
   }
 
   @Test
   @DisplayName("JWT 생성 실패")
   void onAuthenticationSuccess_JwtGenerationFailed() throws Exception {
-    when(authentication.getPrincipal()).thenReturn(userDetails);
-    when(tokenProvider.generateAccessToken(any()))
-        .thenThrow(new JOSEException("failed"));
+    given(authentication.getPrincipal()).willReturn(userDetails);
+    given(tokenProvider.generateAccessToken(any())).willThrow(new JOSEException("failed"));
 
     ErrorResponse errorResponse = ErrorResponse.of(UserErrorCode.JWT_TOKEN_GENERATION_FAILED);
-    when(objectMapper.writeValueAsString(errorResponse)).thenReturn("{}");
-    when(response.getWriter()).thenReturn(new PrintWriter(new StringWriter()));
+    given(objectMapper.writeValueAsString(errorResponse)).willReturn("{}");
+    given(response.getWriter()).willReturn(new PrintWriter(new StringWriter()));
 
     loginSuccessHandler.onAuthenticationSuccess(request, response, authentication);
 
-    verify(jwtRegistry, never()).registerJwtInformation(any());
-    verify(tokenProvider, never()).addRefreshCookie(any(), any());
-    verify(jwtRegistry, never()).invalidateJwtInformationByUserId(any());
-    verify(response).setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+    then(response).should().setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+    then(jwtRegistry).should(never()).registerJwtInformation(any());
+    then(tokenProvider).should(never()).addRefreshCookie(any(), any());
   }
 
   @Test
   @DisplayName("인증 실패")
   void onAuthenticationSuccess_InvalidPrincipal() throws Exception {
-    when(authentication.getPrincipal()).thenReturn("not");
+    given(authentication.getPrincipal()).willReturn("not");
 
     ErrorResponse errorResponse = ErrorResponse.of(UserErrorCode.AUTHENTICATION_PRINCIPAL_INVALID);
-    when(objectMapper.writeValueAsString(errorResponse)).thenReturn("{}");
-    when(response.getWriter()).thenReturn(new PrintWriter(new StringWriter()));
+    given(objectMapper.writeValueAsString(errorResponse)).willReturn("{}");
+    given(response.getWriter()).willReturn(new PrintWriter(new StringWriter()));
 
     loginSuccessHandler.onAuthenticationSuccess(request, response, authentication);
 
-    verify(jwtRegistry, never()).invalidateJwtInformationByUserId(any());
-    verify(jwtRegistry, never()).registerJwtInformation(any());
-    verify(tokenProvider, never()).addRefreshCookie(any(), any());
-    verify(response).setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+    then(response).should().setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+    then(jwtRegistry).should(never()).registerJwtInformation(any());
+    then(tokenProvider).should(never()).addRefreshCookie(any(), any());
   }
 }

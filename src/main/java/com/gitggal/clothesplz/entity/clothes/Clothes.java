@@ -38,4 +38,16 @@ public class Clothes extends BaseUpdatableEntity {
 
   @Column(name = "purchase_url")
   private String purchaseUrl;
+
+  public void update(String name, ClothesType type, String imageUrl) {
+    if (name != null) {
+      this.name = name;
+    }
+    if (type != null) {
+      this.type = type;
+    }
+    if (imageUrl != null) {
+      this.imageUrl = imageUrl;
+    }
+  }
 }

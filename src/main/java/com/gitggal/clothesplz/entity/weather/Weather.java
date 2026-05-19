@@ -7,7 +7,15 @@ import lombok.*;
 import java.time.OffsetDateTime;
 
 @Entity
-@Table(name = "weathers")
+@Table(
+        name = "weathers",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_weathers_location_forecast_at",
+                        columnNames = {"location_id", "forecast_at"}
+                )
+        }
+)
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor

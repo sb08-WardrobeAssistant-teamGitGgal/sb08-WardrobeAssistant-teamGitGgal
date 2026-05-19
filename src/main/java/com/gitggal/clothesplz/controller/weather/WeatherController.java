@@ -11,8 +11,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
 
 import java.util.List;
 
@@ -24,29 +22,43 @@ public class WeatherController {
 
     private final WeatherService weatherService;
 
-
+    // Spring MVC(Tomcat) 환경에서 Mono 반환 대신 .block()으로 동기 처리 — WebFlux 리턴 타입 혼용 문제 해소
     @GetMapping
-    public Mono<List<WeatherDto>> getWeather(
+    public List<WeatherDto> getWeather(
             @RequestParam(name = "latitude") double latitude,
             @RequestParam(name = "longitude") double longitude) {
 
         log.info("[Controller] 날씨 조회 요청 - lat: {}, lon: {}", latitude, longitude);
 
-        return weatherService.getWeatherForecast(latitude, longitude)
-                .doOnSuccess(res -> log.info("[Controller] 날씨 조회 성공 - count: {}", res.size()))
-                .doOnError(e -> log.error("[Controller] 날씨 조회 실패: {}", e.getMessage()))
-                .onErrorMap(e -> new BusinessException(WeatherErrorCode.WEATHER_API_ERROR));
+        try {
+            List<WeatherDto> result = weatherService.getWeatherForecast(latitude, longitude)
+                    .doOnNext(res -> log.info("[Controller] 날씨 조회 성공 - count: {}", res.size()))
+                    .block();
+            return result != null ? result : List.of();
+        } catch (BusinessException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("[Controller] 날씨 조회 실패", e);
+            throw new BusinessException(WeatherErrorCode.WEATHER_API_ERROR);
+        }
     }
 
     @GetMapping("/location")
-    public Mono<WeatherAPILocationDto> getWeatherLocation(
+    public WeatherAPILocationDto getWeatherLocation(
             @RequestParam(name = "latitude") double latitude,
             @RequestParam(name = "longitude") double longitude) {
+
         log.info("[Controller] 날씨 위치 조회 요청 - lat: {}, lon: {}", latitude, longitude);
-        return Mono.fromCallable(() -> weatherService.getWeatherLocation(latitude, longitude))
-                .subscribeOn(Schedulers.boundedElastic())
-                .doOnSuccess(res -> log.info("[Controller] 날씨 위치 조회 성공 - x: {}, y: {}", res.x(), res.y()))
-                .doOnError(e -> log.error("[Controller] 날씨 위치 조회 실패: {}", e.getMessage()))
-                .onErrorMap(e -> new BusinessException(WeatherErrorCode.WEATHER_API_ERROR));
+
+        try {
+            return weatherService.getWeatherLocation(latitude, longitude)
+                    .doOnNext(res -> log.info("[Controller] 날씨 위치 조회 성공 - x: {}, y: {}", res.x(), res.y()))
+                    .block();
+        } catch (BusinessException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("[Controller] 날씨 위치 조회 실패", e);
+            throw new BusinessException(WeatherErrorCode.WEATHER_API_ERROR);
+        }
     }
 }
