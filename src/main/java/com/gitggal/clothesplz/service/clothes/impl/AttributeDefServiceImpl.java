@@ -2,6 +2,7 @@ package com.gitggal.clothesplz.service.clothes.impl;
 
 import com.gitggal.clothesplz.dto.clothes.ClothesAttributeDefCreateRequest;
 import com.gitggal.clothesplz.dto.clothes.ClothesAttributeDefDto;
+import com.gitggal.clothesplz.dto.clothes.ClothesAttributeDefUpdateRequest;
 import com.gitggal.clothesplz.entity.clothes.ClothesAttributeDef;
 import com.gitggal.clothesplz.exception.BusinessException;
 import com.gitggal.clothesplz.exception.code.ClothesErrorCode;
@@ -36,10 +37,7 @@ public class AttributeDefServiceImpl implements AttributeDefService {
       throw new BusinessException(ClothesErrorCode.DUPLICATE_ATTRIBUTE_NAME);
     }
 
-    ClothesAttributeDef attributeDef = new ClothesAttributeDef(
-        request.name(),
-        request.selectableValues()
-    );
+    ClothesAttributeDef attributeDef = new ClothesAttributeDef(request.name(), request.selectableValues());
     ClothesAttributeDef savedAttributeDef;
     try {
       savedAttributeDef = clothesAttributeDefRepository.save(attributeDef);
@@ -54,17 +52,11 @@ public class AttributeDefServiceImpl implements AttributeDefService {
 
   @Override
   @Transactional(readOnly = true)
-  public List<ClothesAttributeDefDto> getAttributeDefs(
-      String sortBy,
-      String sortDirection,
-      String keywordLike
-  ) {
+  public List<ClothesAttributeDefDto> getAttributeDefs(String sortBy, String sortDirection, String keywordLike) {
     log.info("[Service] 의상 속성 조회 요청");
 
-    List<ClothesAttributeDefDto> response = clothesAttributeDefRepository
-        .findAllByConditions(sortBy, sortDirection, keywordLike).stream()
-        .map(attributeDefMapper::toClothesAttributeDefDtoForSearch)
-        .toList();
+    List<ClothesAttributeDefDto> response = clothesAttributeDefRepository.findAllByConditions(sortBy, sortDirection,
+        keywordLike).stream().map(attributeDefMapper::toClothesAttributeDefDtoForSearch).toList();
 
     log.info("[Service] 의상 속성 조회 완료");
     return response;
@@ -82,5 +74,19 @@ public class AttributeDefServiceImpl implements AttributeDefService {
     clothesAttributeDefRepository.delete(attributeDef);
 
     log.info("[Service] 의상 속성 삭제 완료: definitionId={}", definitionId);
+  }
+
+  @Override
+  @Transactional
+  public ClothesAttributeDefDto updateAttributeDef(UUID definitionId, ClothesAttributeDefUpdateRequest request) {
+    log.info("[Service] 의상 속성 수정 시작");
+
+    ClothesAttributeDef attributeDef = clothesAttributeDefRepository.findById(definitionId)
+        .orElseThrow(() -> new BusinessException(ClothesErrorCode.CLOTHES_ATTRIBUTE_DEFINITION_NOT_FOUND));
+
+    attributeDef.update(request.name(), request.selectableValues());
+
+    log.info("[Service] 의상 속성 수정 완료");
+    return attributeDefMapper.toClothesAttributeDefDto(attributeDef);
   }
 }
