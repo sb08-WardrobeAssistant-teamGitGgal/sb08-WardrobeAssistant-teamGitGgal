@@ -5,6 +5,7 @@ import com.gitggal.clothesplz.entity.notification.NotificationLevel;
 import com.gitggal.clothesplz.service.notification.NotificationService;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
@@ -15,6 +16,7 @@ public class FeedNotificationEventListener {
 
   private final NotificationService notificationService;
 
+  @Async
   @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
   public void handleCommentCreated(FeedCommentCreatedEvent event) {
     notificationService.send(new NotificationRequest(
@@ -25,6 +27,7 @@ public class FeedNotificationEventListener {
     ));
   }
 
+  @Async
   @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
   public void handleFeedLiked(FeedLikedEvent event) {
     notificationService.send(new NotificationRequest(
@@ -35,6 +38,7 @@ public class FeedNotificationEventListener {
     ));
   }
 
+  @Async
   @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
   public void handleFeedCreated(FeedCreatedEvent event) {
     for (UUID followerId : event.followerIds()) {
