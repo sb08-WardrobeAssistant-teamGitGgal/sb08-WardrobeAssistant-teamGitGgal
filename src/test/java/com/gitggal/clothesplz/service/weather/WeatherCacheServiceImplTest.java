@@ -27,7 +27,7 @@ import static org.mockito.Mockito.*;
 
 @DisplayName("WeatherCacheService 단위 테스트")
 @ExtendWith(MockitoExtension.class)
-class WeatherCacheServiceTest {
+class WeatherCacheServiceImplTest {
 
     @Mock
     private RedisTemplate<String, Object> redisTemplate;
@@ -45,14 +45,14 @@ class WeatherCacheServiceTest {
     private static final int NY = 127;
     private static final String KEY = "weather:forecast:60:127";
 
-    @BeforeEach
-    void setUp() {
-        given(redisTemplate.opsForValue()).willReturn(valueOps);
-    }
-
     @Nested
     @DisplayName("getForecast()")
     class GetForecastTest {
+
+        @BeforeEach
+        void setUp() {
+            given(redisTemplate.opsForValue()).willReturn(valueOps);
+        }
 
         @Test
         @DisplayName("캐시 HIT → 데이터 반환")
@@ -92,6 +92,11 @@ class WeatherCacheServiceTest {
     @Nested
     @DisplayName("saveForecast()")
     class SaveForecastTest {
+
+        @BeforeEach
+        void setUp() {
+            given(redisTemplate.opsForValue()).willReturn(valueOps);
+        }
 
         @Test
         @DisplayName("정상 저장 → set 호출 (TTL 3시간)")
