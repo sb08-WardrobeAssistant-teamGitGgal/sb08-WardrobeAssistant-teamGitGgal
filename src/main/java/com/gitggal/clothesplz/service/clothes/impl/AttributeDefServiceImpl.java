@@ -84,6 +84,14 @@ public class AttributeDefServiceImpl implements AttributeDefService {
     ClothesAttributeDef attributeDef = clothesAttributeDefRepository.findById(definitionId)
         .orElseThrow(() -> new BusinessException(ClothesErrorCode.CLOTHES_ATTRIBUTE_DEFINITION_NOT_FOUND));
 
+    if (
+        !attributeDef.getName().equals(request.name()) &&
+        clothesAttributeDefRepository.existsByName(request.name())
+    ) {
+      log.error("[Service] 중복된 의상 속성 이름");
+      throw new BusinessException(ClothesErrorCode.DUPLICATE_ATTRIBUTE_NAME);
+    }
+
     attributeDef.update(request.name(), request.selectableValues());
 
     log.info("[Service] 의상 속성 수정 완료");

@@ -5,6 +5,7 @@ import jakarta.validation.constraints.Size;
 import java.util.List;
 
 public record ClothesAttributeDefUpdateRequest(
+    @NotBlank
     @Size(min = 1, max = 20, message = "name은 1자 이상 20자 이하로 입력해주세요.")
     String name,
 

@@ -90,6 +90,11 @@ public interface AttributeDefControllerApi {
       content = @Content(schema = @Schema(implementation = ErrorResponse.class))
   )
   @ApiResponse(
+      responseCode = "401",
+      description = "미인증 요청",
+      content = @Content(schema = @Schema(implementation = ErrorResponse.class))
+  )
+  @ApiResponse(
       responseCode = "403",
       description = "권한이 없는 사용자",
       content = @Content(schema = @Schema(implementation = ErrorResponse.class))
