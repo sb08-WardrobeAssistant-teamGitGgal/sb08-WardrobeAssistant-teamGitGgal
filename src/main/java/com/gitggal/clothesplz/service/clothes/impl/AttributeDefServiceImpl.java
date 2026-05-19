@@ -37,7 +37,10 @@ public class AttributeDefServiceImpl implements AttributeDefService {
       throw new BusinessException(ClothesErrorCode.DUPLICATE_ATTRIBUTE_NAME);
     }
 
-    ClothesAttributeDef attributeDef = new ClothesAttributeDef(request.name(), request.selectableValues());
+    ClothesAttributeDef attributeDef = new ClothesAttributeDef(
+        request.name(),
+        request.selectableValues()
+    );
     ClothesAttributeDef savedAttributeDef;
     try {
       savedAttributeDef = clothesAttributeDefRepository.save(attributeDef);
@@ -52,11 +55,17 @@ public class AttributeDefServiceImpl implements AttributeDefService {
 
   @Override
   @Transactional(readOnly = true)
-  public List<ClothesAttributeDefDto> getAttributeDefs(String sortBy, String sortDirection, String keywordLike) {
+  public List<ClothesAttributeDefDto> getAttributeDefs(
+      String sortBy,
+      String sortDirection,
+      String keywordLike
+  ) {
     log.info("[Service] 의상 속성 조회 요청");
 
-    List<ClothesAttributeDefDto> response = clothesAttributeDefRepository.findAllByConditions(sortBy, sortDirection,
-        keywordLike).stream().map(attributeDefMapper::toClothesAttributeDefDtoForSearch).toList();
+    List<ClothesAttributeDefDto> response = clothesAttributeDefRepository
+        .findAllByConditions(sortBy, sortDirection, keywordLike).stream()
+        .map(attributeDefMapper::toClothesAttributeDefDtoForSearch)
+        .toList();
 
     log.info("[Service] 의상 속성 조회 완료");
     return response;
