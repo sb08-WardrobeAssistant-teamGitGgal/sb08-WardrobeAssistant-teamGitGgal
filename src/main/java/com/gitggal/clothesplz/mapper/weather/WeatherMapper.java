@@ -1,96 +1,65 @@
 package com.gitggal.clothesplz.mapper.weather;
 
-import com.gitggal.clothesplz.dto.weather.DailyWeatherForecastDto;
 import com.gitggal.clothesplz.dto.weather.HumidityDto;
 import com.gitggal.clothesplz.dto.weather.PrecipitationDto;
 import com.gitggal.clothesplz.dto.weather.TemperatureDto;
 import com.gitggal.clothesplz.dto.weather.WeatherAPILocationDto;
 import com.gitggal.clothesplz.dto.weather.WeatherDto;
 import com.gitggal.clothesplz.dto.weather.WindSpeedDto;
-import com.gitggal.clothesplz.entity.weather.PrecipitationType;
-import com.gitggal.clothesplz.entity.weather.WindPhrase;
+import com.gitggal.clothesplz.entity.weather.Weather;
 import org.springframework.stereotype.Component;
 
-import java.nio.charset.StandardCharsets;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.List;
-import java.util.UUID;
 
 @Component
 public class WeatherMapper {
-    private static final double WIND_MODERATE_THRESHOLD = 4.0; // m/s, 기상청 기준
-    private static final double WIND_STRONG_THRESHOLD = 9.0;   // m/s, 기상청 기준
-    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
-    // 일별 내부 DTO 목록을 API 계약용 WeatherDto 목록으로 변환한다.
+    // DB 엔티티 리스트를 DTO 리스트로 변환 (DB 조회/저장은 서비스에서 처리 후 전달)
     public List<WeatherDto> toWeatherDtoList(
-            List<DailyWeatherForecastDto> forecasts,
-            double latitude,
-            double longitude,
-            int gridX,
-            int gridY,
+            List<Weather> weathers,
+            double latitude, double longitude,
+            int gridX, int gridY,
             List<String> locationNames) {
-        return forecasts.stream()
-                .map(dto -> toWeatherDto(dto, latitude, longitude, gridX, gridY, locationNames))
+        return weathers.stream()
+                .map(w -> toWeatherDto(w, latitude, longitude, gridX, gridY, locationNames))
                 .toList();
     }
 
-    // 하루 단위 요약 예보와 요청 위치 정보를 묶어 WeatherDto 한 건을 만든다.
+    // Weather 엔티티의 실제 DB UUID를 사용해 DTO 생성 (기존 stableWeatherId 대체)
     public WeatherDto toWeatherDto(
-            DailyWeatherForecastDto dto,
-            double latitude,
-            double longitude,
-            int gridX,
-            int gridY,
+            Weather weather,
+            double latitude, double longitude,
+            int gridX, int gridY,
             List<String> locationNames) {
-        UUID weatherId = stableWeatherId(dto, gridX, gridY);
-        WeatherAPILocationDto location =
-                new WeatherAPILocationDto(latitude, longitude, gridX, gridY, locationNames);
-
+        WeatherAPILocationDto location = new WeatherAPILocationDto(latitude, longitude, gridX, gridY, locationNames);
         PrecipitationDto precipitation = new PrecipitationDto(
-                dto.precipitationType() == null ? PrecipitationType.NONE : dto.precipitationType(),
-                dto.precipitationAmount(),
-                dto.precipitationProbability());
-
-        HumidityDto humidity = new HumidityDto(dto.humidityCurrent(), dto.humidityComparedToDayBefore());
-
+                weather.getPrecipitationType(),
+                weather.getPrecipitationAmount(),
+                weather.getPrecipitationProbability());
+        HumidityDto humidity = new HumidityDto(weather.getHumidity(), weather.getHumidityDiff());
         TemperatureDto temperature = new TemperatureDto(
-                dto.avgTemp(),
-                dto.temperatureComparedToDayBefore(),
-                dto.minTemp(),
-                dto.maxTemp());
-
-        WindSpeedDto windSpeed = new WindSpeedDto(dto.windSpeed(), toWindPhrase(dto.windSpeed()));
+                weather.getTemperatureCurrent(),
+                weather.getTemperatureDiff(),
+                weather.getTemperatureMin(),
+                weather.getTemperatureMax());
+        WindSpeedDto windSpeed = new WindSpeedDto(weather.getWindSpeed(), weather.getWindPhrase());
 
         return new WeatherDto(
-                weatherId,
-                LocalDateTime.now(KST),
-                dto.date().atStartOfDay(),
+                weather.getId(),
+                weather.getForecastedAt().toLocalDateTime(),
+                weather.getForecastAt().toLocalDateTime(),
                 location,
-                dto.skyStatus(),
+                weather.getSkyStatus(),
                 precipitation,
                 humidity,
                 temperature,
                 windSpeed);
     }
 
-    public WeatherAPILocationDto toLocationDto(double latitude, double longitude, int gridX, int gridY, List<String> locationNames) {
+    public WeatherAPILocationDto toLocationDto(
+            double latitude, double longitude,
+            int gridX, int gridY,
+            List<String> locationNames) {
         return new WeatherAPILocationDto(latitude, longitude, gridX, gridY, locationNames);
-    }
-
-    private WindPhrase toWindPhrase(Double speed) {
-        if (speed == null || speed < WIND_MODERATE_THRESHOLD) {
-            return WindPhrase.WEAK;
-        }
-        if (speed < WIND_STRONG_THRESHOLD) {
-            return WindPhrase.MODERATE;
-        }
-        return WindPhrase.STRONG;
-    }
-
-    private UUID stableWeatherId(DailyWeatherForecastDto dto, int gridX, int gridY) {
-        String identitySource = "%d:%d:%s".formatted(gridX, gridY, dto.date());
-        return UUID.nameUUIDFromBytes(identitySource.getBytes(StandardCharsets.UTF_8));
     }
 }

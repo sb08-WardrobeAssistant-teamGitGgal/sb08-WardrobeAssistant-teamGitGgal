@@ -4,10 +4,12 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -261,6 +263,32 @@ class AttributeDefControllerTest {
             .with(csrf())
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(request)))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  @DisplayName("성공 - ADMIN 권한으로 의상 속성 정의 삭제 시 204를 반환한다")
+  void deleteAttributeDefs_asAdmin_returns204() throws Exception {
+    UUID definitionId = UUID.randomUUID();
+
+    mockMvc.perform(delete("/api/clothes/attribute-defs/" + definitionId)
+            .with(user("admin").roles("ADMIN"))
+            .with(csrf()))
+        .andExpect(status().isNoContent());
+
+    verify(attributeDefService).deleteAttributeDefs(definitionId);
+  }
+
+  @Test
+  @DisplayName("실패 - 존재하지 않는 definitionId면 400을 반환한다")
+  void deleteAttributeDefs_notFound_returns400() throws Exception {
+    UUID definitionId = UUID.randomUUID();
+    doThrow(new BusinessException(ClothesErrorCode.CLOTHES_ATTRIBUTE_DEFINITION_NOT_FOUND))
+        .when(attributeDefService).deleteAttributeDefs(definitionId);
+
+    mockMvc.perform(delete("/api/clothes/attribute-defs/" + definitionId)
+            .with(user("admin").roles("ADMIN"))
+            .with(csrf()))
         .andExpect(status().isBadRequest());
   }
 }

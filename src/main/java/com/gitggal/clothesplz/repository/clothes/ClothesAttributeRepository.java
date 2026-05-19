@@ -26,4 +26,6 @@ public interface ClothesAttributeRepository extends JpaRepository<ClothesAttribu
   @Modifying
   @Query("DELETE FROM ClothesAttribute ca WHERE ca.clothes.id = :clothesId")
   void deleteAllByClothesId(@Param("clothesId") UUID clothesId);
+
+  void deleteAllByDefinitionId(@Param("definitionId") UUID definitionId);
 }

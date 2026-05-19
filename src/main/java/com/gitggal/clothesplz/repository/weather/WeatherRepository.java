@@ -11,7 +11,8 @@ import java.util.UUID;
 
 public interface WeatherRepository extends JpaRepository<Weather, UUID> {
 
-    Optional<Weather> findByLocationAndForecastAt(Location location, OffsetDateTime forecastAt);
+    // findFirst: DB에 중복 rows 존재해도 NonUniqueResultException 방지
+    Optional<Weather> findFirstByLocationAndForecastAt(Location location, OffsetDateTime forecastAt);
 
     // 배치가 저장할 날짜 범위만 조회.
     List<Weather> findByLocationInAndForecastAtBetween(List<Location> locations, OffsetDateTime start, OffsetDateTime end);
