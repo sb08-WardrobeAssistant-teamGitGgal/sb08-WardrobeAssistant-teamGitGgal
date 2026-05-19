@@ -1,6 +1,6 @@
 package com.gitggal.clothesplz.service.clothes.impl;
 
-import com.gitggal.clothesplz.dto.clothes.ClothesDto;
+import com.gitggal.clothesplz.dto.clothes.OotdDto;
 import com.gitggal.clothesplz.dto.clothes.RecommendationDto;
 import com.gitggal.clothesplz.dto.user.UserDto;
 import com.gitggal.clothesplz.entity.clothes.Clothes;
@@ -53,8 +53,8 @@ public class RecommendationServiceImpl implements RecommendationService {
     List<Clothes> recommended = recommendByLlm(weather, allClothes);
 
     // 의상 DTO 변환
-    List<ClothesDto> recommendedDtos = recommended.stream()
-        .map(c -> clothesMapper.toClothesDto(c, c.getOwner(), List.of()))
+    List<OotdDto> recommendedDtos = recommended.stream()
+        .map(c -> clothesMapper.toOotdDto(c, List.of()))
         .toList();
 
     log.info("[Service] 의상 추천 조회 요청 완료");

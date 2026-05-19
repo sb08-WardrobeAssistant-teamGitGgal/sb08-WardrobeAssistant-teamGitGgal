@@ -42,27 +42,30 @@ public class AuthServiceImpl implements AuthService {
 
   @Override
   public JwtInformation refresh(String refreshToken) {
-    if (!tokenProvider.validateRefreshToken(refreshToken)
-        || !jwtRegistry.hasActiveJwtInformationByRefreshToken(refreshToken)) {
-      throw new BusinessException(UserErrorCode.INVALID_TOKEN);
+    if (!tokenProvider.validateRefreshToken(refreshToken)) {
+      throw new BusinessException(UserErrorCode.JWT_TOKEN_INVALID);
+    }
+
+    if (!jwtRegistry.hasActiveJwtInformationByRefreshToken(refreshToken)) {
+      throw new BusinessException(UserErrorCode.JWT_TOKEN_EXPIRED);
     }
 
     String userId = tokenProvider.getUsernameFromToken(refreshToken);
     if (userId == null || userId.isBlank()) {
-      throw new BusinessException(UserErrorCode.INVALID_TOKEN);
+      throw new BusinessException(UserErrorCode.JWT_TOKEN_INVALID);
     }
 
     UUID parsedUserId;
     try {
       parsedUserId = UUID.fromString(userId);
     } catch (IllegalArgumentException e) {
-      throw new BusinessException(UserErrorCode.INVALID_TOKEN);
+      throw new BusinessException(UserErrorCode.JWT_TOKEN_INVALID);
     }
 
     UserDetails userDetails = clothesUserDetailsService.loadUserById(parsedUserId);
 
     if (!(userDetails instanceof ClothesUserDetails clothesUserDetails)) {
-      throw new BusinessException(UserErrorCode.INVALID_TOKEN);
+      throw new BusinessException(UserErrorCode.JWT_TOKEN_INVALID);
     }
 
     try {
@@ -79,10 +82,15 @@ public class AuthServiceImpl implements AuthService {
               newAccessTokenExpiry,
               newRefreshTokenExpiry
           );
-      jwtRegistry.rotateJwtInformation(
+      boolean rotated = jwtRegistry.rotateJwtInformation(
           refreshToken,
           jwtInformation
       );
+
+      if(!rotated){
+        throw new BusinessException(UserErrorCode.JWT_TOKEN_INVALID);
+      }
+
       return jwtInformation;
     } catch (JOSEException e) {
       throw new BusinessException(UserErrorCode.JWT_TOKEN_GENERATION_FAILED);

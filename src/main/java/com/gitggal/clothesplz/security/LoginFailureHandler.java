@@ -32,7 +32,7 @@ public class LoginFailureHandler implements AuthenticationFailureHandler {
       errorCode = UserErrorCode.AUTHENTICATION_FAILED;
     }
 
-    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+    response.setStatus(errorCode.getHttpStatus().value());
     response.setContentType(MediaType.APPLICATION_JSON_VALUE);
     response.setCharacterEncoding("UTF-8");
     response.getWriter().write(objectMapper.writeValueAsString(ErrorResponse.of(errorCode)));

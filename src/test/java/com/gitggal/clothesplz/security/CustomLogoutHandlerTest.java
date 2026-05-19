@@ -66,7 +66,7 @@ public class CustomLogoutHandlerTest {
 
   @Test
   @DisplayName("로그아웃 성공")
-  void logoutSuccess() {
+  void logout_success() {
 
     Cookie cookie = new Cookie("REFRESH_TOKEN", refreshToken);
 

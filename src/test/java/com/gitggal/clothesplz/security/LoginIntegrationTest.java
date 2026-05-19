@@ -66,7 +66,7 @@ class LoginIntegrationTest {
 
   @Test
   @DisplayName("로그인 성공")
-  void loginSuccess() throws Exception {
+  void login_success() throws Exception {
     mockMvc.perform(post("/api/auth/sign-in")
             .with(csrf())
             .contentType(MediaType.APPLICATION_FORM_URLENCODED)
@@ -83,7 +83,7 @@ class LoginIntegrationTest {
 
   @Test
   @DisplayName("로그인 실패 - 잘못된 비밀번호")
-  void loginFailure_WrongPassword() throws Exception {
+  void login_fail_wrongPassword() throws Exception {
     mockMvc.perform(post("/api/auth/sign-in")
             .with(csrf())
             .contentType(MediaType.APPLICATION_FORM_URLENCODED)
@@ -96,7 +96,7 @@ class LoginIntegrationTest {
 
   @Test
   @DisplayName("로그인 실패 - 존재하지 않는 이메일")
-  void loginFailure_UserNotFound() throws Exception {
+  void login_fail_userNotFound() throws Exception {
     mockMvc.perform(post("/api/auth/sign-in")
             .with(csrf())
             .contentType(MediaType.APPLICATION_FORM_URLENCODED)
@@ -109,7 +109,7 @@ class LoginIntegrationTest {
 
   @Test
   @DisplayName("로그인 실패 - CSRF 토큰 없음")
-  void loginFailure_NoCsrfToken() throws Exception {
+  void login_fail_noCsrfToken() throws Exception {
     mockMvc.perform(post("/api/auth/sign-in")
             .contentType(MediaType.APPLICATION_FORM_URLENCODED)
             .param("username", TEST_EMAIL)
@@ -120,7 +120,7 @@ class LoginIntegrationTest {
 
   @Test
   @DisplayName("로그인 실패 - 잠김 계정")
-  void loginFailure_LockedAccount() throws Exception {
+  void login_failure_lockedAccount() throws Exception {
     User user = userRepository.findByEmail(TEST_EMAIL).get();
     user.updateLock(true);
 
@@ -129,13 +129,13 @@ class LoginIntegrationTest {
             .contentType(MediaType.APPLICATION_FORM_URLENCODED)
             .param("username", TEST_EMAIL)
             .param("password", TEST_PASSWORD))
-        .andExpect(status().isUnauthorized())
+        .andExpect(status().isForbidden())
         .andExpect(jsonPath("$.exceptionName").value("ACCOUNT_LOCKED"));
   }
 
   @Test
   @DisplayName("로그인 성공 후 기존 세션 무효화")
-  void loginSuccess_InvalidatesPreviousSession() throws Exception {
+  void login_success_invalidatesPreviousSession() throws Exception {
 
     mockMvc.perform(post("/api/auth/sign-in")
             .with(csrf())
@@ -159,7 +159,7 @@ class LoginIntegrationTest {
 
   @Test
   @DisplayName("로그인 성공 - Refresh Token 쿠키 확인")
-  void loginSuccess_RefreshTokenCookie() throws Exception {
+  void login_success_refreshTokenCookie() throws Exception {
     mockMvc.perform(post("/api/auth/sign-in")
             .with(csrf())
             .contentType(MediaType.APPLICATION_FORM_URLENCODED)

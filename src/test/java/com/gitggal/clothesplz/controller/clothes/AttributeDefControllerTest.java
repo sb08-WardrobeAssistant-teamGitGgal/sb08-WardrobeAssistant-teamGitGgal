@@ -11,6 +11,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -19,6 +20,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gitggal.clothesplz.config.TestSecurityConfig;
 import com.gitggal.clothesplz.dto.clothes.ClothesAttributeDefCreateRequest;
 import com.gitggal.clothesplz.dto.clothes.ClothesAttributeDefDto;
+import com.gitggal.clothesplz.dto.clothes.ClothesAttributeDefUpdateRequest;
 import com.gitggal.clothesplz.exception.BusinessException;
 import com.gitggal.clothesplz.exception.GlobalExceptionHandler;
 import com.gitggal.clothesplz.exception.code.ClothesErrorCode;
@@ -289,6 +291,128 @@ class AttributeDefControllerTest {
     mockMvc.perform(delete("/api/clothes/attribute-defs/" + definitionId)
             .with(user("admin").roles("ADMIN"))
             .with(csrf()))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  @DisplayName("성공 - ADMIN 권한으로 name과 selectableValues 모두 수정 시 200과 수정 결과를 반환한다")
+  void updateAttributeDefs_asAdmin_returns200() throws Exception {
+    UUID definitionId = UUID.randomUUID();
+    ClothesAttributeDefUpdateRequest request = new ClothesAttributeDefUpdateRequest(
+        "재질",
+        List.of("COTTON", "WOOL")
+    );
+    ClothesAttributeDefDto response = new ClothesAttributeDefDto(
+        definitionId,
+        "재질",
+        List.of("COTTON", "WOOL"),
+        null
+    );
+    given(attributeDefService.updateAttributeDef(eq(definitionId), any(ClothesAttributeDefUpdateRequest.class)))
+        .willReturn(response);
+
+    mockMvc.perform(patch("/api/clothes/attribute-defs/" + definitionId)
+            .with(user("admin").roles("ADMIN"))
+            .with(csrf())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(request)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.id").value(definitionId.toString()))
+        .andExpect(jsonPath("$.name").value("재질"))
+        .andExpect(jsonPath("$.selectableValues[0]").value("COTTON"))
+        .andExpect(jsonPath("$.selectableValues[1]").value("WOOL"));
+
+    verify(attributeDefService).updateAttributeDef(eq(definitionId), any(ClothesAttributeDefUpdateRequest.class));
+  }
+
+  @Test
+  @DisplayName("성공 - name만 전송하면 서비스를 호출하고 200을 반환한다")
+  void updateAttributeDefs_nameOnly_returns200() throws Exception {
+    UUID definitionId = UUID.randomUUID();
+    ClothesAttributeDefUpdateRequest request = new ClothesAttributeDefUpdateRequest("재질", null);
+    ClothesAttributeDefDto response = new ClothesAttributeDefDto(
+        definitionId, "재질", List.of("WHITE", "BLACK"), null
+    );
+    given(attributeDefService.updateAttributeDef(eq(definitionId), any(ClothesAttributeDefUpdateRequest.class)))
+        .willReturn(response);
+
+    mockMvc.perform(patch("/api/clothes/attribute-defs/" + definitionId)
+            .with(user("admin").roles("ADMIN"))
+            .with(csrf())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(request)))
+        .andExpect(status().isOk());
+
+    verify(attributeDefService).updateAttributeDef(eq(definitionId), any(ClothesAttributeDefUpdateRequest.class));
+  }
+
+  @Test
+  @DisplayName("실패 - name이 20자 초과면 400을 반환한다")
+  void updateAttributeDefs_nameTooLong_returns400() throws Exception {
+    UUID definitionId = UUID.randomUUID();
+    ClothesAttributeDefUpdateRequest request = new ClothesAttributeDefUpdateRequest(
+        "가".repeat(21),
+        List.of("WHITE")
+    );
+
+    mockMvc.perform(patch("/api/clothes/attribute-defs/" + definitionId)
+            .with(user("admin").roles("ADMIN"))
+            .with(csrf())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(request)))
+        .andExpect(status().isBadRequest());
+
+    verifyNoInteractions(attributeDefService);
+  }
+
+  @Test
+  @DisplayName("실패 - selectableValues가 빈 리스트면 400을 반환한다")
+  void updateAttributeDefs_emptySelectableValues_returns400() throws Exception {
+    UUID definitionId = UUID.randomUUID();
+    ClothesAttributeDefUpdateRequest request = new ClothesAttributeDefUpdateRequest("색상", List.of());
+
+    mockMvc.perform(patch("/api/clothes/attribute-defs/" + definitionId)
+            .with(user("admin").roles("ADMIN"))
+            .with(csrf())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(request)))
+        .andExpect(status().isBadRequest());
+
+    verifyNoInteractions(attributeDefService);
+  }
+
+  @Test
+  @DisplayName("실패 - selectableValues에 공백 값이 포함되면 400을 반환한다")
+  void updateAttributeDefs_blankSelectableValue_returns400() throws Exception {
+    UUID definitionId = UUID.randomUUID();
+    ClothesAttributeDefUpdateRequest request = new ClothesAttributeDefUpdateRequest(
+        "색상",
+        List.of("WHITE", " ")
+    );
+
+    mockMvc.perform(patch("/api/clothes/attribute-defs/" + definitionId)
+            .with(user("admin").roles("ADMIN"))
+            .with(csrf())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(request)))
+        .andExpect(status().isBadRequest());
+
+    verifyNoInteractions(attributeDefService);
+  }
+
+  @Test
+  @DisplayName("실패 - 존재하지 않는 definitionId로 수정 시 400을 반환한다")
+  void updateAttributeDefs_notFound_returns400() throws Exception {
+    UUID definitionId = UUID.randomUUID();
+    ClothesAttributeDefUpdateRequest request = new ClothesAttributeDefUpdateRequest("재질", List.of("COTTON"));
+    given(attributeDefService.updateAttributeDef(eq(definitionId), any(ClothesAttributeDefUpdateRequest.class)))
+        .willThrow(new BusinessException(ClothesErrorCode.CLOTHES_ATTRIBUTE_DEFINITION_NOT_FOUND));
+
+    mockMvc.perform(patch("/api/clothes/attribute-defs/" + definitionId)
+            .with(user("admin").roles("ADMIN"))
+            .with(csrf())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isBadRequest());
   }
 }

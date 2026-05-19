@@ -3,11 +3,10 @@ package com.gitggal.clothesplz.controller.auth;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.verify;
+import static org.mockito.BDDMockito.then;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -111,10 +110,9 @@ class AuthControllerTest {
 
     @Test
     @DisplayName("성공")
-    void success_getCsrfToken() throws Exception {
+    void getCsrfToken_success() throws Exception {
       // when & then
       mockMvc.perform(get("/api/auth/csrf-token"))
-          .andDo(print())
           .andExpect(status().isNoContent());
     }
   }
@@ -145,7 +143,6 @@ class AuthControllerTest {
       mockMvc.perform(post("/api/auth/refresh")
               .with(csrf())
               .cookie(new Cookie("REFRESH_TOKEN", oldRefreshToken)))
-          .andDo(print())
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.userDto.id").value(userDto.id().toString()))
           .andExpect(jsonPath("$.userDto.email").value("test@test.com"))
@@ -157,8 +154,8 @@ class AuthControllerTest {
           .andExpect(cookie().path("REFRESH_TOKEN", "/"))
           .andExpect(cookie().maxAge("REFRESH_TOKEN", 86400));
 
-      verify(authService).refresh(oldRefreshToken);
-      verify(jwtTokenProvider).generateRefreshTokenCookie(refreshToken);
+      then(authService).should().refresh(oldRefreshToken);
+      then(jwtTokenProvider).should().generateRefreshTokenCookie(refreshToken);
     }
 
     @Test
@@ -168,17 +165,16 @@ class AuthControllerTest {
       String invalidRefreshToken = "invalid.refresh.token";
 
       given(authService.refresh(anyString()))
-          .willThrow(new BusinessException(UserErrorCode.INVALID_TOKEN));
+          .willThrow(new BusinessException(UserErrorCode.JWT_TOKEN_INVALID));
 
       // when & then
       mockMvc.perform(post("/api/auth/refresh")
               .with(csrf())
               .cookie(new Cookie("REFRESH_TOKEN", invalidRefreshToken)))
-          .andDo(print())
           .andExpect(status().isUnauthorized())
-          .andExpect(jsonPath("$.exceptionName").value(UserErrorCode.INVALID_TOKEN.name()));
+          .andExpect(jsonPath("$.exceptionName").value(UserErrorCode.JWT_TOKEN_INVALID.name()));
 
-      verify(authService).refresh(invalidRefreshToken);
+      then(authService).should().refresh(invalidRefreshToken);
     }
 
     @Test
@@ -188,27 +184,38 @@ class AuthControllerTest {
       String expiredRefreshToken = "expired.refresh.token";
 
       given(authService.refresh(expiredRefreshToken))
-          .willThrow(new BusinessException(UserErrorCode.INVALID_TOKEN));
+          .willThrow(new BusinessException(UserErrorCode.JWT_TOKEN_EXPIRED));
 
       // when & then
       mockMvc.perform(post("/api/auth/refresh")
               .with(csrf())
               .cookie(new Cookie("REFRESH_TOKEN", expiredRefreshToken)))
-          .andDo(print())
           .andExpect(status().isUnauthorized())
-          .andExpect(jsonPath("$.exceptionName").value(UserErrorCode.INVALID_TOKEN.name()));
+          .andExpect(jsonPath("$.exceptionName").value(UserErrorCode.JWT_TOKEN_EXPIRED.name()));
 
-      verify(authService).refresh(expiredRefreshToken);
+      then(authService).should().refresh(expiredRefreshToken);
+    }
+
+    @Test
+    @DisplayName("실패 - 쿠키 누락")
+    void refreshToken_fail_cookieNotFound() throws Exception {
+      // given & when & then
+      mockMvc.perform(post("/api/auth/refresh")
+              .with(csrf()))
+          .andExpect(status().isUnauthorized())
+          .andExpect(jsonPath("$.exceptionName").value(UserErrorCode.JWT_TOKEN_NOT_FOUND.name()));
+
+      then(authService).shouldHaveNoInteractions();
     }
   }
 
   @Nested
   @DisplayName("임시 비밀번호 발급")
-  class sendTempPassword {
+  class SendTempPassword {
 
     @Test
     @DisplayName("성공")
-    void success_sendTempPassword() throws Exception {
+    void sendTempPassword_success() throws Exception {
       // given
       ResetPasswordRequest request =
           new ResetPasswordRequest("test@test.com");
@@ -220,12 +227,12 @@ class AuthControllerTest {
               .content(objectMapper.writeValueAsString(request)))
           .andExpect(status().isNoContent());
 
-      verify(authService).sendTempPassword(any(ResetPasswordRequest.class));
+      then(authService).should().sendTempPassword(any(ResetPasswordRequest.class));
     }
 
     @Test
     @DisplayName("실패 - 이메일이 없는 경우")
-    void sendTempPassword_validation_fail() throws Exception {
+    void sendTempPassword_fail_validation() throws Exception {
       // given
       ResetPasswordRequest invalidRequest =
           new ResetPasswordRequest("");
@@ -235,7 +242,6 @@ class AuthControllerTest {
               .with(csrf())
               .contentType(MediaType.APPLICATION_JSON)
               .content(objectMapper.writeValueAsString(invalidRequest)))
-          .andDo(print())
           .andExpect(status().isBadRequest());
     }
   }

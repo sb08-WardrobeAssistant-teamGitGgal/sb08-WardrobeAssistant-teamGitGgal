@@ -8,7 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.gitggal.clothesplz.config.TestSecurityConfig;
-import com.gitggal.clothesplz.dto.clothes.ClothesDto;
+import com.gitggal.clothesplz.dto.clothes.OotdDto;
 import com.gitggal.clothesplz.dto.clothes.RecommendationDto;
 import com.gitggal.clothesplz.dto.user.UserDto;
 import com.gitggal.clothesplz.entity.clothes.ClothesType;
@@ -62,9 +62,8 @@ class RecommendationsControllerTest {
     RecommendationDto response = new RecommendationDto(
         weatherId.toString(),
         userId.toString(),
-        List.of(new ClothesDto(
+        List.of(new OotdDto(
             UUID.randomUUID(),
-            userId,
             "반팔 티셔츠",
             null,
             ClothesType.TOP,
@@ -79,6 +78,7 @@ class RecommendationsControllerTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.weatherId").value(weatherId.toString()))
         .andExpect(jsonPath("$.userId").value(userId.toString()))
+        .andExpect(jsonPath("$.clothes[0].clothesId").isNotEmpty())
         .andExpect(jsonPath("$.clothes[0].name").value("반팔 티셔츠"))
         .andExpect(jsonPath("$.clothes[0].type").value("TOP"));
 

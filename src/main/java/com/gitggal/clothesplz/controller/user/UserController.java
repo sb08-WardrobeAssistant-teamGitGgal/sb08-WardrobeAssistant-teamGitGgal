@@ -1,5 +1,6 @@
 package com.gitggal.clothesplz.controller.user;
 
+import com.gitggal.clothesplz.controller.user.api.UserControllerApi;
 import com.gitggal.clothesplz.dto.user.ChangePasswordRequest;
 import com.gitggal.clothesplz.dto.user.UserCreateRequest;
 import com.gitggal.clothesplz.dto.user.UserDto;
@@ -32,7 +33,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/users")
-public class UserController {
+public class UserController implements UserControllerApi {
 
   private final UserService userService;
 
