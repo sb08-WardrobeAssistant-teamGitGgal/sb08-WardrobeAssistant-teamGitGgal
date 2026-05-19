@@ -186,7 +186,7 @@ class WeatherItemWriterTest {
         }
 
         @Test
-        @DisplayName("저장 후 해당 격자 캐시 evict 호출")
+        @DisplayName("신규 저장 → 해당 격자 캐시 evict 호출")
         void write_afterSave_evictsCache() throws Exception {
             Weather w = makeWeather(OffsetDateTime.now());
             Chunk<List<Weather>> chunk = new Chunk<>(List.of(List.of(w)));
@@ -197,6 +197,20 @@ class WeatherItemWriterTest {
             writer.write(chunk);
 
             verify(weatherCacheService).evictForecast(60, 127);
+        }
+
+        @Test
+        @DisplayName("전부 중복 → evict 미호출")
+        void write_allDuplicate_doesNotEvictCache() throws Exception {
+            Weather w = makeWeather(OffsetDateTime.now());
+            Chunk<List<Weather>> chunk = new Chunk<>(List.of(List.of(w)));
+
+            given(weatherRepository.findByLocationInAndForecastAtBetween(anyList(), any(), any()))
+                    .willReturn(List.of(w));
+
+            writer.write(chunk);
+
+            verifyNoInteractions(weatherCacheService);
         }
     }
 

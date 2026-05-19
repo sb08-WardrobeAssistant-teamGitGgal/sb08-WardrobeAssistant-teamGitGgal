@@ -64,7 +64,10 @@ public class WeatherItemWriter implements ItemWriter<List<Weather>> {
         weatherRepository.saveAll(toSave);
         log.debug("[Batch] 날씨 저장: {}건 (중복 제외: {}건)", toSave.size(), allWeathers.size() - toSave.size());
 
-        locations.forEach(loc -> weatherCacheService.evictForecast(loc.getGridX(), loc.getGridY()));
+        toSave.stream()
+                .map(Weather::getLocation)
+                .distinct()
+                .forEach(loc -> weatherCacheService.evictForecast(loc.getGridX(), loc.getGridY()));
 
         LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul"));
         toSave.stream()
