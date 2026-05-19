@@ -1,24 +1,26 @@
 package com.gitggal.clothesplz.mapper.weather;
 
-import com.gitggal.clothesplz.dto.weather.DailyWeatherForecastDto;
 import com.gitggal.clothesplz.dto.weather.WeatherAPILocationDto;
 import com.gitggal.clothesplz.dto.weather.WeatherDto;
 import com.gitggal.clothesplz.entity.weather.PrecipitationType;
 import com.gitggal.clothesplz.entity.weather.SkyStatus;
+import com.gitggal.clothesplz.entity.weather.Weather;
 import com.gitggal.clothesplz.entity.weather.WindPhrase;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.InjectMocks;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 @DisplayName("WeatherMapper 단위 테스트")
 @ExtendWith(MockitoExtension.class)
@@ -27,66 +29,37 @@ class WeatherMapperTest {
     @InjectMocks
     private WeatherMapper weatherMapper;
 
-    // ── toWindPhrase ──────────────────────────────────────────────────────
+    // ── windPhrase passthrough ────────────────────────────────────────────
 
-    @ParameterizedTest(name = "풍속 {0} m/s → {1}")
-    @CsvSource({
-            "0.0,  WEAK",
-            "3.9,  WEAK",
-            "4.0,  MODERATE",
-            "8.9,  MODERATE",
-            "9.0,  STRONG",
-            "15.0, STRONG"
-    })
-    @DisplayName("풍속 구간별로 올바른 WindPhrase를 반환한다")
-    void toWindPhrase_bySpeed(double speed, WindPhrase expected) {
-        WeatherDto result = weatherMapper.toWeatherDto(
-                forecast(speed), 37.5, 127.0, 60, 127, List.of());
-        assertThat(result.windSpeed().asWord()).isEqualTo(expected);
+    @ParameterizedTest(name = "WindPhrase {0}이 DTO에 그대로 매핑된다")
+    @EnumSource(WindPhrase.class)
+    @DisplayName("엔티티의 windPhrase가 DTO windSpeed.asWord()에 그대로 전달된다")
+    void toWeatherDto_mapsWindPhraseFromEntity(WindPhrase phrase) {
+        Weather weather = mockWeather(UUID.randomUUID(), phrase);
+        WeatherDto result = weatherMapper.toWeatherDto(weather, 37.5, 127.0, 60, 127, List.of());
+        assertThat(result.windSpeed().asWord()).isEqualTo(phrase);
+    }
+
+    // ── id passthrough (DB UUID 사용 검증) ──────────────────────────────────
+
+    @Test
+    @DisplayName("toWeatherDto는 weather.getId()를 DTO id로 사용한다")
+    void toWeatherDto_usesEntityId() {
+        UUID expectedId = UUID.randomUUID();
+        WeatherDto result = weatherMapper.toWeatherDto(mockWeather(expectedId, WindPhrase.WEAK), 37.5, 127.0, 60, 127, List.of());
+        assertThat(result.id()).isEqualTo(expectedId);
     }
 
     @Test
-    @DisplayName("풍속이 null이면 WEAK을 반환한다")
-    void toWindPhrase_nullSpeed_returnsWeak() {
-        WeatherDto result = weatherMapper.toWeatherDto(
-                forecast(null), 37.5, 127.0, 60, 127, List.of());
-        assertThat(result.windSpeed().asWord()).isEqualTo(WindPhrase.WEAK);
-    }
+    @DisplayName("서로 다른 Weather 엔티티는 서로 다른 id의 DTO를 반환한다")
+    void toWeatherDto_differentEntities_differentIds() {
+        UUID id1 = UUID.randomUUID();
+        UUID id2 = UUID.randomUUID();
 
-    // ── stableWeatherId ───────────────────────────────────────────────────
+        WeatherDto dto1 = weatherMapper.toWeatherDto(mockWeather(id1, WindPhrase.WEAK), 37.5, 127.0, 60, 127, List.of());
+        WeatherDto dto2 = weatherMapper.toWeatherDto(mockWeather(id2, WindPhrase.WEAK), 37.5, 127.0, 60, 127, List.of());
 
-    @Test
-    @DisplayName("같은 격자 좌표와 날짜면 항상 동일한 UUID를 반환한다")
-    void stableWeatherId_sameInput_returnsSameUUID() {
-        DailyWeatherForecastDto dto = forecast(1.0);
-
-        WeatherDto first  = weatherMapper.toWeatherDto(dto, 37.5, 127.0, 60, 127, List.of());
-        WeatherDto second = weatherMapper.toWeatherDto(dto, 37.5, 127.0, 60, 127, List.of());
-
-        assertThat(first.id()).isEqualTo(second.id());
-    }
-
-    @Test
-    @DisplayName("격자 좌표가 다르면 다른 UUID를 반환한다")
-    void stableWeatherId_differentGrid_returnsDifferentUUID() {
-        DailyWeatherForecastDto dto = forecast(1.0);
-
-        UUID id1 = weatherMapper.toWeatherDto(dto, 37.5, 127.0, 60, 127, List.of()).id();
-        UUID id2 = weatherMapper.toWeatherDto(dto, 37.5, 127.0, 61, 128, List.of()).id();
-
-        assertThat(id1).isNotEqualTo(id2);
-    }
-
-    @Test
-    @DisplayName("날짜가 다르면 다른 UUID를 반환한다")
-    void stableWeatherId_differentDate_returnsDifferentUUID() {
-        DailyWeatherForecastDto today    = forecast(LocalDate.of(2026, 5, 12), 1.0);
-        DailyWeatherForecastDto tomorrow = forecast(LocalDate.of(2026, 5, 13), 1.0);
-
-        UUID id1 = weatherMapper.toWeatherDto(today,    37.5, 127.0, 60, 127, List.of()).id();
-        UUID id2 = weatherMapper.toWeatherDto(tomorrow, 37.5, 127.0, 60, 127, List.of()).id();
-
-        assertThat(id1).isNotEqualTo(id2);
+        assertThat(dto1.id()).isNotEqualTo(dto2.id());
     }
 
     // ── toLocationDto ─────────────────────────────────────────────────────
@@ -110,27 +83,37 @@ class WeatherMapperTest {
     @Test
     @DisplayName("toWeatherDtoList는 입력 리스트 크기만큼 WeatherDto를 반환한다")
     void toWeatherDtoList_returnsSameSizeList() {
-        List<DailyWeatherForecastDto> forecasts = List.of(
-                forecast(LocalDate.of(2026, 5, 12), 1.0),
-                forecast(LocalDate.of(2026, 5, 13), 5.0),
-                forecast(LocalDate.of(2026, 5, 14), 10.0)
+        List<Weather> weathers = List.of(
+                mockWeather(UUID.randomUUID(), WindPhrase.WEAK),
+                mockWeather(UUID.randomUUID(), WindPhrase.MODERATE),
+                mockWeather(UUID.randomUUID(), WindPhrase.STRONG)
         );
 
         List<WeatherDto> result = weatherMapper.toWeatherDtoList(
-                forecasts, 37.5, 127.0, 60, 127, List.of("서울특별시", "중구", "을지로동"));
+                weathers, 37.5, 127.0, 60, 127, List.of("서울특별시", "중구", "을지로동"));
 
         assertThat(result).hasSize(3);
     }
 
     // ── 헬퍼 ─────────────────────────────────────────────────────────────
 
-    private DailyWeatherForecastDto forecast(Double windSpeed) {
-        return forecast(LocalDate.of(2026, 5, 12), windSpeed);
-    }
-
-    private DailyWeatherForecastDto forecast(LocalDate date, Double windSpeed) {
-        return new DailyWeatherForecastDto(
-                date, SkyStatus.CLEAR, 16.0, 11.0, 20.0,
-                42.0, 0.0, PrecipitationType.NONE, 0.0, 0.0, windSpeed, 0.0);
+    private Weather mockWeather(UUID id, WindPhrase windPhrase) {
+        Weather weather = mock(Weather.class);
+        when(weather.getId()).thenReturn(id);
+        when(weather.getForecastedAt()).thenReturn(OffsetDateTime.now());
+        when(weather.getForecastAt()).thenReturn(OffsetDateTime.now());
+        when(weather.getSkyStatus()).thenReturn(SkyStatus.CLEAR);
+        when(weather.getPrecipitationType()).thenReturn(PrecipitationType.NONE);
+        when(weather.getPrecipitationAmount()).thenReturn(0.0);
+        when(weather.getPrecipitationProbability()).thenReturn(0.0);
+        when(weather.getHumidity()).thenReturn(42.0);
+        when(weather.getHumidityDiff()).thenReturn(0.0);
+        when(weather.getTemperatureCurrent()).thenReturn(16.0);
+        when(weather.getTemperatureDiff()).thenReturn(0.0);
+        when(weather.getTemperatureMin()).thenReturn(11.0);
+        when(weather.getTemperatureMax()).thenReturn(20.0);
+        when(weather.getWindSpeed()).thenReturn(4.0);
+        when(weather.getWindPhrase()).thenReturn(windPhrase);
+        return weather;
     }
 }

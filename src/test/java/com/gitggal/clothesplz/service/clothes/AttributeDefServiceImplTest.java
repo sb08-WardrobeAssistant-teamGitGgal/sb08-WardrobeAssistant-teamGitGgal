@@ -15,8 +15,10 @@ import com.gitggal.clothesplz.exception.BusinessException;
 import com.gitggal.clothesplz.exception.code.ClothesErrorCode;
 import com.gitggal.clothesplz.mapper.clothes.AttributeDefMapper;
 import com.gitggal.clothesplz.repository.clothes.ClothesAttributeDefRepository;
+import com.gitggal.clothesplz.repository.clothes.ClothesAttributeRepository;
 import com.gitggal.clothesplz.service.clothes.impl.AttributeDefServiceImpl;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -37,6 +39,9 @@ class AttributeDefServiceImplTest {
 
   @Mock
   private AttributeDefMapper attributeDefMapper;
+
+  @Mock
+  private ClothesAttributeRepository clothesAttributeRepository;
 
   @InjectMocks
   private AttributeDefServiceImpl attributeDefService;
@@ -162,5 +167,36 @@ class AttributeDefServiceImplTest {
     assertThat(exception).isNotNull();
     assertThat(exception.getErrorCode()).isEqualTo(ClothesErrorCode.DUPLICATE_ATTRIBUTE_NAME);
     verifyNoInteractions(attributeDefMapper);
+  }
+
+  @Test
+  @DisplayName("성공 - 존재하는 정의 ID면 관련 속성과 정의를 모두 삭제한다")
+  void deleteAttributeDefs_success_deletesAttributesAndDef() {
+    UUID definitionId = UUID.randomUUID();
+    ClothesAttributeDef attributeDef = new ClothesAttributeDef("색상", List.of("WHITE", "BLACK"));
+    ReflectionTestUtils.setField(attributeDef, "id", definitionId);
+    given(clothesAttributeDefRepository.findById(definitionId)).willReturn(Optional.of(attributeDef));
+
+    attributeDefService.deleteAttributeDefs(definitionId);
+
+    verify(clothesAttributeRepository).deleteAllByDefinitionId(definitionId);
+    verify(clothesAttributeDefRepository).delete(attributeDef);
+  }
+
+  @Test
+  @DisplayName("실패 - 존재하지 않는 정의 ID면 CLOTHES_ATTRIBUTE_DEFINITION_NOT_FOUND 예외를 던진다")
+  void deleteAttributeDefs_notFound_throwsException() {
+    UUID definitionId = UUID.randomUUID();
+    given(clothesAttributeDefRepository.findById(definitionId)).willReturn(Optional.empty());
+
+    BusinessException exception = catchThrowableOfType(
+        () -> attributeDefService.deleteAttributeDefs(definitionId),
+        BusinessException.class
+    );
+
+    assertThat(exception).isNotNull();
+    assertThat(exception.getErrorCode()).isEqualTo(ClothesErrorCode.CLOTHES_ATTRIBUTE_DEFINITION_NOT_FOUND);
+    verify(clothesAttributeRepository, never()).deleteAllByDefinitionId(any());
+    verify(clothesAttributeDefRepository, never()).delete(any(ClothesAttributeDef.class));
   }
 }
