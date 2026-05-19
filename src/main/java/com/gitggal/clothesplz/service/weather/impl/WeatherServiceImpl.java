@@ -8,6 +8,7 @@ import com.gitggal.clothesplz.entity.weather.Weather;
 import com.gitggal.clothesplz.mapper.weather.WeatherMapper;
 import com.gitggal.clothesplz.service.weather.KakaoLocalApiService;
 import com.gitggal.clothesplz.service.weather.WeatherApiService;
+import com.gitggal.clothesplz.service.weather.WeatherCacheService;
 import com.gitggal.clothesplz.service.weather.WeatherParserService;
 import com.gitggal.clothesplz.service.weather.WeatherService;
 import com.gitggal.clothesplz.util.weather.KmaGridCoordinateConverter;
@@ -22,6 +23,7 @@ import reactor.core.scheduler.Schedulers;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -32,13 +34,20 @@ public class WeatherServiceImpl implements WeatherService {
     private final WeatherParserService weatherParserService;
     private final KakaoLocalApiService kakaoLocalApiService;
     private final WeatherMapper weatherMapper;
-    private final WeatherPersistenceService weatherPersistenceService;
+    private final WeatherPersistenceServiceImpl weatherPersistenceService;
+    private final WeatherCacheService weatherCacheService;
 
     @Override
     public Mono<List<WeatherDto>> getWeatherForecast(double latitude, double longitude) {
         KmaGridPoint grid = KmaGridCoordinateConverter.toGrid(latitude, longitude);
         log.info("[Service] 기상청 데이터 수집 및 가공 시작: lat={}, lon={}, nx={}, ny={}",
                 latitude, longitude, grid.nx(), grid.ny());
+
+        Optional<List<WeatherDto>> cached = weatherCacheService.getForecast(grid.nx(), grid.ny());
+        if (cached.isPresent()) {
+            log.info("[Service] 캐시 HIT — 날씨 데이터 반환: nx={}, ny={}", grid.nx(), grid.ny());
+            return Mono.just(cached.get());
+        }
 
         return Mono.zip(
                         weatherApiService.fetchWeather(grid.nx(), grid.ny()),
@@ -58,6 +67,7 @@ public class WeatherServiceImpl implements WeatherService {
                     List<WeatherDto> result = weatherMapper.toWeatherDtoList(
                             weathers, latitude, longitude, grid.nx(), grid.ny(), locationNames);
 
+                    weatherCacheService.saveForecast(grid.nx(), grid.ny(), result);
                     log.info("[Service] 기상청 데이터 가공 완료: 결과 건수={}", result.size());
                     return result;
                 }).subscribeOn(Schedulers.boundedElastic()))

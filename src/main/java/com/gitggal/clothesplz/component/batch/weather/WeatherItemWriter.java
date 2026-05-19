@@ -4,6 +4,7 @@ import com.gitggal.clothesplz.entity.weather.Location;
 import com.gitggal.clothesplz.entity.weather.Weather;
 import com.gitggal.clothesplz.repository.weather.WeatherRepository;
 import com.gitggal.clothesplz.service.weather.WeatherAlertService;
+import com.gitggal.clothesplz.service.weather.WeatherCacheService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.item.Chunk;
@@ -27,6 +28,7 @@ public class WeatherItemWriter implements ItemWriter<List<Weather>> {
 
     private final WeatherRepository weatherRepository;
     private final WeatherAlertService weatherAlertService;
+    private final WeatherCacheService weatherCacheService;
 
     @Override
     public void write(Chunk<? extends List<Weather>> chunk) {
@@ -61,6 +63,8 @@ public class WeatherItemWriter implements ItemWriter<List<Weather>> {
 
         weatherRepository.saveAll(toSave);
         log.debug("[Batch] 날씨 저장: {}건 (중복 제외: {}건)", toSave.size(), allWeathers.size() - toSave.size());
+
+        locations.forEach(loc -> weatherCacheService.evictForecast(loc.getGridX(), loc.getGridY()));
 
         LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul"));
         toSave.stream()
