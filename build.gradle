@@ -84,6 +84,9 @@ dependencies {
 
     // Redis
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+
+    // Retry
+    implementation 'org.springframework.retry:spring-retry'
 }
 
 tasks.named('test') {

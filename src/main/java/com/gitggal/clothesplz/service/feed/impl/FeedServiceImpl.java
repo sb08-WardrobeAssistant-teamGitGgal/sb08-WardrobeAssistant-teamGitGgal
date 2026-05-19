@@ -19,6 +19,11 @@ import com.gitggal.clothesplz.entity.feed.FeedComment;
 import com.gitggal.clothesplz.entity.feed.FeedLike;
 import com.gitggal.clothesplz.entity.user.User;
 import com.gitggal.clothesplz.entity.weather.Weather;
+import com.gitggal.clothesplz.event.elasticsearch.FeedElasticSearchDeleteEvent;
+import com.gitggal.clothesplz.event.elasticsearch.FeedElasticSearchSyncEvent;
+import com.gitggal.clothesplz.event.feed.FeedCommentCreatedEvent;
+import com.gitggal.clothesplz.event.feed.FeedCreatedEvent;
+import com.gitggal.clothesplz.event.feed.FeedLikedEvent;
 import com.gitggal.clothesplz.exception.BusinessException;
 import com.gitggal.clothesplz.exception.code.ClothesErrorCode;
 import com.gitggal.clothesplz.exception.code.FeedErrorCode;
@@ -33,6 +38,7 @@ import com.gitggal.clothesplz.repository.feed.FeedCommentRepository;
 import com.gitggal.clothesplz.repository.feed.FeedLikeRepository;
 import com.gitggal.clothesplz.repository.feed.FeedRepository;
 import com.gitggal.clothesplz.repository.feed.FeedSearchRepository;
+import com.gitggal.clothesplz.repository.follow.FollowRepository;
 import com.gitggal.clothesplz.repository.user.UserRepository;
 import com.gitggal.clothesplz.repository.weather.WeatherRepository;
 import com.gitggal.clothesplz.service.feed.FeedService;
@@ -45,6 +51,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -70,6 +77,8 @@ public class FeedServiceImpl implements FeedService {
   private final ClothesRepository clothesRepository;
   private final ClothesMapper clothesMapper;
   private final ClothesAttributeRepository clothesAttributeRepository;
+  private final ApplicationEventPublisher eventPublisher;
+  private final FollowRepository followRepository;
 
   @Override
   @Transactional
@@ -103,8 +112,9 @@ public class FeedServiceImpl implements FeedService {
 
     // 존재하지 않는 의상 검증
     clothesIds.forEach(id -> {
-      if (!clothesById.containsKey(id))
+      if (!clothesById.containsKey(id)) {
         throw new BusinessException(ClothesErrorCode.CLOTHES_NOT_FOUND);
+      }
     });
 
     List<OotdDto> ootds = clothesIds.stream()
@@ -117,15 +127,24 @@ public class FeedServiceImpl implements FeedService {
 
     Feed savedFeed = feedRepository.save(feed);
 
-    feedSearchRepository.save(FeedDocument.builder()
-        .id(savedFeed.getId().toString())
-        .content(savedFeed.getContent())
-        .authorId(savedFeed.getAuthor().getId().toString())
-        .skyStatus(savedFeed.getWeather().getSkyStatus().name())
-        .precipitationType(savedFeed.getWeather().getPrecipitationType().name())
-        .likeCount(savedFeed.getLikeCount())
-        .createdAt(savedFeed.getCreatedAt())
-        .build());
+    // 피드 작성자를 팔로우하는 사람들의 id 리스트
+    List<UUID> followerIds = followRepository.findFollowerIdsByFolloweeId(authorId);
+    // 팔로워에게 알림 이벤트 전송
+    eventPublisher.publishEvent(new FeedCreatedEvent(
+        followerIds,
+        author.getName(),
+        savedFeed.getContent()
+    ));
+
+    eventPublisher.publishEvent(new FeedElasticSearchSyncEvent(
+        savedFeed.getId(),
+        savedFeed.getContent(),
+        savedFeed.getAuthor().getId(),
+        savedFeed.getWeather().getSkyStatus(),
+        savedFeed.getWeather().getPrecipitationType(),
+        savedFeed.getLikeCount(),
+        savedFeed.getCreatedAt()
+    ));
 
     log.info("[Service] 피드 생성 요청 완료 - feedId: {}", savedFeed.getId());
 
@@ -144,15 +163,15 @@ public class FeedServiceImpl implements FeedService {
 
     feed.update(newContent);
 
-    feedSearchRepository.save(FeedDocument.builder()
-        .id(feedId.toString())
-        .content(feed.getContent())
-        .authorId(feed.getAuthor().getId().toString())
-        .skyStatus(feed.getWeather().getSkyStatus().name())
-        .precipitationType(feed.getWeather().getPrecipitationType().name())
-        .likeCount(feed.getLikeCount())
-        .createdAt(feed.getCreatedAt())
-        .build());
+    eventPublisher.publishEvent(new FeedElasticSearchSyncEvent(
+        feed.getId(),
+        feed.getContent(),
+        feed.getAuthor().getId(),
+        feed.getWeather().getSkyStatus(),
+        feed.getWeather().getPrecipitationType(),
+        feed.getLikeCount(),
+        feed.getCreatedAt()
+    ));
 
     log.info("[Service] 피드 수정 요청 완료 - feedId: {}", feedId);
 
@@ -169,7 +188,7 @@ public class FeedServiceImpl implements FeedService {
         .orElseThrow(() -> new BusinessException(FeedErrorCode.FEED_NOT_FOUND));
 
     feedRepository.delete(feed);
-    feedSearchRepository.deleteById(feedId.toString());
+    eventPublisher.publishEvent(new FeedElasticSearchDeleteEvent(feed.getId()));
 
     log.info("[Service] 피드 삭제 요청 완료 - feedId: {}", feedId);
   }
@@ -194,6 +213,12 @@ public class FeedServiceImpl implements FeedService {
 
     feedLikeRepository.save(feedLike);
     feed.increaseLikeCount();
+
+    eventPublisher.publishEvent(new FeedLikedEvent(
+        feed.getAuthor().getId(),
+        user.getName(),
+        feed.getContent()
+    ));
 
     log.info("[Service] 피드 좋아요 요청 완료 - feedLikeId: {}", feedLike.getId());
   }
@@ -233,6 +258,12 @@ public class FeedServiceImpl implements FeedService {
     FeedComment comment = new FeedComment(feed, author, content);
     FeedComment savedComment = feedCommentRepository.save(comment);
     feed.increaseCommentCount();
+
+    eventPublisher.publishEvent(new FeedCommentCreatedEvent(
+        feed.getAuthor().getId(),
+        author.getName(),
+        content
+    ));
 
     log.info("[Service] 피드 댓글 생성 요청 완료 - commentId: {}", savedComment.getId());
     return commentMapper.toDto(savedComment);
@@ -304,8 +335,13 @@ public class FeedServiceImpl implements FeedService {
       // search 검사 결과 아무것도 없을 경우 빈 페이지 반환
       if (documents.isEmpty()) {
         return new FeedDtoCursorResponse(
-          List.of(), null, null, false, 0,
-          feedPageRequest.sortBy(), feedPageRequest.sortDirection()
+            List.of(),
+            null,
+            null,
+            false,
+            0,
+            feedPageRequest.sortBy(),
+            feedPageRequest.sortDirection()
         );
       }
 
@@ -316,7 +352,11 @@ public class FeedServiceImpl implements FeedService {
     }
 
     // 그 후 필터링, 정렬, 커서 페이지네이션 처리 후 반환
-    List<FeedDto> feeds = feedRepository.findAllByCursor(feedPageRequest, feedCursorCondition, esMatchedIDs);
+    List<FeedDto> feeds = feedRepository.findAllByCursor(
+        feedPageRequest,
+        feedCursorCondition,
+        esMatchedIDs
+    );
 
     boolean hasNext = feeds.size() > feedPageRequest.limit();
     List<FeedDto> data = hasNext ? feeds.subList(0, feedPageRequest.limit()) : feeds;
