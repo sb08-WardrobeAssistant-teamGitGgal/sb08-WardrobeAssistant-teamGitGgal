@@ -10,6 +10,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 
 import com.gitggal.clothesplz.dto.clothes.ClothesAttributeDefCreateRequest;
 import com.gitggal.clothesplz.dto.clothes.ClothesAttributeDefDto;
+import com.gitggal.clothesplz.dto.clothes.ClothesAttributeDefUpdateRequest;
 import com.gitggal.clothesplz.entity.clothes.ClothesAttributeDef;
 import com.gitggal.clothesplz.exception.BusinessException;
 import com.gitggal.clothesplz.exception.code.ClothesErrorCode;
@@ -198,5 +199,87 @@ class AttributeDefServiceImplTest {
     assertThat(exception.getErrorCode()).isEqualTo(ClothesErrorCode.CLOTHES_ATTRIBUTE_DEFINITION_NOT_FOUND);
     verify(clothesAttributeRepository, never()).deleteAllByDefinitionId(any());
     verify(clothesAttributeDefRepository, never()).delete(any(ClothesAttributeDef.class));
+  }
+
+  @Test
+  @DisplayName("성공 - name과 selectableValues 모두 전달하면 두 필드 모두 수정하고 DTO를 반환한다")
+  void updateAttributeDef_nameAndValues_updatesBothAndReturnsDto() {
+    UUID definitionId = UUID.randomUUID();
+    ClothesAttributeDef attributeDef = new ClothesAttributeDef("색상", List.of("WHITE", "BLACK"));
+    ReflectionTestUtils.setField(attributeDef, "id", definitionId);
+    ClothesAttributeDefUpdateRequest request = new ClothesAttributeDefUpdateRequest(
+        "재질", List.of("COTTON", "WOOL")
+    );
+    ClothesAttributeDefDto response = new ClothesAttributeDefDto(
+        definitionId, "재질", List.of("COTTON", "WOOL"), null
+    );
+
+    given(clothesAttributeDefRepository.findById(definitionId)).willReturn(Optional.of(attributeDef));
+    given(attributeDefMapper.toClothesAttributeDefDto(attributeDef)).willReturn(response);
+
+    ClothesAttributeDefDto result = attributeDefService.updateAttributeDef(definitionId, request);
+
+    assertThat(attributeDef.getName()).isEqualTo("재질");
+    assertThat(attributeDef.getSelectableValues()).containsExactly("COTTON", "WOOL");
+    assertThat(result).isEqualTo(response);
+    verify(clothesAttributeDefRepository).findById(definitionId);
+    verify(attributeDefMapper).toClothesAttributeDefDto(attributeDef);
+  }
+
+  @Test
+  @DisplayName("성공 - name만 전달하면 name만 수정하고 selectableValues는 유지한다")
+  void updateAttributeDef_nameOnly_updatesNameOnly() {
+    UUID definitionId = UUID.randomUUID();
+    ClothesAttributeDef attributeDef = new ClothesAttributeDef("색상", List.of("WHITE", "BLACK"));
+    ReflectionTestUtils.setField(attributeDef, "id", definitionId);
+    ClothesAttributeDefUpdateRequest request = new ClothesAttributeDefUpdateRequest("재질", null);
+    ClothesAttributeDefDto response = new ClothesAttributeDefDto(
+        definitionId, "재질", List.of("WHITE", "BLACK"), null
+    );
+
+    given(clothesAttributeDefRepository.findById(definitionId)).willReturn(Optional.of(attributeDef));
+    given(attributeDefMapper.toClothesAttributeDefDto(attributeDef)).willReturn(response);
+
+    attributeDefService.updateAttributeDef(definitionId, request);
+
+    assertThat(attributeDef.getName()).isEqualTo("재질");
+    assertThat(attributeDef.getSelectableValues()).containsExactly("WHITE", "BLACK");
+  }
+
+  @Test
+  @DisplayName("성공 - selectableValues만 전달하면 selectableValues만 수정하고 name은 유지한다")
+  void updateAttributeDef_selectableValuesOnly_updatesValuesOnly() {
+    UUID definitionId = UUID.randomUUID();
+    ClothesAttributeDef attributeDef = new ClothesAttributeDef("색상", List.of("WHITE", "BLACK"));
+    ReflectionTestUtils.setField(attributeDef, "id", definitionId);
+    ClothesAttributeDefUpdateRequest request = new ClothesAttributeDefUpdateRequest(null, List.of("RED", "BLUE"));
+    ClothesAttributeDefDto response = new ClothesAttributeDefDto(
+        definitionId, "색상", List.of("RED", "BLUE"), null
+    );
+
+    given(clothesAttributeDefRepository.findById(definitionId)).willReturn(Optional.of(attributeDef));
+    given(attributeDefMapper.toClothesAttributeDefDto(attributeDef)).willReturn(response);
+
+    attributeDefService.updateAttributeDef(definitionId, request);
+
+    assertThat(attributeDef.getName()).isEqualTo("색상");
+    assertThat(attributeDef.getSelectableValues()).containsExactly("RED", "BLUE");
+  }
+
+  @Test
+  @DisplayName("실패 - 존재하지 않는 정의 ID면 CLOTHES_ATTRIBUTE_DEFINITION_NOT_FOUND 예외를 던진다")
+  void updateAttributeDef_notFound_throwsException() {
+    UUID definitionId = UUID.randomUUID();
+    ClothesAttributeDefUpdateRequest request = new ClothesAttributeDefUpdateRequest("재질", List.of("COTTON"));
+    given(clothesAttributeDefRepository.findById(definitionId)).willReturn(Optional.empty());
+
+    BusinessException exception = catchThrowableOfType(
+        () -> attributeDefService.updateAttributeDef(definitionId, request),
+        BusinessException.class
+    );
+
+    assertThat(exception).isNotNull();
+    assertThat(exception.getErrorCode()).isEqualTo(ClothesErrorCode.CLOTHES_ATTRIBUTE_DEFINITION_NOT_FOUND);
+    verifyNoInteractions(attributeDefMapper);
   }
 }
