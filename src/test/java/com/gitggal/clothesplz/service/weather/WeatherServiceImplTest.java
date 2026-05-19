@@ -1,15 +1,13 @@
 package com.gitggal.clothesplz.service.weather;
 
 import com.gitggal.clothesplz.dto.weather.DailyWeatherForecastDto;
+import com.gitggal.clothesplz.dto.weather.WeatherAPILocationDto;
 import com.gitggal.clothesplz.dto.weather.WeatherApiResponseDto;
 import com.gitggal.clothesplz.dto.weather.WeatherDto;
-import com.gitggal.clothesplz.dto.weather.WeatherAPILocationDto;
 import com.gitggal.clothesplz.entity.weather.Location;
 import com.gitggal.clothesplz.entity.weather.Weather;
 import com.gitggal.clothesplz.mapper.weather.WeatherMapper;
-import com.gitggal.clothesplz.service.weather.impl.WeatherPersistenceServiceImpl;
 import com.gitggal.clothesplz.service.weather.impl.WeatherServiceImpl;
-import com.gitggal.clothesplz.service.weather.WeatherCacheService;
 import com.gitggal.clothesplz.util.weather.KmaGridCoordinateConverter;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -47,7 +45,7 @@ class WeatherServiceImplTest {
     private WeatherMapper weatherMapper;
 
     @MockitoBean
-    private WeatherPersistenceServiceImpl weatherPersistenceService;
+    private WeatherPersistenceService weatherPersistenceService;
 
     @MockitoBean
     private WeatherCacheService weatherCacheService;
