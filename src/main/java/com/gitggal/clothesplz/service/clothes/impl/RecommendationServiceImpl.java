@@ -1,5 +1,6 @@
 package com.gitggal.clothesplz.service.clothes.impl;
 
+import com.gitggal.clothesplz.dto.clothes.ClothesAttributeWithDefDto;
 import com.gitggal.clothesplz.dto.clothes.OotdDto;
 import com.gitggal.clothesplz.dto.clothes.RecommendationDto;
 import com.gitggal.clothesplz.dto.user.UserDto;
@@ -9,6 +10,7 @@ import com.gitggal.clothesplz.entity.weather.Weather;
 import com.gitggal.clothesplz.exception.BusinessException;
 import com.gitggal.clothesplz.exception.code.WeatherErrorCode;
 import com.gitggal.clothesplz.mapper.clothes.ClothesMapper;
+import com.gitggal.clothesplz.repository.clothes.ClothesAttributeRepository;
 import com.gitggal.clothesplz.repository.clothes.ClothesRepository;
 import com.gitggal.clothesplz.repository.weather.WeatherRepository;
 import com.gitggal.clothesplz.service.clothes.OpenAiClient;
@@ -29,6 +31,7 @@ public class RecommendationServiceImpl implements RecommendationService {
 
   private final WeatherRepository weatherRepository;
   private final ClothesRepository clothesRepository;
+  private final ClothesAttributeRepository clothesAttributeRepository;
   private final ClothesMapper clothesMapper;
   private final OpenAiClient openAiClient;
 
@@ -52,9 +55,27 @@ public class RecommendationServiceImpl implements RecommendationService {
     // 의상 추천
     List<Clothes> recommended = recommendByLlm(weather, allClothes);
 
+    List<UUID> clothesId = recommended.stream().map(Clothes::getId).toList();
+
+    Map<UUID, List<ClothesAttributeWithDefDto>> attributesByClothesId =
+        clothesAttributeRepository.findAllByClothesIdIn(clothesId)
+            .stream()
+            .collect(Collectors.groupingBy(
+                attr -> attr.getClothes().getId(),
+                Collectors.mapping(
+                    attr -> clothesMapper.toClothesAttributeWithDefDto(
+                        attr.getDefinition(), attr.getValue()
+                    ),
+                    Collectors.toList()
+                )
+            ));
+
     // 의상 DTO 변환
     List<OotdDto> recommendedDtos = recommended.stream()
-        .map(c -> clothesMapper.toOotdDto(c, List.of()))
+        .map(clothes -> clothesMapper.toOotdDto(
+            clothes,
+            attributesByClothesId.getOrDefault(clothes.getId(), List.of())
+        ))
         .toList();
 
     log.info("[Service] 의상 추천 조회 요청 완료");
@@ -63,7 +84,7 @@ public class RecommendationServiceImpl implements RecommendationService {
   }
 
   private List<Clothes> recommendByLlm(Weather weather, List<Clothes> allClothes) {
-    if(allClothes.isEmpty()) {
+    if (allClothes.isEmpty()) {
       return List.of();
     }
     // OpenAI를 통한 추천

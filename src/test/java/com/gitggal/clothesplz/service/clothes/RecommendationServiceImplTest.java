@@ -3,6 +3,8 @@ package com.gitggal.clothesplz.service.clothes;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.anyList;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -22,6 +24,7 @@ import com.gitggal.clothesplz.entity.weather.WindPhrase;
 import com.gitggal.clothesplz.exception.BusinessException;
 import com.gitggal.clothesplz.exception.code.WeatherErrorCode;
 import com.gitggal.clothesplz.mapper.clothes.ClothesMapper;
+import com.gitggal.clothesplz.repository.clothes.ClothesAttributeRepository;
 import com.gitggal.clothesplz.repository.clothes.ClothesRepository;
 import com.gitggal.clothesplz.repository.weather.WeatherRepository;
 import com.gitggal.clothesplz.service.clothes.impl.RecommendationServiceImpl;
@@ -32,6 +35,7 @@ import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -49,6 +53,9 @@ class RecommendationServiceImplTest {
   private ClothesRepository clothesRepository;
 
   @Mock
+  private ClothesAttributeRepository clothesAttributeRepository;
+
+  @Mock
   private ClothesMapper clothesMapper;
 
   @Mock
@@ -56,6 +63,11 @@ class RecommendationServiceImplTest {
 
   @InjectMocks
   private RecommendationServiceImpl recommendationService;
+
+  @BeforeEach
+  void setUp() {
+    lenient().when(clothesAttributeRepository.findAllByClothesIdIn(anyList())).thenReturn(List.of());
+  }
 
   @Test
   @DisplayName("성공 - LLM 추천 ID 순서대로 의상 추천 결과를 반환한다")
