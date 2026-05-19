@@ -33,11 +33,16 @@ spring:
     username: test
     password: test
 
+  # Redis
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
 logging:
   level:
     org.hibernate.SQL: DEBUG
     org.hibernate.type.descriptor.sql.BasicBinder: TRACE
-
 
 clothesplz:
   admin:
