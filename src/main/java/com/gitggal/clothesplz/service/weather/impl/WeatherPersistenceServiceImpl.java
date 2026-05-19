@@ -17,7 +17,7 @@ import java.time.ZoneId;
 
 @Service
 @RequiredArgsConstructor
-public class WeatherPersistenceService {
+public class WeatherPersistenceServiceImpl {
 
     private static final ZoneId KST = ZoneId.of("Asia/Seoul");
     private static final double WIND_MODERATE_THRESHOLD = 4.0;
