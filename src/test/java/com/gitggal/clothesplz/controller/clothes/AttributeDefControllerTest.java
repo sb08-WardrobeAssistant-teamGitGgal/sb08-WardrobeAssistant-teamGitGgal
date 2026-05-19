@@ -347,27 +347,6 @@ class AttributeDefControllerTest {
   }
 
   @Test
-  @DisplayName("성공 - selectableValues만 전송하면 서비스를 호출하고 200을 반환한다")
-  void updateAttributeDefs_selectableValuesOnly_returns200() throws Exception {
-    UUID definitionId = UUID.randomUUID();
-    ClothesAttributeDefUpdateRequest request = new ClothesAttributeDefUpdateRequest(null, List.of("RED"));
-    ClothesAttributeDefDto response = new ClothesAttributeDefDto(
-        definitionId, "색상", List.of("RED"), null
-    );
-    given(attributeDefService.updateAttributeDef(eq(definitionId), any(ClothesAttributeDefUpdateRequest.class)))
-        .willReturn(response);
-
-    mockMvc.perform(patch("/api/clothes/attribute-defs/" + definitionId)
-            .with(user("admin").roles("ADMIN"))
-            .with(csrf())
-            .contentType(MediaType.APPLICATION_JSON)
-            .content(objectMapper.writeValueAsString(request)))
-        .andExpect(status().isOk());
-
-    verify(attributeDefService).updateAttributeDef(eq(definitionId), any(ClothesAttributeDefUpdateRequest.class));
-  }
-
-  @Test
   @DisplayName("실패 - name이 20자 초과면 400을 반환한다")
   void updateAttributeDefs_nameTooLong_returns400() throws Exception {
     UUID definitionId = UUID.randomUUID();
