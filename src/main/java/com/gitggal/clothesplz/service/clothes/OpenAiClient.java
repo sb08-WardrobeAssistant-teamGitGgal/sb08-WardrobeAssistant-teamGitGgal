@@ -143,8 +143,6 @@ public class OpenAiClient {
     prompt.append("\n위 날씨에 어울리는 옷의 ID를 추천해주세요.");
     prompt.append("\n단, 조건을 만족하는 후보가 여러 개면 속성과 타입이 한쪽으로 쏠리지 않게 분산해서 선택해주세요.");
 
-    log.info("[OpenAiClient] 추천 프롬프트\n{}", prompt);
-
     return prompt.toString();
   }
 
