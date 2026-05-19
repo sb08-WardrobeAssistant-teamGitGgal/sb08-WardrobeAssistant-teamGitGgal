@@ -51,8 +51,8 @@ class WeatherItemWriterTest {
         locationId = UUID.randomUUID();
         location = mock(Location.class);
         given(location.getId()).willReturn(locationId);
-        given(location.getGridX()).willReturn(60);
-        given(location.getGridY()).willReturn(127);
+        lenient().when(location.getGridX()).thenReturn(60);
+        lenient().when(location.getGridY()).thenReturn(127);
     }
 
     @Nested

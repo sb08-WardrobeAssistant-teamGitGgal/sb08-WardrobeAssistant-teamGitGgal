@@ -6,11 +6,7 @@ import com.gitggal.clothesplz.dto.weather.DailyWeatherForecastDto;
 import com.gitggal.clothesplz.entity.weather.Location;
 import com.gitggal.clothesplz.entity.weather.Weather;
 import com.gitggal.clothesplz.mapper.weather.WeatherMapper;
-import com.gitggal.clothesplz.service.weather.KakaoLocalApiService;
-import com.gitggal.clothesplz.service.weather.WeatherApiService;
-import com.gitggal.clothesplz.service.weather.WeatherCacheService;
-import com.gitggal.clothesplz.service.weather.WeatherParserService;
-import com.gitggal.clothesplz.service.weather.WeatherService;
+import com.gitggal.clothesplz.service.weather.*;
 import com.gitggal.clothesplz.util.weather.KmaGridCoordinateConverter;
 import com.gitggal.clothesplz.util.weather.KmaGridCoordinateConverter.KmaGridPoint;
 import lombok.RequiredArgsConstructor;
@@ -34,7 +30,7 @@ public class WeatherServiceImpl implements WeatherService {
     private final WeatherParserService weatherParserService;
     private final KakaoLocalApiService kakaoLocalApiService;
     private final WeatherMapper weatherMapper;
-    private final WeatherPersistenceServiceImpl weatherPersistenceService;
+    private final WeatherPersistenceService weatherPersistenceService;
     private final WeatherCacheService weatherCacheService;
 
     @Override
