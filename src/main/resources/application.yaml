@@ -37,6 +37,12 @@ spring:
           ssl:
             enable: true
             trust: smtp.naver.com
+  ai:
+    openai:
+      api-key: ${OPENAI_API_KEY}
+      chat:
+        options:
+          model: gpt-4o-mini
 
 
 # Common Logging
