@@ -17,8 +17,8 @@ public class FeedElasticSearchRetryHandler {
 
   private final FeedSearchRepository feedSearchRepository;
 
-  // 재시도 최대 3회, 재시도 간격을 이전 대기 시간 * 2배씩 증가하며 시도
-  @Retryable(retryFor = Exception.class, maxAttempts = 3, backoff = @Backoff(delay = 1000, multiplier = 2))
+  // 재시도 3회(초기 1 + 재시도 3), 재시도 간격을 이전 대기 시간 * 2배씩 증가하며 시도
+  @Retryable(retryFor = Exception.class, maxAttempts = 4, backoff = @Backoff(delay = 1000, multiplier = 2))
   public void sync(FeedElasticSearchSyncEvent event) {
     feedSearchRepository.save(FeedDocument.builder()
         .id(event.feedId().toString())
@@ -37,7 +37,7 @@ public class FeedElasticSearchRetryHandler {
         event.feedId(), event.authorId(), e.getMessage(), e);
   }
 
-  @Retryable(retryFor = Exception.class, maxAttempts = 3, backoff = @Backoff(delay = 1000, multiplier = 2))
+  @Retryable(retryFor = Exception.class, maxAttempts = 4, backoff = @Backoff(delay = 1000, multiplier = 2))
   public void delete(UUID feedId) {
     feedSearchRepository.deleteById(feedId.toString());
   }
