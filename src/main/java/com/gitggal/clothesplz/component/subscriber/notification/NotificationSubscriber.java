@@ -48,7 +48,7 @@ public class NotificationSubscriber implements MessageListener {
             }
           });
     } catch (Exception e) {
-      log.warn("[Subscriber] 알림 처리 실패: {}", e.getMessage());
+      log.warn("[Subscriber] 알림 처리 실패", e);
     }
   }
 }
