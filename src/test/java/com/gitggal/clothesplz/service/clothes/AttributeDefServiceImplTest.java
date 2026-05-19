@@ -282,4 +282,43 @@ class AttributeDefServiceImplTest {
     assertThat(exception.getErrorCode()).isEqualTo(ClothesErrorCode.CLOTHES_ATTRIBUTE_DEFINITION_NOT_FOUND);
     verifyNoInteractions(attributeDefMapper);
   }
+
+  @Test
+  @DisplayName("성공 - 동일한 name이면 중복 검사 없이 수정한다")
+  void updateAttributeDef_sameName_skipsExistsCheck() {
+    UUID definitionId = UUID.randomUUID();
+    ClothesAttributeDef attributeDef = new ClothesAttributeDef("색상", List.of("WHITE"));
+    ReflectionTestUtils.setField(attributeDef, "id", definitionId);
+    ClothesAttributeDefUpdateRequest request = new ClothesAttributeDefUpdateRequest("색상", List.of("RED"));
+    ClothesAttributeDefDto response = new ClothesAttributeDefDto(definitionId, "색상", List.of("RED"), null);
+
+    given(clothesAttributeDefRepository.findById(definitionId)).willReturn(Optional.of(attributeDef));
+    given(attributeDefMapper.toClothesAttributeDefDto(attributeDef)).willReturn(response);
+
+    ClothesAttributeDefDto result = attributeDefService.updateAttributeDef(definitionId, request);
+
+    assertThat(result).isEqualTo(response);
+    verify(clothesAttributeDefRepository, never()).existsByName(any());
+  }
+
+  @Test
+  @DisplayName("실패 - 수정할 name이 이미 다른 정의에 존재하면 DUPLICATE_ATTRIBUTE_NAME 예외를 던진다")
+  void updateAttributeDef_duplicateName_throwsException() {
+    UUID definitionId = UUID.randomUUID();
+    ClothesAttributeDef attributeDef = new ClothesAttributeDef("색상", List.of("WHITE"));
+    ReflectionTestUtils.setField(attributeDef, "id", definitionId);
+    ClothesAttributeDefUpdateRequest request = new ClothesAttributeDefUpdateRequest("재질", List.of("COTTON"));
+
+    given(clothesAttributeDefRepository.findById(definitionId)).willReturn(Optional.of(attributeDef));
+    given(clothesAttributeDefRepository.existsByName("재질")).willReturn(true);
+
+    BusinessException exception = catchThrowableOfType(
+        () -> attributeDefService.updateAttributeDef(definitionId, request),
+        BusinessException.class
+    );
+
+    assertThat(exception).isNotNull();
+    assertThat(exception.getErrorCode()).isEqualTo(ClothesErrorCode.DUPLICATE_ATTRIBUTE_NAME);
+    verifyNoInteractions(attributeDefMapper);
+  }
 }
