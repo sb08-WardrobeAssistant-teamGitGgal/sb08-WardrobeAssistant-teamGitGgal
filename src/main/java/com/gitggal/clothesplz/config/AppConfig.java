@@ -10,7 +10,6 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @Configuration
 @EnableJpaAuditing
 @EnableScheduling
-@EnableAsync
 @EnableConfigurationProperties(S3Properties.class)
 public class AppConfig {
 
