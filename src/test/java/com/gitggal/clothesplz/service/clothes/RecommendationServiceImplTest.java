@@ -3,13 +3,18 @@ package com.gitggal.clothesplz.service.clothes;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.anyList;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import com.gitggal.clothesplz.dto.clothes.OotdDto;
 import com.gitggal.clothesplz.dto.clothes.RecommendationDto;
+import com.gitggal.clothesplz.dto.clothes.ClothesAttributeWithDefDto;
 import com.gitggal.clothesplz.dto.user.UserDto;
+import com.gitggal.clothesplz.entity.clothes.ClothesAttribute;
+import com.gitggal.clothesplz.entity.clothes.ClothesAttributeDef;
 import com.gitggal.clothesplz.entity.clothes.Clothes;
 import com.gitggal.clothesplz.entity.clothes.ClothesType;
 import com.gitggal.clothesplz.entity.user.User;
@@ -22,6 +27,7 @@ import com.gitggal.clothesplz.entity.weather.WindPhrase;
 import com.gitggal.clothesplz.exception.BusinessException;
 import com.gitggal.clothesplz.exception.code.WeatherErrorCode;
 import com.gitggal.clothesplz.mapper.clothes.ClothesMapper;
+import com.gitggal.clothesplz.repository.clothes.ClothesAttributeRepository;
 import com.gitggal.clothesplz.repository.clothes.ClothesRepository;
 import com.gitggal.clothesplz.repository.weather.WeatherRepository;
 import com.gitggal.clothesplz.service.clothes.impl.RecommendationServiceImpl;
@@ -32,6 +38,7 @@ import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -49,6 +56,9 @@ class RecommendationServiceImplTest {
   private ClothesRepository clothesRepository;
 
   @Mock
+  private ClothesAttributeRepository clothesAttributeRepository;
+
+  @Mock
   private ClothesMapper clothesMapper;
 
   @Mock
@@ -56,6 +66,11 @@ class RecommendationServiceImplTest {
 
   @InjectMocks
   private RecommendationServiceImpl recommendationService;
+
+  @BeforeEach
+  void setUp() {
+    lenient().when(clothesAttributeRepository.findAllByClothesIdIn(anyList())).thenReturn(List.of());
+  }
 
   @Test
   @DisplayName("성공 - LLM 추천 ID 순서대로 의상 추천 결과를 반환한다")
@@ -310,6 +325,75 @@ class RecommendationServiceImplTest {
     verify(clothesMapper).toOotdDto(outer1, List.of());
     verify(clothesMapper).toOotdDto(outer2, List.of());
     verifyNoMoreInteractions(clothesMapper);
+  }
+
+  @Test
+  @DisplayName("성공 - LLM ID가 모두 비보유면 중간기온 fallback으로 상위 10개를 반환한다")
+  void getRecommendations_llmIdsAllNonOwned_midTemp_returnsTop10Fallback() {
+    UUID weatherId = UUID.randomUUID();
+    UUID userId = UUID.randomUUID();
+    UserDto user = createUserDto(userId);
+    Weather weather = createWeather(18.0);
+    User owner = new User("owner8", "owner8@test.com", "pw");
+
+    Clothes c1 = createClothes(owner, UUID.randomUUID(), "c1", ClothesType.TOP);
+    Clothes c2 = createClothes(owner, UUID.randomUUID(), "c2", ClothesType.OUTER);
+    Clothes c3 = createClothes(owner, UUID.randomUUID(), "c3", ClothesType.BOTTOM);
+    List<Clothes> allClothes = List.of(c1, c2, c3);
+
+    OotdDto d1 = new OotdDto(c1.getId(), "c1", null, ClothesType.TOP, List.of());
+    OotdDto d2 = new OotdDto(c2.getId(), "c2", null, ClothesType.OUTER, List.of());
+    OotdDto d3 = new OotdDto(c3.getId(), "c3", null, ClothesType.BOTTOM, List.of());
+
+    given(weatherRepository.findById(weatherId)).willReturn(Optional.of(weather));
+    given(clothesRepository.findByOwnerId(userId)).willReturn(allClothes);
+    given(openAiClient.recommendClothesIds(weather, allClothes))
+        .willReturn(List.of(UUID.randomUUID(), UUID.randomUUID()));
+    given(clothesMapper.toOotdDto(c1, List.of())).willReturn(d1);
+    given(clothesMapper.toOotdDto(c2, List.of())).willReturn(d2);
+    given(clothesMapper.toOotdDto(c3, List.of())).willReturn(d3);
+
+    RecommendationDto result = recommendationService.getRecommendations(weatherId, user);
+
+    assertThat(result.clothes()).containsExactly(d1, d2, d3);
+    verify(openAiClient).recommendClothesIds(weather, allClothes);
+  }
+
+  @Test
+  @DisplayName("성공 - 추천 의상의 속성 정보가 OotdDto attributes에 매핑된다")
+  void getRecommendations_mapsAttributesIntoOotdDto() {
+    UUID weatherId = UUID.randomUUID();
+    UUID userId = UUID.randomUUID();
+    UserDto user = createUserDto(userId);
+    Weather weather = createWeather(20.0);
+    User owner = new User("owner9", "owner9@test.com", "pw");
+
+    UUID clothesId = UUID.randomUUID();
+    Clothes top = createClothes(owner, clothesId, "맨투맨", ClothesType.TOP);
+    List<Clothes> allClothes = List.of(top);
+
+    ClothesAttributeDef def = org.mockito.Mockito.mock(ClothesAttributeDef.class);
+    ClothesAttribute attr = org.mockito.Mockito.mock(ClothesAttribute.class);
+    ClothesAttributeWithDefDto attrDto = new ClothesAttributeWithDefDto(
+        UUID.randomUUID(), "두께", List.of("얇음", "중간", "두꺼움"), "중간"
+    );
+    OotdDto topDto = new OotdDto(clothesId, "맨투맨", null, ClothesType.TOP, List.of(attrDto));
+
+    given(weatherRepository.findById(weatherId)).willReturn(Optional.of(weather));
+    given(clothesRepository.findByOwnerId(userId)).willReturn(allClothes);
+    given(openAiClient.recommendClothesIds(weather, allClothes)).willReturn(List.of(clothesId));
+    given(attr.getClothes()).willReturn(top);
+    given(attr.getDefinition()).willReturn(def);
+    given(attr.getValue()).willReturn("중간");
+    given(clothesAttributeRepository.findAllByClothesIdIn(List.of(clothesId))).willReturn(List.of(attr));
+    given(clothesMapper.toClothesAttributeWithDefDto(def, "중간")).willReturn(attrDto);
+    given(clothesMapper.toOotdDto(top, List.of(attrDto))).willReturn(topDto);
+
+    RecommendationDto result = recommendationService.getRecommendations(weatherId, user);
+
+    assertThat(result.clothes()).containsExactly(topDto);
+    verify(clothesMapper).toClothesAttributeWithDefDto(def, "중간");
+    verify(clothesMapper).toOotdDto(top, List.of(attrDto));
   }
 
   private UserDto createUserDto(UUID userId) {

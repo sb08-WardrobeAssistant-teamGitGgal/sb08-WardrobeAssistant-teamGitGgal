@@ -15,6 +15,7 @@ import com.gitggal.clothesplz.entity.weather.PrecipitationType;
 import com.gitggal.clothesplz.entity.weather.SkyStatus;
 import com.gitggal.clothesplz.entity.weather.Weather;
 import com.gitggal.clothesplz.entity.weather.WindPhrase;
+import com.gitggal.clothesplz.repository.clothes.ClothesAttributeRepository;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -45,13 +46,17 @@ class OpenAiClientTest {
   @Mock
   private WebClient.ResponseSpec responseSpec;
 
+  @Mock
+  private ClothesAttributeRepository clothesAttributeRepository;
+
   private OpenAiClient openAiClient;
   private final ObjectMapper objectMapper = new ObjectMapper();
 
   @BeforeEach
   void setUp() {
-    openAiClient = new OpenAiClient("dummy-openai-key", objectMapper);
+    openAiClient = new OpenAiClient("dummy-openai-key", objectMapper, clothesAttributeRepository);
     ReflectionTestUtils.setField(openAiClient, "webClient", webClient);
+    when(clothesAttributeRepository.findAllByClothesIdIn(any())).thenReturn(List.of());
   }
 
   @Test
