@@ -1,5 +1,6 @@
 package com.gitggal.clothesplz.controller.auth;
 
+import com.gitggal.clothesplz.controller.auth.api.AuthControllerApi;
 import com.gitggal.clothesplz.dto.user.ResetPasswordRequest;
 import com.gitggal.clothesplz.exception.BusinessException;
 import com.gitggal.clothesplz.exception.code.UserErrorCode;
@@ -27,7 +28,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/auth")
-public class AuthController {
+public class AuthController implements AuthControllerApi {
 
   private final AuthService authService;
   private final JwtTokenProvider jwtTokenProvider;
