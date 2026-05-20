@@ -63,7 +63,11 @@ public class WeatherServiceImpl implements WeatherService {
                                 List<WeatherDto> result = weatherMapper.toWeatherDtoList(
                                         weathers, latitude, longitude, grid.nx(), grid.ny(), locationNames);
 
-                                weatherCacheService.saveForecast(grid.nx(), grid.ny(), result);
+                                if (!result.isEmpty()) {
+                                    weatherCacheService.saveForecast(grid.nx(), grid.ny(), result);
+                                } else {
+                                    log.warn("[Service] 빈 예보 결과는 캐시하지 않음: nx={}, ny={}", grid.nx(), grid.ny());
+                                }
                                 log.info("[Service] 기상청 데이터 가공 완료: 결과 건수={}", result.size());
                                 return result;
                             }).subscribeOn(Schedulers.boundedElastic()));
