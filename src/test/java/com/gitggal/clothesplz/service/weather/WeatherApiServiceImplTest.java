@@ -63,6 +63,7 @@ class WeatherApiServiceImplTest {
         WeatherApiResponseDto result = weatherApiService.fetchWeather(60, 127).block();
 
         assertThat(result).isEqualTo(response);
+        verify(webClient, times(1)).get();
     }
 
     @Test
@@ -76,7 +77,7 @@ class WeatherApiServiceImplTest {
     }
 
     @Test
-    @DisplayName("요청 URI에 nx, ny, numOfRows, dataType 파라미터 포함")
+    @DisplayName("요청 URI에 nx, ny, numOfRows, dataType, base_date, base_time 파라미터 포함")
     void fetchWeather_buildsUriWithCorrectParams() {
         when(responseSpec.bodyToMono(WeatherApiResponseDto.class)).thenReturn(Mono.just(new WeatherApiResponseDto(null)));
 
@@ -90,6 +91,8 @@ class WeatherApiServiceImplTest {
                 .contains("nx=60")
                 .contains("ny=127")
                 .contains("numOfRows=1000")
-                .contains("dataType=JSON");
+                .contains("dataType=JSON")
+                .containsPattern("base_date=\\d{8}")
+                .containsPattern("base_time=\\d{4}");
     }
 }
