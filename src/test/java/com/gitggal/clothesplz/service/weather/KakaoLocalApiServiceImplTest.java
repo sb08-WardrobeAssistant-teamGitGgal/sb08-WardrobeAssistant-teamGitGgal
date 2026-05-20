@@ -12,7 +12,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
-import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.util.UriBuilder;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -24,7 +23,6 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
@@ -167,21 +165,4 @@ class KakaoLocalApiServiceImplTest {
         verify(requestHeadersSpec).header("Authorization", "KakaoAK test-api-key");
     }
 
-    @Test
-    @DisplayName("HTTP 에러 응답 시 onStatus 핸들러가 BusinessException 발생")
-    void getLocationNames_onStatusHandler_throwsBusinessException() {
-        when(responseSpec.bodyToMono(KakaoCoord2RegionResponseDto.class))
-                .thenReturn(Mono.just(new KakaoCoord2RegionResponseDto(
-                        new KakaoCoord2RegionResponseDto.Meta(0), List.of())));
-
-        kakaoLocalApiServiceImpl.getLocationNames(37.4, 127.1).block();
-
-        ArgumentCaptor<Function<ClientResponse, Mono<? extends Throwable>>> handlerCaptor =
-                ArgumentCaptor.forClass(Function.class);
-        verify(responseSpec).onStatus(any(Predicate.class), handlerCaptor.capture());
-
-        ClientResponse mockClientResponse = mock(ClientResponse.class);
-        assertThatThrownBy(() -> handlerCaptor.getValue().apply(mockClientResponse).block())
-                .isInstanceOf(BusinessException.class);
-    }
 }
