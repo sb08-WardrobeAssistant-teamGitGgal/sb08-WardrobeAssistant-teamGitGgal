@@ -156,6 +156,18 @@ class KakaoLocalApiServiceImplTest {
     }
 
     @Test
+    @DisplayName("요청 헤더에 Authorization(KakaoAK) 포함")
+    void getLocationNames_includesAuthorizationHeader() {
+        when(responseSpec.bodyToMono(KakaoCoord2RegionResponseDto.class))
+                .thenReturn(Mono.just(new KakaoCoord2RegionResponseDto(
+                        new KakaoCoord2RegionResponseDto.Meta(0), List.of())));
+
+        kakaoLocalApiServiceImpl.getLocationNames(37.4, 127.1).block();
+
+        verify(requestHeadersSpec).header("Authorization", "KakaoAK test-api-key");
+    }
+
+    @Test
     @DisplayName("HTTP 에러 응답 시 onStatus 핸들러가 BusinessException 발생")
     void getLocationNames_onStatusHandler_throwsBusinessException() {
         when(responseSpec.bodyToMono(KakaoCoord2RegionResponseDto.class))
