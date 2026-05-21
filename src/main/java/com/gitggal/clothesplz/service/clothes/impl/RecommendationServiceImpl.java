@@ -13,7 +13,7 @@ import com.gitggal.clothesplz.mapper.clothes.ClothesMapper;
 import com.gitggal.clothesplz.repository.clothes.ClothesAttributeRepository;
 import com.gitggal.clothesplz.repository.clothes.ClothesRepository;
 import com.gitggal.clothesplz.repository.weather.WeatherRepository;
-import com.gitggal.clothesplz.service.clothes.OpenAiClient;
+import com.gitggal.clothesplz.service.ai.ClothesAi;
 import com.gitggal.clothesplz.service.clothes.RecommendationService;
 import java.util.List;
 import java.util.Map;
@@ -33,7 +33,7 @@ public class RecommendationServiceImpl implements RecommendationService {
   private final ClothesRepository clothesRepository;
   private final ClothesAttributeRepository clothesAttributeRepository;
   private final ClothesMapper clothesMapper;
-  private final OpenAiClient openAiClient;
+  private final ClothesAi clothesAi;
 
   @Override
   public RecommendationDto getRecommendations(UUID weatherId, UserDto user) {
@@ -88,7 +88,7 @@ public class RecommendationServiceImpl implements RecommendationService {
       return List.of();
     }
     // OpenAI를 통한 추천
-    List<UUID> ids = openAiClient.recommendClothesIds(weather, allClothes);
+    List<UUID> ids = clothesAi.recommendClothesIds(weather, allClothes);
 
     if (!ids.isEmpty()) {
       Map<UUID, Clothes> clothesMap = allClothes.stream()
