@@ -7,6 +7,8 @@ import com.gitggal.clothesplz.dto.user.UserDtoCursorRequest;
 import com.gitggal.clothesplz.dto.user.UserDtoCursorResponse;
 import com.gitggal.clothesplz.dto.user.UserLockUpdateRequest;
 import com.gitggal.clothesplz.dto.user.UserRoleUpdateRequest;
+import com.gitggal.clothesplz.security.ClothesUserDetails;
+import com.gitggal.clothesplz.security.oauth.OAuthInformation;
 import java.util.UUID;
 
 public interface UserService {
@@ -20,4 +22,6 @@ public interface UserService {
   UserDtoCursorResponse findAll(UserDtoCursorRequest request);
 
   UserDto updateLock(UUID userId, UserLockUpdateRequest request);
+
+  ClothesUserDetails processOAuth2User(OAuthInformation info);
 }

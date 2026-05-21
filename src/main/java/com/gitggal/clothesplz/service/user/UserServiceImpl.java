@@ -8,13 +8,17 @@ import com.gitggal.clothesplz.dto.user.UserDtoCursorResponse;
 import com.gitggal.clothesplz.dto.user.UserLockUpdateRequest;
 import com.gitggal.clothesplz.dto.user.UserRoleUpdateRequest;
 import com.gitggal.clothesplz.entity.profile.Profile;
+import com.gitggal.clothesplz.entity.user.SocialAccount;
 import com.gitggal.clothesplz.entity.user.User;
 import com.gitggal.clothesplz.exception.BusinessException;
 import com.gitggal.clothesplz.exception.code.UserErrorCode;
 import com.gitggal.clothesplz.mapper.user.UserMapper;
 import com.gitggal.clothesplz.repository.profile.ProfileRepository;
+import com.gitggal.clothesplz.repository.user.SocialAccountRepository;
 import com.gitggal.clothesplz.repository.user.UserRepository;
+import com.gitggal.clothesplz.security.ClothesUserDetails;
 import com.gitggal.clothesplz.security.jwt.JwtRegistry;
+import com.gitggal.clothesplz.security.oauth.OAuthInformation;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -35,6 +39,7 @@ public class UserServiceImpl implements UserService {
   private final UserMapper userMapper;
   private final PasswordEncoder passwordEncoder;
   private final JwtRegistry jwtRegistry;
+  private final SocialAccountRepository socialAccountRepository;
 
   @Override
   @Transactional
@@ -165,5 +170,41 @@ public class UserServiceImpl implements UserService {
     return userRepository.findById(userId)
         .orElseThrow(() -> new BusinessException(UserErrorCode.USER_NOT_FOUND));
   }
-}
 
+  @Transactional
+  @Override
+  public ClothesUserDetails processOAuth2User(OAuthInformation info) {
+
+    User user = socialAccountRepository
+        .findByProviderAndProviderId(info.provider(), info.providerId())
+        .map(SocialAccount::getUser)
+        .orElseGet(() -> createOAuthUser(info));
+
+    return new ClothesUserDetails(
+        userMapper.toDto(user),
+        user.getPassword(),
+        user.getTempPassword(),
+        user.getTempPasswordExpiresAt()
+    );
+  }
+
+  private User createOAuthUser(OAuthInformation info) {
+
+    User user = new User(
+        info.nickname(),
+        info.email(),
+        passwordEncoder.encode(UUID.randomUUID().toString())
+    );
+    User savedUser = userRepository.save(user);
+
+    Profile profile = Profile.builder()
+        .user(savedUser)
+        .build();
+    profileRepository.save(profile);
+
+    SocialAccount socialAccount = new SocialAccount(savedUser, info.provider(), info.providerId());
+    socialAccountRepository.save(socialAccount);
+
+    return savedUser;
+  }
+}

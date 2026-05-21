@@ -3,6 +3,7 @@ package com.gitggal.clothesplz.config;
 import com.gitggal.clothesplz.security.CustomLogoutHandler;
 import com.gitggal.clothesplz.security.LoginFailureHandler;
 import com.gitggal.clothesplz.security.LoginSuccessHandler;
+import com.gitggal.clothesplz.security.OAuthLoginSuccessHandler;
 import com.gitggal.clothesplz.security.SpaCsrfTokenRequestHandler;
 import com.gitggal.clothesplz.security.jwt.JwtAuthenticationFilter;
 import java.util.List;
@@ -36,20 +37,36 @@ public class SecurityConfig {
       LoginSuccessHandler loginSuccessHandler,
       LoginFailureHandler loginFailureHandler,
       CustomLogoutHandler logoutHandler,
-      JwtAuthenticationFilter jwtAuthenticationFilter
+      JwtAuthenticationFilter jwtAuthenticationFilter,
+      OAuthLoginSuccessHandler oauth2LoginSuccessHandler
   ) throws Exception {
     http
         .csrf(csrf -> csrf
             .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
             .csrfTokenRequestHandler(new SpaCsrfTokenRequestHandler()))
         .sessionManagement(session -> session
-            .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
         .formLogin(login -> login
             .loginProcessingUrl("/api/auth/sign-in")
             .usernameParameter("username")
             .passwordParameter("password")
             .successHandler(loginSuccessHandler)
             .failureHandler(loginFailureHandler))
+        .oauth2Login(oauth2 -> oauth2
+            .successHandler(oauth2LoginSuccessHandler)
+            .failureHandler((request, response, exception) -> {
+              log.error("OAuth2 로그인 실패", exception);
+
+              response.setStatus(HttpStatus.UNAUTHORIZED.value());
+              response.setContentType("application/json;charset=UTF-8");
+
+              response.getWriter().write("""
+          {
+            "exceptionName": "OAUTH2_LOGIN_FAILED",
+            "message": "OAuth2 로그인에 실패했습니다."
+          }
+          """);
+            }))
         .logout(logout -> logout
             .logoutUrl("/api/auth/sign-out")
             .addLogoutHandler(logoutHandler)
@@ -63,6 +80,8 @@ public class SecurityConfig {
             .requestMatchers(HttpMethod.POST, "/api/auth/sign-out").permitAll() // 로그아웃 허용
             .requestMatchers(HttpMethod.POST, "/api/auth/reset-password").permitAll() // 임시 비밀번호 발급
             .requestMatchers(HttpMethod.POST, "/api/auth/refresh").permitAll()
+            .requestMatchers("/login/oauth2/code/**").permitAll()
+            .requestMatchers("/oauth2/authorization/**").permitAll()
             .requestMatchers("/api/**").authenticated() // api 인증 필요
             .anyRequest().permitAll()
         )
