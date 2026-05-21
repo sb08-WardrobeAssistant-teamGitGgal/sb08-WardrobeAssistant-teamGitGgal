@@ -151,6 +151,34 @@ class RecommendationServiceImplTest {
   }
 
   @Test
+  @DisplayName("성공 - LLM 호출 예외 발생 시 온도 기반 fallback 결과를 반환한다")
+  void getRecommendations_llmThrows_returnsFallback() {
+    UUID weatherId = UUID.randomUUID();
+    UUID userId = UUID.randomUUID();
+    UserDto user = createUserDto(userId);
+    Weather weather = createWeather(27.0);
+    User owner = new User("owner-throw", "owner-throw@test.com", "pw");
+
+    UUID topId = UUID.randomUUID();
+    UUID outerId = UUID.randomUUID();
+    Clothes top = createClothes(owner, topId, "반팔티", ClothesType.TOP);
+    Clothes outer = createClothes(owner, outerId, "자켓", ClothesType.OUTER);
+    List<Clothes> allClothes = List.of(top, outer);
+    OotdDto topDto = new OotdDto(topId, "반팔티", null, ClothesType.TOP, List.of());
+
+    given(weatherRepository.findById(weatherId)).willReturn(Optional.of(weather));
+    given(clothesRepository.findByOwnerId(userId)).willReturn(allClothes);
+    given(clothesAi.recommendClothesIds(weather, allClothes))
+        .willThrow(new RuntimeException("ai adapter timeout"));
+    given(clothesMapper.toOotdDto(top, List.of())).willReturn(topDto);
+
+    RecommendationDto result = recommendationService.getRecommendations(weatherId, user);
+
+    assertThat(result.clothes()).containsExactly(topDto);
+    verify(clothesAi).recommendClothesIds(weather, allClothes);
+  }
+
+  @Test
   @DisplayName("성공 - 보유 의상이 없으면 빈 추천을 반환하고 LLM을 호출하지 않는다")
   void getRecommendations_noClothes_returnsEmptyRecommendation() {
     UUID weatherId = UUID.randomUUID();

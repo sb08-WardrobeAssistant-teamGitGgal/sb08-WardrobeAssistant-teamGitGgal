@@ -58,7 +58,7 @@ public class OpenAiClothesAi implements ClothesAi {
 
       return parseIds(content);
     } catch (Exception e) {
-      log.warn("[OpenAI] 의상 추천 실패");
+      log.warn("[OpenAI] 의상 추천 실패", e);
       return List.of();
     }
   }
@@ -150,6 +150,6 @@ public class OpenAiClothesAi implements ClothesAi {
   @Override
   public ClothesDto extractClothesByUrl(String url) {
     // TODO: [심화] 구매 링크로 의상 조회 기능 작업
-    return null;
+    throw new UnsupportedOperationException("extractClothesByUrl is not implemented yet");
   }
 }

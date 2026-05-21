@@ -87,8 +87,14 @@ public class RecommendationServiceImpl implements RecommendationService {
     if (allClothes.isEmpty()) {
       return List.of();
     }
-    // OpenAI를 통한 추천
-    List<UUID> ids = clothesAi.recommendClothesIds(weather, allClothes);
+    List<UUID> ids;
+    try {
+      // OpenAI를 통한 추천
+      ids = clothesAi.recommendClothesIds(weather, allClothes);
+    } catch (RuntimeException e) {
+      log.error("[Service] LLM 추천 호출 실패: {}", e.getMessage(), e);
+      return fallback(weather.getTemperatureCurrent(), allClothes);
+    }
 
     if (!ids.isEmpty()) {
       Map<UUID, Clothes> clothesMap = allClothes.stream()
