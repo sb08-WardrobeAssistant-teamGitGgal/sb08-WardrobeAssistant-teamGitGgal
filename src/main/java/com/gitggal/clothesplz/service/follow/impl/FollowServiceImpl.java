@@ -4,11 +4,10 @@ import com.gitggal.clothesplz.dto.follow.FollowCreateRequest;
 import com.gitggal.clothesplz.dto.follow.FollowDto;
 import com.gitggal.clothesplz.dto.follow.FollowListResponse;
 import com.gitggal.clothesplz.dto.follow.FollowSummaryDto;
-import com.gitggal.clothesplz.dto.notification.NotificationRequest;
 import com.gitggal.clothesplz.entity.base.BaseEntity;
 import com.gitggal.clothesplz.entity.follow.Follow;
-import com.gitggal.clothesplz.entity.notification.NotificationLevel;
 import com.gitggal.clothesplz.entity.user.User;
+import com.gitggal.clothesplz.event.follow.FollowCreatedEvent;
 import com.gitggal.clothesplz.exception.BusinessException;
 import com.gitggal.clothesplz.exception.code.FollowErrorCode;
 import com.gitggal.clothesplz.exception.code.UserErrorCode;
@@ -16,7 +15,6 @@ import com.gitggal.clothesplz.mapper.follow.FollowMapper;
 import com.gitggal.clothesplz.repository.follow.FollowRepository;
 import com.gitggal.clothesplz.repository.user.UserRepository;
 import com.gitggal.clothesplz.service.follow.FollowService;
-import com.gitggal.clothesplz.service.notification.NotificationService;
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
 import java.util.List;
@@ -24,6 +22,7 @@ import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,10 +35,10 @@ public class FollowServiceImpl implements FollowService {
   private static final String SORT_BY = "createdAt";
   private static final String SORT_DIRECTION = "DESCENDING";
 
-  private final NotificationService notificationService;
   private final FollowMapper followMapper;
   private final FollowRepository followRepository;
   private final UserRepository userRepository;
+  private final ApplicationEventPublisher eventPublisher;
 
   enum FollowListType {FOLLOWINGS, FOLLOWERS}
 
@@ -81,11 +80,9 @@ public class FollowServiceImpl implements FollowService {
     Follow savedFollow = followRepository.save(follow);
 
     // 팔로우 알림 발송
-    notificationService.send(new NotificationRequest(
-        followeeId,                           // 알림 수신자 -> 팔로우 받은 사람
-        savedFollow.getFollower().getName() + "님이 나를 팔로우했어요.",
-        null,
-        NotificationLevel.INFO
+    eventPublisher.publishEvent(new FollowCreatedEvent(
+        followeeId,
+        savedFollow.getFollower().getName()
     ));
 
     log.info("[Service] 팔로우 생성 요청 완료: followerId={}, followeeId={}", followerId, followeeId);
