@@ -1,5 +1,6 @@
 package com.gitggal.clothesplz.service.notification.impl;
 
+import com.gitggal.clothesplz.component.publisher.notification.NotificationPublisher;
 import com.gitggal.clothesplz.dto.notification.NotificationDto;
 import com.gitggal.clothesplz.dto.notification.NotificationDtoCursorResponse;
 import com.gitggal.clothesplz.dto.notification.NotificationRequest;
@@ -9,10 +10,8 @@ import com.gitggal.clothesplz.exception.BusinessException;
 import com.gitggal.clothesplz.exception.code.NotificationErrorCode;
 import com.gitggal.clothesplz.mapper.notification.NotificationMapper;
 import com.gitggal.clothesplz.repository.notification.NotificationRepository;
-import com.gitggal.clothesplz.repository.notification.SseEmitterRepository;
 import com.gitggal.clothesplz.repository.user.UserRepository;
 import com.gitggal.clothesplz.service.notification.NotificationService;
-import java.io.IOException;
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
 import java.util.List;
@@ -21,7 +20,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 @Slf4j
 @Service
@@ -31,7 +29,7 @@ public class NotificationServiceImpl implements NotificationService {
 
   private static final String SORT_BY = "createdAt";
   private static final String SORT_DIRECTION = "DESCENDING";
-  private final SseEmitterRepository emitterRepository;
+  private final NotificationPublisher notificationPublisher;
   private final NotificationRepository notificationRepository;
   private final UserRepository userRepository;
   private final NotificationMapper notificationMapper;
@@ -64,10 +62,7 @@ public class NotificationServiceImpl implements NotificationService {
 
     Notification savedNotification = notificationRepository.save(notification);
 
-    // SSE 연결 상태면 알림 전송
-    emitterRepository
-        .findByUserId(request.receiverId())
-        .ifPresent(emitter -> sendToEmitter(emitter, notificationMapper.toDto(savedNotification)));
+    notificationPublisher.publish(notificationMapper.toDto(savedNotification));
 
     log.info("[Service] 알림 전송 요청 완료: receiverId={}", request.receiverId());
   }
@@ -160,24 +155,6 @@ public class NotificationServiceImpl implements NotificationService {
     notificationRepository.delete(notification);
 
     log.info("[Service] 알림 읽음 처리 요청 완료: notificationId={}", notificationId);
-  }
-
-  /**
-   * 실제 SseEmitter에 이벤트 전송 - 전송 실패 (저장소에서 제거)
-   */
-  private void sendToEmitter(SseEmitter emitter, NotificationDto dto) {
-    try {
-      emitter.send(
-          SseEmitter.event()
-              .id(dto.id().toString())
-              .name("notifications")
-              .data(dto)
-      );
-      log.debug("[알림] 전송 성공: receiverId={}, title={}", dto.receiverId(), dto.title());
-    } catch (IOException | IllegalStateException e) {
-      log.warn("[알림] 전송 실패: (연결 끊김): receiverId={}", dto.receiverId());
-      emitterRepository.deleteByUserId(dto.receiverId());
-    }
   }
 
   /**
