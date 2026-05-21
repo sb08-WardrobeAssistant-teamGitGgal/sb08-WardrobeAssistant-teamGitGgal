@@ -8,7 +8,7 @@ import com.gitggal.clothesplz.entity.weather.Weather;
 import com.gitggal.clothesplz.entity.weather.WindPhrase;
 import com.gitggal.clothesplz.repository.weather.LocationRepository;
 import com.gitggal.clothesplz.repository.weather.WeatherRepository;
-import com.gitggal.clothesplz.service.weather.impl.WeatherPersistenceService;
+import com.gitggal.clothesplz.service.weather.impl.WeatherPersistenceServiceImpl;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -29,7 +29,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class WeatherPersistenceServiceTest {
+class WeatherPersistenceServiceImplTest {
 
     private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
@@ -40,7 +40,7 @@ class WeatherPersistenceServiceTest {
     private WeatherRepository weatherRepository;
 
     @InjectMocks
-    private WeatherPersistenceService weatherPersistenceService;
+    private WeatherPersistenceServiceImpl weatherPersistenceService;
 
     // ===== findOrCreateLocation =====
 

@@ -6,10 +6,7 @@ import com.gitggal.clothesplz.dto.weather.DailyWeatherForecastDto;
 import com.gitggal.clothesplz.entity.weather.Location;
 import com.gitggal.clothesplz.entity.weather.Weather;
 import com.gitggal.clothesplz.mapper.weather.WeatherMapper;
-import com.gitggal.clothesplz.service.weather.KakaoLocalApiService;
-import com.gitggal.clothesplz.service.weather.WeatherApiService;
-import com.gitggal.clothesplz.service.weather.WeatherParserService;
-import com.gitggal.clothesplz.service.weather.WeatherService;
+import com.gitggal.clothesplz.service.weather.*;
 import com.gitggal.clothesplz.util.weather.KmaGridCoordinateConverter;
 import com.gitggal.clothesplz.util.weather.KmaGridCoordinateConverter.KmaGridPoint;
 import lombok.RequiredArgsConstructor;
@@ -33,6 +30,7 @@ public class WeatherServiceImpl implements WeatherService {
     private final KakaoLocalApiService kakaoLocalApiService;
     private final WeatherMapper weatherMapper;
     private final WeatherPersistenceService weatherPersistenceService;
+    private final WeatherCacheService weatherCacheService;
 
     @Override
     public Mono<List<WeatherDto>> getWeatherForecast(double latitude, double longitude) {
@@ -40,27 +38,40 @@ public class WeatherServiceImpl implements WeatherService {
         log.info("[Service] 기상청 데이터 수집 및 가공 시작: lat={}, lon={}, nx={}, ny={}",
                 latitude, longitude, grid.nx(), grid.ny());
 
-        return Mono.zip(
-                        weatherApiService.fetchWeather(grid.nx(), grid.ny()),
-                        kakaoLocalApiService.getLocationNames(latitude, longitude))
-                // 각 find-or-create가 REQUIRES_NEW 독립 트랜잭션으로 실행되므로 TransactionTemplate 불필요
-                .flatMap(tuple -> Mono.fromCallable(() -> {
-                    var daily = weatherParserService.parseDailyForecast(tuple.getT1());
-                    List<String> locationNames = tuple.getT2();
-                    String locationNamesStr = String.join(",", locationNames);
+        return Mono.fromCallable(() -> weatherCacheService.getForecast(grid.nx(), grid.ny()))
+                .subscribeOn(Schedulers.boundedElastic())
+                .flatMap(cached -> {
+                    if (cached.isPresent()) {
+                        log.info("[Service] 캐시 HIT — 날씨 데이터 반환: nx={}, ny={}", grid.nx(), grid.ny());
+                        return Mono.just(cached.get());
+                    }
+                    // 각 find-or-create가 REQUIRES_NEW 독립 트랜잭션으로 실행되므로 TransactionTemplate 불필요
+                    return Mono.zip(
+                                    weatherApiService.fetchWeather(grid.nx(), grid.ny()),
+                                    kakaoLocalApiService.getLocationNames(latitude, longitude))
+                            .flatMap(tuple -> Mono.fromCallable(() -> {
+                                var daily = weatherParserService.parseDailyForecast(tuple.getT1());
+                                List<String> locationNames = tuple.getT2();
+                                String locationNamesStr = String.join(",", locationNames);
 
-                    Location location = findOrCreateLocationSafely(latitude, longitude, grid.nx(), grid.ny(), locationNamesStr);
+                                Location location = findOrCreateLocationSafely(latitude, longitude, grid.nx(), grid.ny(), locationNamesStr);
 
-                    List<Weather> weathers = daily.stream()
-                            .map(dto -> findOrCreateWeatherSafely(location, dto))
-                            .toList();
+                                List<Weather> weathers = daily.stream()
+                                        .map(dto -> findOrCreateWeatherSafely(location, dto))
+                                        .toList();
 
-                    List<WeatherDto> result = weatherMapper.toWeatherDtoList(
-                            weathers, latitude, longitude, grid.nx(), grid.ny(), locationNames);
+                                List<WeatherDto> result = weatherMapper.toWeatherDtoList(
+                                        weathers, latitude, longitude, grid.nx(), grid.ny(), locationNames);
 
-                    log.info("[Service] 기상청 데이터 가공 완료: 결과 건수={}", result.size());
-                    return result;
-                }).subscribeOn(Schedulers.boundedElastic()))
+                                if (!result.isEmpty()) {
+                                    weatherCacheService.saveForecast(grid.nx(), grid.ny(), result);
+                                } else {
+                                    log.warn("[Service] 빈 예보 결과는 캐시하지 않음: nx={}, ny={}", grid.nx(), grid.ny());
+                                }
+                                log.info("[Service] 기상청 데이터 가공 완료: 결과 건수={}", result.size());
+                                return result;
+                            }).subscribeOn(Schedulers.boundedElastic()));
+                })
                 .doOnError(e -> log.error("[Service] 기상청 데이터 처리 중 에러 발생: {}", e.getMessage()));
     }
 
