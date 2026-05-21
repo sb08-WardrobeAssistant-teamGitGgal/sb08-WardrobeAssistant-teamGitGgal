@@ -7,6 +7,7 @@ import com.gitggal.clothesplz.entity.weather.Weather;
 import com.gitggal.clothesplz.entity.weather.WindPhrase;
 import com.gitggal.clothesplz.repository.weather.LocationRepository;
 import com.gitggal.clothesplz.repository.weather.WeatherRepository;
+import com.gitggal.clothesplz.service.weather.WeatherPersistenceService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -17,7 +18,7 @@ import java.time.ZoneId;
 
 @Service
 @RequiredArgsConstructor
-public class WeatherPersistenceService {
+public class WeatherPersistenceServiceImpl implements WeatherPersistenceService {
 
     private static final ZoneId KST = ZoneId.of("Asia/Seoul");
     private static final double WIND_MODERATE_THRESHOLD = 4.0;

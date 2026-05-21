@@ -1,5 +1,9 @@
 package com.gitggal.clothesplz.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.gitggal.clothesplz.component.subscriber.notification.NotificationSubscriber;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -37,22 +41,33 @@ public class RedisConfig  {
   @Bean
   public RedisTemplate<String, Object> redisTemplate() {
 
+    ObjectMapper redisObjectMapper = new ObjectMapper();
+    redisObjectMapper.registerModule(new JavaTimeModule());
+    redisObjectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+
+    GenericJackson2JsonRedisSerializer serializer =
+        new GenericJackson2JsonRedisSerializer(redisObjectMapper);
+
     RedisTemplate<String, Object> template = new RedisTemplate<>();
+
     template.setConnectionFactory(redisConnectionFactory());
+
     template.setKeySerializer(new StringRedisSerializer());
-    template.setValueSerializer(new GenericJackson2JsonRedisSerializer());
+    template.setValueSerializer(serializer);
     template.setHashKeySerializer(new StringRedisSerializer());
-    template.setHashValueSerializer(new GenericJackson2JsonRedisSerializer());
+    template.setHashValueSerializer(serializer);
 
     return template;
   }
 
   @Bean
   public RedisMessageListenerContainer redisMessageListenerContainer(
-      RedisConnectionFactory connectionFactory) {
+      RedisConnectionFactory connectionFactory,
+      NotificationSubscriber notificationSubscriber) {
 
     RedisMessageListenerContainer container = new RedisMessageListenerContainer();
     container.setConnectionFactory(connectionFactory);
+    container.addMessageListener(notificationSubscriber, notificationTopic());
 
     return container;
   }

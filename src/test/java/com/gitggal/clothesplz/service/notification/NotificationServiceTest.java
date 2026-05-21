@@ -5,10 +5,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
-import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 
+import com.gitggal.clothesplz.component.publisher.notification.NotificationPublisher;
 import com.gitggal.clothesplz.dto.notification.NotificationDto;
 import com.gitggal.clothesplz.dto.notification.NotificationDtoCursorResponse;
 import com.gitggal.clothesplz.dto.notification.NotificationRequest;
@@ -19,10 +18,8 @@ import com.gitggal.clothesplz.exception.BusinessException;
 import com.gitggal.clothesplz.exception.code.NotificationErrorCode;
 import com.gitggal.clothesplz.mapper.notification.NotificationMapper;
 import com.gitggal.clothesplz.repository.notification.NotificationRepository;
-import com.gitggal.clothesplz.repository.notification.SseEmitterRepository;
 import com.gitggal.clothesplz.repository.user.UserRepository;
 import com.gitggal.clothesplz.service.notification.impl.NotificationServiceImpl;
-import java.io.IOException;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -33,18 +30,17 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("알림 서비스 테스트")
 class NotificationServiceTest {
 
   @Mock
+  private NotificationPublisher notificationPublisher;
+  @Mock
   private UserRepository userRepository;
   @Mock
   private NotificationRepository notificationRepository;
-  @Mock
-  private SseEmitterRepository emitterRepository;
   @Mock
   private NotificationMapper notificationMapper;
 
@@ -52,52 +48,30 @@ class NotificationServiceTest {
   private NotificationServiceImpl notificationService;
 
   @Test
-  @DisplayName("SSE 연결 중인 사용자에게 알림을 저장하고 즉시 전송한다")
-  void send_connectedUser_savesAndSendsViaSSE() throws IOException {
+  @DisplayName("알림을 DB에 저장하고 Redis 채널에 발행한다")
+  void send_savesAndPublishesToRedis() {
     // given
     UUID receiverId = UUID.randomUUID();
     NotificationRequest request = new NotificationRequest(receiverId, "제목", "내용", NotificationLevel.INFO);
     NotificationDto responseDto = new NotificationDto(UUID.randomUUID(), Instant.now(), receiverId, "제목", "내용", NotificationLevel.INFO);
 
-    User receiver = mock(User.class);
     Notification saved = mock(Notification.class);
-    SseEmitter emitter = mock(SseEmitter.class);
-
-    given(userRepository.getReferenceById(receiverId)).willReturn(receiver);
-    given(notificationRepository.save(any(Notification.class))).willReturn(saved);
-    given(notificationMapper.toDto(saved)).willReturn(responseDto);
-    given(emitterRepository.findByUserId(receiverId)).willReturn(Optional.of(emitter));
-
-    // when
-    notificationService.send(request);
-
-    // then
-    then(emitter).should().send(any(SseEmitter.SseEventBuilder.class));
-  }
-
-  @Test
-  @DisplayName("SSE 미연결 사용자에게는 알림을 저장만 하고 SSE 전송은 하지 않는다")
-  void send_offlineUser_onlySavesWithoutSSE() {
-    // given
-    UUID receiverId = UUID.randomUUID();
-    NotificationRequest request = new NotificationRequest(
-        receiverId, "제목", "내용", NotificationLevel.INFO);
 
     given(userRepository.getReferenceById(receiverId)).willReturn(mock(User.class));
-    given(notificationRepository.save(any(Notification.class))).willReturn(mock(Notification.class));
-    given(emitterRepository.findByUserId(receiverId)).willReturn(Optional.empty());
+    given(notificationRepository.save(any(Notification.class))).willReturn(saved);
+    given(notificationMapper.toDto(saved)).willReturn(responseDto);
 
     // when
     notificationService.send(request);
 
     // then
     then(notificationRepository).should().save(any(Notification.class));
-    then(emitterRepository).should(never()).deleteByUserId(any());
+    then(notificationPublisher).should().publish(responseDto);
   }
 
   @Test
-  @DisplayName("SSE 전송 중 IOException 발생 시 해당 emitter를 저장소에서 제거한다")
-  void send_sseIOException_removesEmitter() throws IOException {
+  @DisplayName("오프라인 사용자도 DB 저장 후 Redis 채널에 발행한다")
+  void send_offlineUser_savesAndPublishesToRedis() {
     // given
     UUID receiverId = UUID.randomUUID();
     NotificationRequest request = new NotificationRequest(
@@ -106,19 +80,17 @@ class NotificationServiceTest {
         UUID.randomUUID(), Instant.now(), receiverId, "제목", "내용", NotificationLevel.INFO);
 
     Notification saved = mock(Notification.class);
-    SseEmitter emitter = mock(SseEmitter.class);
 
     given(userRepository.getReferenceById(receiverId)).willReturn(mock(User.class));
     given(notificationRepository.save(any(Notification.class))).willReturn(saved);
     given(notificationMapper.toDto(saved)).willReturn(responseDto);
-    given(emitterRepository.findByUserId(receiverId)).willReturn(Optional.of(emitter));
-    willThrow(new IOException("연결 끊김")).given(emitter).send(any(SseEmitter.SseEventBuilder.class));
 
     // when
     notificationService.send(request);
 
     // then
-    then(emitterRepository).should().deleteByUserId(receiverId);
+    then(notificationRepository).should().save(any(Notification.class));
+    then(notificationPublisher).should().publish(responseDto);
   }
 
   @Test
