@@ -4,11 +4,13 @@ import com.gitggal.clothesplz.dto.notification.NotificationRequest;
 import com.gitggal.clothesplz.entity.notification.NotificationLevel;
 import com.gitggal.clothesplz.service.notification.NotificationService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class PermissionNotificationEventListener {
@@ -19,11 +21,15 @@ public class PermissionNotificationEventListener {
   @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
   public void handlePermissionChanged(PermissionChangedEvent event) {
 
-    notificationService.send(new NotificationRequest(
-        event.userId(),
-        "권한이 변경되었습니다.",
-        "회원 권한이 " + event.newRole().name() + "(으)로 변경되었습니다.",
-        NotificationLevel.WARNING
-    ));
+    try {
+      notificationService.send(new NotificationRequest(
+          event.userId(),
+          "권한이 변경되었습니다.",
+          "회원 권한이 " + event.newRole().name() + "(으)로 변경되었습니다.",
+          NotificationLevel.WARNING
+      ));
+    } catch (Exception e) {
+      log.warn("권한 변경 알림 전송 실패. userId={}, newRole={}", event.userId(), event.newRole(), e);
+    }
   }
 }

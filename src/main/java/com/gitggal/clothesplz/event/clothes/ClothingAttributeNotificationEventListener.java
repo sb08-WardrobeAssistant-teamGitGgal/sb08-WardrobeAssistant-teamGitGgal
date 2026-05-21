@@ -4,11 +4,13 @@ import com.gitggal.clothesplz.dto.notification.NotificationRequest;
 import com.gitggal.clothesplz.entity.notification.NotificationLevel;
 import com.gitggal.clothesplz.service.notification.NotificationService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class ClothingAttributeNotificationEventListener {
@@ -31,13 +33,18 @@ public class ClothingAttributeNotificationEventListener {
       case DELETED -> "[" + event.attributeName() + "] 속성이 삭제되었어요.";
     };
 
-    event.allUserIds().forEach(userId ->
-        notificationService.send(new NotificationRequest(
-            userId,
-            title,
-            content,
-            NotificationLevel.INFO
-        ))
+    event.allUserIds().forEach(userId -> {
+          try {
+            notificationService.send(new NotificationRequest(
+                userId,
+                title,
+                content,
+                NotificationLevel.INFO
+            ));
+          } catch (Exception e) {
+            log.warn("의상 속성 변경 알림 전송 실패. userId={}", userId, e);
+          }
+        }
     );
   }
 }
