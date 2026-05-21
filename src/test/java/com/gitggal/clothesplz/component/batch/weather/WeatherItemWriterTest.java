@@ -3,6 +3,7 @@ package com.gitggal.clothesplz.component.batch.weather;
 import com.gitggal.clothesplz.entity.weather.*;
 import com.gitggal.clothesplz.repository.weather.WeatherRepository;
 import com.gitggal.clothesplz.service.weather.WeatherAlertService;
+import com.gitggal.clothesplz.service.weather.WeatherCacheService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -36,6 +37,9 @@ class WeatherItemWriterTest {
     @Mock
     private WeatherAlertService weatherAlertService;
 
+    @Mock
+    private WeatherCacheService weatherCacheService;
+
     @InjectMocks
     private WeatherItemWriter writer;
 
@@ -47,6 +51,8 @@ class WeatherItemWriterTest {
         locationId = UUID.randomUUID();
         location = mock(Location.class);
         given(location.getId()).willReturn(locationId);
+        lenient().when(location.getGridX()).thenReturn(60);
+        lenient().when(location.getGridY()).thenReturn(127);
     }
 
     @Nested
@@ -177,6 +183,72 @@ class WeatherItemWriterTest {
             writer.write(chunk);
 
             verifyNoInteractions(weatherAlertService);
+        }
+
+        @Test
+        @DisplayName("신규 저장 → 해당 격자 캐시 evict 호출")
+        void write_afterSave_evictsCache() throws Exception {
+            Weather w = makeWeather(OffsetDateTime.now());
+            Chunk<List<Weather>> chunk = new Chunk<>(List.of(List.of(w)));
+
+            given(weatherRepository.findByLocationInAndForecastAtBetween(anyList(), any(), any()))
+                    .willReturn(List.of());
+
+            writer.write(chunk);
+
+            verify(weatherCacheService).evictForecast(60, 127);
+        }
+
+        @Test
+        @DisplayName("여러 location 신규 저장 → 각 격자별 evict 호출")
+        void write_multipleLocations_evictsEachGrid() throws Exception {
+            Location location2 = mock(Location.class);
+            given(location2.getId()).willReturn(UUID.randomUUID());
+            given(location2.getGridX()).willReturn(61);
+            given(location2.getGridY()).willReturn(128);
+
+            Weather w1 = makeWeather(OffsetDateTime.now());
+            Weather w2 = mock(Weather.class);
+            given(w2.getLocation()).willReturn(location2);
+            given(w2.getForecastAt()).willReturn(OffsetDateTime.now().plusDays(1));
+
+            Chunk<List<Weather>> chunk = new Chunk<>(List.of(List.of(w1, w2)));
+            given(weatherRepository.findByLocationInAndForecastAtBetween(anyList(), any(), any()))
+                    .willReturn(List.of());
+
+            writer.write(chunk);
+
+            verify(weatherCacheService).evictForecast(60, 127);
+            verify(weatherCacheService).evictForecast(61, 128);
+        }
+
+        @Test
+        @DisplayName("동일 location 여러 weather 신규 저장 → evict 한 번만 호출")
+        void write_sameLocationMultipleWeather_evictsOnce() throws Exception {
+            Weather w1 = makeWeather(OffsetDateTime.now());
+            Weather w2 = makeWeather(OffsetDateTime.now().plusHours(3));
+            Chunk<List<Weather>> chunk = new Chunk<>(List.of(List.of(w1, w2)));
+
+            given(weatherRepository.findByLocationInAndForecastAtBetween(anyList(), any(), any()))
+                    .willReturn(List.of());
+
+            writer.write(chunk);
+
+            verify(weatherCacheService, times(1)).evictForecast(60, 127);
+        }
+
+        @Test
+        @DisplayName("전부 중복 → evict 미호출")
+        void write_allDuplicate_doesNotEvictCache() throws Exception {
+            Weather w = makeWeather(OffsetDateTime.now());
+            Chunk<List<Weather>> chunk = new Chunk<>(List.of(List.of(w)));
+
+            given(weatherRepository.findByLocationInAndForecastAtBetween(anyList(), any(), any()))
+                    .willReturn(List.of(w));
+
+            writer.write(chunk);
+
+            verifyNoInteractions(weatherCacheService);
         }
     }
 

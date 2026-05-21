@@ -1,13 +1,12 @@
 package com.gitggal.clothesplz.service.weather;
 
 import com.gitggal.clothesplz.dto.weather.DailyWeatherForecastDto;
+import com.gitggal.clothesplz.dto.weather.WeatherAPILocationDto;
 import com.gitggal.clothesplz.dto.weather.WeatherApiResponseDto;
 import com.gitggal.clothesplz.dto.weather.WeatherDto;
-import com.gitggal.clothesplz.dto.weather.WeatherAPILocationDto;
 import com.gitggal.clothesplz.entity.weather.Location;
 import com.gitggal.clothesplz.entity.weather.Weather;
 import com.gitggal.clothesplz.mapper.weather.WeatherMapper;
-import com.gitggal.clothesplz.service.weather.impl.WeatherPersistenceService;
 import com.gitggal.clothesplz.service.weather.impl.WeatherServiceImpl;
 import com.gitggal.clothesplz.util.weather.KmaGridCoordinateConverter;
 import org.junit.jupiter.api.DisplayName;
@@ -21,6 +20,7 @@ import reactor.core.publisher.Mono;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -46,6 +46,9 @@ class WeatherServiceImplTest {
 
     @MockitoBean
     private WeatherPersistenceService weatherPersistenceService;
+
+    @MockitoBean
+    private WeatherCacheService weatherCacheService;
 
     @Autowired
     private WeatherServiceImpl weatherServiceImpl;
@@ -76,6 +79,7 @@ class WeatherServiceImplTest {
         Location mockLocation = mock(Location.class);
         Weather mockWeather = mock(Weather.class);
 
+        when(weatherCacheService.getForecast(point.nx(), point.ny())).thenReturn(Optional.empty());
         when(weatherApiService.fetchWeather(point.nx(), point.ny())).thenReturn(Mono.just(apiResponse));
         when(kakaoLocalApiService.getLocationNames(latitude, longitude)).thenReturn(Mono.just(List.of()));
         when(weatherParserService.parseDailyForecast(apiResponse)).thenReturn(parsed);
@@ -94,6 +98,28 @@ class WeatherServiceImplTest {
         verify(weatherParserService).parseDailyForecast(apiResponse);
         verify(weatherPersistenceService).findOrCreateLocation(eq(latitude), eq(longitude), eq(point.nx()), eq(point.ny()), any());
         verify(weatherMapper).toWeatherDtoList(anyList(), eq(latitude), eq(longitude), eq(point.nx()), eq(point.ny()), eq(List.of()));
+        verify(weatherCacheService).saveForecast(eq(point.nx()), eq(point.ny()), eq(mapped));
+    }
+
+    @Test
+    @DisplayName("캐시 HIT 시 외부 API 호출 없이 캐시 데이터 반환")
+    void getWeatherForecast_cacheHit_returnsCachedDataWithoutApiCall() {
+        double latitude = 37.5665;
+        double longitude = 126.9780;
+        KmaGridCoordinateConverter.KmaGridPoint point = KmaGridCoordinateConverter.toGrid(latitude, longitude);
+
+        List<WeatherDto> cached = List.of(
+                new WeatherDto(UUID.randomUUID(), LocalDateTime.now(),
+                        LocalDate.of(2026, 5, 8).atStartOfDay(),
+                        new WeatherAPILocationDto(latitude, longitude, point.nx(), point.ny(), List.of()),
+                        null, null, null, null, null)
+        );
+        when(weatherCacheService.getForecast(point.nx(), point.ny())).thenReturn(Optional.of(cached));
+
+        List<WeatherDto> result = weatherServiceImpl.getWeatherForecast(latitude, longitude).block();
+
+        assertThat(result).isEqualTo(cached);
+        verifyNoInteractions(weatherApiService, kakaoLocalApiService, weatherPersistenceService);
     }
 
     @Test
@@ -101,6 +127,7 @@ class WeatherServiceImplTest {
     void getWeatherForecast_propagatesError() {
         // given
         RuntimeException expected = new RuntimeException("api failed");
+        when(weatherCacheService.getForecast(anyInt(), anyInt())).thenReturn(Optional.empty());
         when(weatherApiService.fetchWeather(anyInt(), anyInt())).thenReturn(Mono.error(expected));
         when(kakaoLocalApiService.getLocationNames(anyDouble(), anyDouble())).thenReturn(Mono.just(List.of()));
 
