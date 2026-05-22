@@ -12,10 +12,10 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class OpenSearchConfig {
 
-    @Value("${spring.elasticsearch.username}")
+    @Value("${spring.elasticsearch.username:}")
     private String username;
 
-    @Value("${spring.elasticsearch.password}")
+    @Value("${spring.elasticsearch.password:}")
     private String password;
 
     // DefaultRestClientBuilderCustomizer(Basic Auth)와 우리 Content-Type 픽스가
