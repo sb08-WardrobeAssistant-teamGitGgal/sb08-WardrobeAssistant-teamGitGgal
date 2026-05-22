@@ -2,10 +2,9 @@ package com.gitggal.clothesplz.service.clothes;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gitggal.clothesplz.entity.clothes.Clothes;
 import com.gitggal.clothesplz.entity.clothes.ClothesType;
@@ -15,43 +14,42 @@ import com.gitggal.clothesplz.entity.weather.PrecipitationType;
 import com.gitggal.clothesplz.entity.weather.SkyStatus;
 import com.gitggal.clothesplz.entity.weather.Weather;
 import com.gitggal.clothesplz.entity.weather.WindPhrase;
+import com.gitggal.clothesplz.repository.clothes.ClothesAttributeRepository;
+import com.gitggal.clothesplz.service.ai.impl.OpenAiClothesAi;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Answers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.test.util.ReflectionTestUtils;
-import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Mono;
 
 @ExtendWith(MockitoExtension.class)
-@DisplayName("OpenAiClient 테스트")
-class OpenAiClientTest {
+@DisplayName("OpenAiClothesAi 테스트")
+class OpenAiClothesAiTest {
+
+  @Mock(answer = Answers.RETURNS_DEEP_STUBS)
+  private ChatClient.Builder chatClientBuilder;
+
+  @Mock(answer = Answers.RETURNS_DEEP_STUBS)
+  private ChatClient chatClient;
 
   @Mock
-  private WebClient webClient;
+  private ClothesAttributeRepository clothesAttributeRepository;
 
-  @Mock
-  private WebClient.RequestBodyUriSpec requestBodyUriSpec;
-
-  @Mock
-  private WebClient.RequestHeadersSpec<?> requestHeadersSpec;
-
-  @Mock
-  private WebClient.ResponseSpec responseSpec;
-
-  private OpenAiClient openAiClient;
   private final ObjectMapper objectMapper = new ObjectMapper();
+  private OpenAiClothesAi openAiClothesAi;
 
   @BeforeEach
   void setUp() {
-    openAiClient = new OpenAiClient("dummy-openai-key", objectMapper);
-    ReflectionTestUtils.setField(openAiClient, "webClient", webClient);
+    when(chatClientBuilder.build()).thenReturn(chatClient);
+    when(clothesAttributeRepository.findAllByClothesIdIn(any())).thenReturn(List.of());
+    openAiClothesAi = new OpenAiClothesAi(chatClientBuilder, objectMapper, clothesAttributeRepository);
   }
 
   @Test
@@ -65,35 +63,15 @@ class OpenAiClientTest {
 
     UUID first = top.getId();
     UUID second = outer.getId();
-    String raw = """
-        {
-          "choices": [
-            {
-              "message": {
-                "content": "{\\"recommendedIds\\":[\\"%s\\",\\"%s\\"]}"
-              }
-            }
-          ]
-        }
-        """.formatted(first, second);
 
-    when(webClient.post()).thenReturn(requestBodyUriSpec);
-    when(requestBodyUriSpec.bodyValue(any())).thenReturn((WebClient.RequestHeadersSpec) requestHeadersSpec);
-    when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);
-    when(responseSpec.bodyToMono(String.class)).thenReturn(Mono.just(raw));
+    when(chatClient.prompt().system(anyString()).user(anyString()).call().content())
+        .thenReturn("""
+            {"recommendedIds":["%s","%s"]}
+            """.formatted(first, second));
 
-    List<UUID> result = openAiClient.recommendClothesIds(weather, allClothes);
+    List<UUID> result = openAiClothesAi.recommendClothesIds(weather, allClothes);
 
     assertThat(result).containsExactly(first, second);
-
-    ArgumentCaptor<Object> bodyCaptor = ArgumentCaptor.forClass(Object.class);
-    verify(requestBodyUriSpec).bodyValue(bodyCaptor.capture());
-    JsonNode body = (JsonNode) bodyCaptor.getValue();
-    assertThat(body.path("model").asText()).isEqualTo("gpt-4o-mini");
-    assertThat(body.path("response_format").path("type").asText()).isEqualTo("json_object");
-
-    String prompt = body.path("messages").get(1).path("content").asText();
-    assertThat(prompt).contains(first.toString(), second.toString(), "반팔", "가디건");
   }
 
   @Test
@@ -103,26 +81,14 @@ class OpenAiClientTest {
     User owner = new User("owner2", "owner2@test.com", "pw");
     Clothes top = createClothes(owner, UUID.randomUUID(), "셔츠", ClothesType.TOP);
     List<Clothes> allClothes = List.of(top);
-
     UUID valid = top.getId();
-    String raw = """
-        {
-          "choices": [
-            {
-              "message": {
-                "content": "{\\"recommendedIds\\":[\\"not-a-uuid\\",\\"%s\\"]}"
-              }
-            }
-          ]
-        }
-        """.formatted(valid);
 
-    when(webClient.post()).thenReturn(requestBodyUriSpec);
-    when(requestBodyUriSpec.bodyValue(any())).thenReturn((WebClient.RequestHeadersSpec) requestHeadersSpec);
-    when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);
-    when(responseSpec.bodyToMono(String.class)).thenReturn(Mono.just(raw));
+    when(chatClient.prompt().system(anyString()).user(anyString()).call().content())
+        .thenReturn("""
+            {"recommendedIds":["not-a-uuid","%s"]}
+            """.formatted(valid));
 
-    List<UUID> result = openAiClient.recommendClothesIds(weather, allClothes);
+    List<UUID> result = openAiClothesAi.recommendClothesIds(weather, allClothes);
 
     assertThat(result).containsExactly(valid);
   }
@@ -133,34 +99,26 @@ class OpenAiClientTest {
     Weather weather = createWeather(18.0);
     User owner = new User("owner3", "owner3@test.com", "pw");
     Clothes outer = createClothes(owner, UUID.randomUUID(), "자켓", ClothesType.OUTER);
-    List<Clothes> allClothes = List.of(outer);
 
-    String invalidRaw = "{\"choices\": [{\"message\": {\"content\": \"not-json\"}}]}";
+    when(chatClient.prompt().system(anyString()).user(anyString()).call().content())
+        .thenReturn("not-json");
 
-    when(webClient.post()).thenReturn(requestBodyUriSpec);
-    when(requestBodyUriSpec.bodyValue(any())).thenReturn((WebClient.RequestHeadersSpec) requestHeadersSpec);
-    when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);
-    when(responseSpec.bodyToMono(String.class)).thenReturn(Mono.just(invalidRaw));
-
-    List<UUID> result = openAiClient.recommendClothesIds(weather, allClothes);
+    List<UUID> result = openAiClothesAi.recommendClothesIds(weather, List.of(outer));
 
     assertThat(result).isEmpty();
   }
 
   @Test
   @DisplayName("실패 - OpenAI 호출 중 예외가 발생하면 빈 리스트를 반환한다")
-  void recommendClothesIds_httpError_returnsEmpty() {
+  void recommendClothesIds_callError_returnsEmpty() {
     Weather weather = createWeather(11.0);
     User owner = new User("owner4", "owner4@test.com", "pw");
     Clothes top = createClothes(owner, UUID.randomUUID(), "맨투맨", ClothesType.TOP);
-    List<Clothes> allClothes = List.of(top);
 
-    when(webClient.post()).thenReturn(requestBodyUriSpec);
-    when(requestBodyUriSpec.bodyValue(any())).thenReturn((WebClient.RequestHeadersSpec) requestHeadersSpec);
-    when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);
-    when(responseSpec.bodyToMono(String.class)).thenReturn(Mono.error(new RuntimeException("timeout")));
+    when(chatClient.prompt().system(anyString()).user(anyString()).call().content())
+        .thenThrow(new RuntimeException("timeout"));
 
-    List<UUID> result = openAiClient.recommendClothesIds(weather, allClothes);
+    List<UUID> result = openAiClothesAi.recommendClothesIds(weather, List.of(top));
 
     assertThat(result).isEmpty();
   }

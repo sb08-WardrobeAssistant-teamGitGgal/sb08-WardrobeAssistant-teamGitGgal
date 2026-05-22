@@ -1,6 +1,7 @@
 package com.gitggal.clothesplz.service.feed.impl;
 
 import com.gitggal.clothesplz.document.feed.FeedDocument;
+import com.gitggal.clothesplz.dto.clothes.ClothesAttributeWithDefDto;
 import com.gitggal.clothesplz.dto.clothes.OotdDto;
 import com.gitggal.clothesplz.dto.feed.CommentCreateRequest;
 import com.gitggal.clothesplz.dto.feed.CommentDto;
@@ -12,31 +13,45 @@ import com.gitggal.clothesplz.dto.feed.FeedDto;
 import com.gitggal.clothesplz.dto.feed.FeedDtoCursorResponse;
 import com.gitggal.clothesplz.dto.feed.FeedPageRequest;
 import com.gitggal.clothesplz.dto.feed.FeedUpdateRequest;
+import com.gitggal.clothesplz.entity.clothes.Clothes;
 import com.gitggal.clothesplz.entity.feed.Feed;
 import com.gitggal.clothesplz.entity.feed.FeedComment;
 import com.gitggal.clothesplz.entity.feed.FeedLike;
 import com.gitggal.clothesplz.entity.user.User;
 import com.gitggal.clothesplz.entity.weather.Weather;
+import com.gitggal.clothesplz.event.elasticsearch.FeedElasticSearchDeleteEvent;
+import com.gitggal.clothesplz.event.elasticsearch.FeedElasticSearchSyncEvent;
+import com.gitggal.clothesplz.event.feed.FeedCommentCreatedEvent;
+import com.gitggal.clothesplz.event.feed.FeedCreatedEvent;
+import com.gitggal.clothesplz.event.feed.FeedLikedEvent;
 import com.gitggal.clothesplz.exception.BusinessException;
+import com.gitggal.clothesplz.exception.code.ClothesErrorCode;
 import com.gitggal.clothesplz.exception.code.FeedErrorCode;
 import com.gitggal.clothesplz.exception.code.UserErrorCode;
 import com.gitggal.clothesplz.exception.code.WeatherErrorCode;
+import com.gitggal.clothesplz.mapper.clothes.ClothesMapper;
 import com.gitggal.clothesplz.mapper.feed.CommentMapper;
 import com.gitggal.clothesplz.mapper.feed.FeedMapper;
+import com.gitggal.clothesplz.repository.clothes.ClothesAttributeRepository;
+import com.gitggal.clothesplz.repository.clothes.ClothesRepository;
 import com.gitggal.clothesplz.repository.feed.FeedCommentRepository;
 import com.gitggal.clothesplz.repository.feed.FeedLikeRepository;
 import com.gitggal.clothesplz.repository.feed.FeedRepository;
 import com.gitggal.clothesplz.repository.feed.FeedSearchRepository;
+import com.gitggal.clothesplz.repository.follow.FollowRepository;
 import com.gitggal.clothesplz.repository.user.UserRepository;
 import com.gitggal.clothesplz.repository.weather.WeatherRepository;
 import com.gitggal.clothesplz.service.feed.FeedService;
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -59,6 +74,11 @@ public class FeedServiceImpl implements FeedService {
   private final FeedMapper feedMapper;
   private final CommentMapper commentMapper;
   private final FeedSearchRepository feedSearchRepository;
+  private final ClothesRepository clothesRepository;
+  private final ClothesMapper clothesMapper;
+  private final ClothesAttributeRepository clothesAttributeRepository;
+  private final ApplicationEventPublisher eventPublisher;
+  private final FollowRepository followRepository;
 
   @Override
   @Transactional
@@ -67,7 +87,7 @@ public class FeedServiceImpl implements FeedService {
         feedCreateRequest.authorId(), feedCreateRequest.weatherId());
     UUID weatherId = feedCreateRequest.weatherId();
     UUID authorId = feedCreateRequest.authorId();
-    List<UUID> clothesId = feedCreateRequest.clothesIds();
+    List<UUID> clothesIds = feedCreateRequest.clothesIds();
     String content = feedCreateRequest.content();
 
     Weather weather = weatherRepository.findById(weatherId)
@@ -76,23 +96,55 @@ public class FeedServiceImpl implements FeedService {
     User author = userRepository.findById(authorId)
         .orElseThrow(() -> new BusinessException(UserErrorCode.USER_NOT_FOUND));
 
-    // TODO: clothesService 구현 후 교체
-    // 현재 clothesIds는 수신되지만 ootds에 반영되지 않음 (의상 추천 기능 미구현 상태)
-    List<OotdDto> ootds = List.of();
+    Map<UUID, List<ClothesAttributeWithDefDto>> attributesByClothesId =
+        clothesAttributeRepository.findAllByClothesIdIn(clothesIds).stream()
+            .collect(Collectors.groupingBy(
+                attr -> attr.getClothes().getId(), // clothes의 id 기준으로 group화(OotdDto 변환 시 각 의상에 속성을 매핑하기 위함)
+                Collectors.mapping(
+                    attr -> clothesMapper.toClothesAttributeWithDefDto(attr.getDefinition(), attr.getValue()),  // 각 요소를 DTO로 변환
+                    Collectors.toList()
+                )
+            ));
+
+    // 벌크 조회
+    Map<UUID, Clothes> clothesById = clothesRepository.findAllById(clothesIds).stream()
+        .collect(Collectors.toMap(Clothes::getId, c -> c));
+
+    // 존재하지 않는 의상 검증
+    clothesIds.forEach(id -> {
+      if (!clothesById.containsKey(id)) {
+        throw new BusinessException(ClothesErrorCode.CLOTHES_NOT_FOUND);
+      }
+    });
+
+    List<OotdDto> ootds = clothesIds.stream()
+        .map(id -> clothesMapper.toOotdDto(
+            clothesById.get(id),
+            attributesByClothesId.getOrDefault(id, List.of()))) // 속성 dto를 반환하거나 속성이 없을 경우 디폴트 빈 리스트 반환
+        .toList();
 
     Feed feed = new Feed(weather, author, ootds, content);
 
     Feed savedFeed = feedRepository.save(feed);
 
-    feedSearchRepository.save(FeedDocument.builder()
-        .id(savedFeed.getId().toString())
-        .content(savedFeed.getContent())
-        .authorId(savedFeed.getAuthor().getId().toString())
-        .skyStatus(savedFeed.getWeather().getSkyStatus().name())
-        .precipitationType(savedFeed.getWeather().getPrecipitationType().name())
-        .likeCount(savedFeed.getLikeCount())
-        .createdAt(savedFeed.getCreatedAt())
-        .build());
+    // 피드 작성자를 팔로우하는 사람들의 id 리스트
+    List<UUID> followerIds = followRepository.findFollowerIdsByFolloweeId(authorId);
+    // 팔로워에게 알림 이벤트 전송
+    eventPublisher.publishEvent(new FeedCreatedEvent(
+        followerIds,
+        author.getName(),
+        savedFeed.getContent()
+    ));
+
+    eventPublisher.publishEvent(new FeedElasticSearchSyncEvent(
+        savedFeed.getId(),
+        savedFeed.getContent(),
+        savedFeed.getAuthor().getId(),
+        savedFeed.getWeather().getSkyStatus(),
+        savedFeed.getWeather().getPrecipitationType(),
+        savedFeed.getLikeCount(),
+        savedFeed.getCreatedAt()
+    ));
 
     log.info("[Service] 피드 생성 요청 완료 - feedId: {}", savedFeed.getId());
 
@@ -111,15 +163,15 @@ public class FeedServiceImpl implements FeedService {
 
     feed.update(newContent);
 
-    feedSearchRepository.save(FeedDocument.builder()
-        .id(feedId.toString())
-        .content(feed.getContent())
-        .authorId(feed.getAuthor().getId().toString())
-        .skyStatus(feed.getWeather().getSkyStatus().name())
-        .precipitationType(feed.getWeather().getPrecipitationType().name())
-        .likeCount(feed.getLikeCount())
-        .createdAt(feed.getCreatedAt())
-        .build());
+    eventPublisher.publishEvent(new FeedElasticSearchSyncEvent(
+        feed.getId(),
+        feed.getContent(),
+        feed.getAuthor().getId(),
+        feed.getWeather().getSkyStatus(),
+        feed.getWeather().getPrecipitationType(),
+        feed.getLikeCount(),
+        feed.getCreatedAt()
+    ));
 
     log.info("[Service] 피드 수정 요청 완료 - feedId: {}", feedId);
 
@@ -136,7 +188,7 @@ public class FeedServiceImpl implements FeedService {
         .orElseThrow(() -> new BusinessException(FeedErrorCode.FEED_NOT_FOUND));
 
     feedRepository.delete(feed);
-    feedSearchRepository.deleteById(feedId.toString());
+    eventPublisher.publishEvent(new FeedElasticSearchDeleteEvent(feed.getId()));
 
     log.info("[Service] 피드 삭제 요청 완료 - feedId: {}", feedId);
   }
@@ -161,6 +213,12 @@ public class FeedServiceImpl implements FeedService {
 
     feedLikeRepository.save(feedLike);
     feed.increaseLikeCount();
+
+    eventPublisher.publishEvent(new FeedLikedEvent(
+        feed.getAuthor().getId(),
+        user.getName(),
+        feed.getContent()
+    ));
 
     log.info("[Service] 피드 좋아요 요청 완료 - feedLikeId: {}", feedLike.getId());
   }
@@ -200,6 +258,12 @@ public class FeedServiceImpl implements FeedService {
     FeedComment comment = new FeedComment(feed, author, content);
     FeedComment savedComment = feedCommentRepository.save(comment);
     feed.increaseCommentCount();
+
+    eventPublisher.publishEvent(new FeedCommentCreatedEvent(
+        feed.getAuthor().getId(),
+        author.getName(),
+        content
+    ));
 
     log.info("[Service] 피드 댓글 생성 요청 완료 - commentId: {}", savedComment.getId());
     return commentMapper.toDto(savedComment);
@@ -271,8 +335,13 @@ public class FeedServiceImpl implements FeedService {
       // search 검사 결과 아무것도 없을 경우 빈 페이지 반환
       if (documents.isEmpty()) {
         return new FeedDtoCursorResponse(
-          List.of(), null, null, false, 0,
-          feedPageRequest.sortBy(), feedPageRequest.sortDirection()
+            List.of(),
+            null,
+            null,
+            false,
+            0,
+            feedPageRequest.sortBy(),
+            feedPageRequest.sortDirection()
         );
       }
 
@@ -283,7 +352,11 @@ public class FeedServiceImpl implements FeedService {
     }
 
     // 그 후 필터링, 정렬, 커서 페이지네이션 처리 후 반환
-    List<FeedDto> feeds = feedRepository.findAllByCursor(feedPageRequest, feedCursorCondition, esMatchedIDs);
+    List<FeedDto> feeds = feedRepository.findAllByCursor(
+        feedPageRequest,
+        feedCursorCondition,
+        esMatchedIDs
+    );
 
     boolean hasNext = feeds.size() > feedPageRequest.limit();
     List<FeedDto> data = hasNext ? feeds.subList(0, feedPageRequest.limit()) : feeds;

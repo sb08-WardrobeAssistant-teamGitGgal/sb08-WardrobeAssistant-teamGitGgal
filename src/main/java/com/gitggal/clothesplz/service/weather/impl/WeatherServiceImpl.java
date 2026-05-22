@@ -2,18 +2,22 @@ package com.gitggal.clothesplz.service.weather.impl;
 
 import com.gitggal.clothesplz.dto.weather.WeatherDto;
 import com.gitggal.clothesplz.dto.weather.WeatherAPILocationDto;
+import com.gitggal.clothesplz.dto.weather.DailyWeatherForecastDto;
+import com.gitggal.clothesplz.entity.weather.Location;
+import com.gitggal.clothesplz.entity.weather.Weather;
 import com.gitggal.clothesplz.mapper.weather.WeatherMapper;
-import com.gitggal.clothesplz.service.weather.KakaoLocalApiService;
-import com.gitggal.clothesplz.service.weather.WeatherApiService;
-import com.gitggal.clothesplz.service.weather.WeatherParserService;
-import com.gitggal.clothesplz.service.weather.WeatherService;
+import com.gitggal.clothesplz.service.weather.*;
 import com.gitggal.clothesplz.util.weather.KmaGridCoordinateConverter;
 import com.gitggal.clothesplz.util.weather.KmaGridCoordinateConverter.KmaGridPoint;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.List;
 
 @Service
@@ -25,29 +29,75 @@ public class WeatherServiceImpl implements WeatherService {
     private final WeatherParserService weatherParserService;
     private final KakaoLocalApiService kakaoLocalApiService;
     private final WeatherMapper weatherMapper;
+    private final WeatherPersistenceService weatherPersistenceService;
+    private final WeatherCacheService weatherCacheService;
 
+    @Override
     public Mono<List<WeatherDto>> getWeatherForecast(double latitude, double longitude) {
         KmaGridPoint grid = KmaGridCoordinateConverter.toGrid(latitude, longitude);
-        log.info(
-                "[Service] 기상청 데이터 수집 및 가공 시작: lat={}, lon={}, nx={}, ny={}",
+        log.info("[Service] 기상청 데이터 수집 및 가공 시작: lat={}, lon={}, nx={}, ny={}",
                 latitude, longitude, grid.nx(), grid.ny());
 
-        return Mono.zip(
-                        weatherApiService.fetchWeather(grid.nx(), grid.ny()),
-                        kakaoLocalApiService.getLocationNames(latitude, longitude))
-                .map(tuple -> {
-                    var daily = weatherParserService.parseDailyForecast(tuple.getT1());
-                    List<WeatherDto> mapped = weatherMapper.toWeatherDtoList(
-                            daily, latitude, longitude, grid.nx(), grid.ny(), tuple.getT2());
-                    log.info("[Service] 기상청 데이터 가공 완료: 결과 건수={}", mapped.size());
-                    return mapped;
+        return Mono.fromCallable(() -> weatherCacheService.getForecast(grid.nx(), grid.ny()))
+                .subscribeOn(Schedulers.boundedElastic())
+                .flatMap(cached -> {
+                    if (cached.isPresent()) {
+                        log.info("[Service] 캐시 HIT — 날씨 데이터 반환: nx={}, ny={}", grid.nx(), grid.ny());
+                        return Mono.just(cached.get());
+                    }
+                    // 각 find-or-create가 REQUIRES_NEW 독립 트랜잭션으로 실행되므로 TransactionTemplate 불필요
+                    return Mono.zip(
+                                    weatherApiService.fetchWeather(grid.nx(), grid.ny()),
+                                    kakaoLocalApiService.getLocationNames(latitude, longitude))
+                            .flatMap(tuple -> Mono.fromCallable(() -> {
+                                var daily = weatherParserService.parseDailyForecast(tuple.getT1());
+                                List<String> locationNames = tuple.getT2();
+                                String locationNamesStr = String.join(",", locationNames);
+
+                                Location location = findOrCreateLocationSafely(latitude, longitude, grid.nx(), grid.ny(), locationNamesStr);
+
+                                List<Weather> weathers = daily.stream()
+                                        .map(dto -> findOrCreateWeatherSafely(location, dto))
+                                        .toList();
+
+                                List<WeatherDto> result = weatherMapper.toWeatherDtoList(
+                                        weathers, latitude, longitude, grid.nx(), grid.ny(), locationNames);
+
+                                if (!result.isEmpty()) {
+                                    weatherCacheService.saveForecast(grid.nx(), grid.ny(), result);
+                                } else {
+                                    log.warn("[Service] 빈 예보 결과는 캐시하지 않음: nx={}, ny={}", grid.nx(), grid.ny());
+                                }
+                                log.info("[Service] 기상청 데이터 가공 완료: 결과 건수={}", result.size());
+                                return result;
+                            }).subscribeOn(Schedulers.boundedElastic()));
                 })
                 .doOnError(e -> log.error("[Service] 기상청 데이터 처리 중 에러 발생: {}", e.getMessage()));
     }
 
+    @Override
     public Mono<WeatherAPILocationDto> getWeatherLocation(double latitude, double longitude) {
         KmaGridPoint grid = KmaGridCoordinateConverter.toGrid(latitude, longitude);
         return kakaoLocalApiService.getLocationNames(latitude, longitude)
                 .map(names -> weatherMapper.toLocationDto(latitude, longitude, grid.nx(), grid.ny(), names));
+    }
+
+    // REQUIRES_NEW 트랜잭션 실패(동시 insert 충돌) 시 별도 트랜잭션으로 재조회
+    private Location findOrCreateLocationSafely(double lat, double lon, int nx, int ny, String locationNamesStr) {
+        try {
+            return weatherPersistenceService.findOrCreateLocation(lat, lon, nx, ny, locationNamesStr);
+        } catch (DataIntegrityViolationException e) {
+            return weatherPersistenceService.findLocationOrThrow(nx, ny);
+        }
+    }
+
+    // REQUIRES_NEW 트랜잭션 실패(동시 insert 충돌) 시 별도 트랜잭션으로 재조회
+    private Weather findOrCreateWeatherSafely(Location location, DailyWeatherForecastDto dto) {
+        try {
+            return weatherPersistenceService.findOrCreateWeather(location, dto);
+        } catch (DataIntegrityViolationException e) {
+            OffsetDateTime forecastAt = dto.date().atStartOfDay().atZone(ZoneId.of("Asia/Seoul")).toOffsetDateTime();
+            return weatherPersistenceService.findWeatherOrThrow(location, forecastAt);
+        }
     }
 }

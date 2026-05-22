@@ -4,6 +4,9 @@ plugins {
     id 'io.spring.dependency-management' version '1.1.7'
     id 'jacoco'
 }
+ext {
+    springAiVersion = "1.1.6"
+}
 
 group = 'com.gitggal'
 version = '0.0.1-SNAPSHOT'
@@ -28,7 +31,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'org.springframework.boot:spring-boot-starter-batch'
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-    implementation 'org.springframework.boot:spring-boot-starter-data-elasticsearch'
+    implementation 'org.opensearch.client:spring-data-opensearch-starter:1.8.2'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.4'
@@ -36,6 +39,7 @@ dependencies {
     // Database / migration
     implementation 'org.flywaydb:flyway-core'
     implementation 'org.flywaydb:flyway-database-postgresql'
+    implementation 'org.springframework.ai:spring-ai-starter-model-openai'
     runtimeOnly 'com.h2database:h2'
     runtimeOnly 'org.postgresql:postgresql'
 
@@ -82,6 +86,12 @@ dependencies {
 
     // Mail
     implementation 'org.springframework.boot:spring-boot-starter-mail'
+
+    // Redis
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+
+    // Retry
+    implementation 'org.springframework.retry:spring-retry'
 }
 
 tasks.named('test') {
@@ -107,7 +117,8 @@ def jacocoExcludePatterns = [
         "**/*Event*",
         "**/*ErrorCode*",
         "**/*Mapper*",
-        "**/entity/**"
+        "**/entity/**",
+        "**/publisher/**"
 ]
 
 jacocoTestReport {
@@ -171,4 +182,9 @@ tasks.named('test') {
 bootJar {
     enabled = true
     archiveFileName = "app.jar"
+}
+dependencyManagement {
+    imports {
+        mavenBom "org.springframework.ai:spring-ai-bom:$springAiVersion"
+    }
 }

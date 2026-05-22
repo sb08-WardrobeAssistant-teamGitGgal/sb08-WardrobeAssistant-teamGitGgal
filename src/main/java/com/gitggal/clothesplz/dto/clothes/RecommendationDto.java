@@ -5,7 +5,7 @@ import java.util.List;
 public record RecommendationDto(
     String weatherId,
     String userId,
-    List<ClothesDto> clothes
+    List<OotdDto> clothes
 ) {
 
 }

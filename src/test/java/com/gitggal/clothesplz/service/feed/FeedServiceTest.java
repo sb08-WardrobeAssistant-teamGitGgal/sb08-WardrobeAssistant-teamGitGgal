@@ -21,7 +21,7 @@ import com.gitggal.clothesplz.dto.feed.FeedDtoCursorResponse;
 import com.gitggal.clothesplz.dto.feed.FeedPageRequest;
 import com.gitggal.clothesplz.dto.feed.FeedUpdateRequest;
 import com.gitggal.clothesplz.dto.user.AuthorDto;
-import java.time.Instant;
+import com.gitggal.clothesplz.entity.clothes.Clothes;
 import com.gitggal.clothesplz.entity.feed.Feed;
 import com.gitggal.clothesplz.entity.feed.FeedComment;
 import com.gitggal.clothesplz.entity.feed.FeedLike;
@@ -29,10 +29,26 @@ import com.gitggal.clothesplz.entity.user.User;
 import com.gitggal.clothesplz.entity.weather.PrecipitationType;
 import com.gitggal.clothesplz.entity.weather.SkyStatus;
 import com.gitggal.clothesplz.entity.weather.Weather;
+import com.gitggal.clothesplz.event.elasticsearch.FeedElasticSearchDeleteEvent;
+import com.gitggal.clothesplz.event.elasticsearch.FeedElasticSearchSyncEvent;
+import com.gitggal.clothesplz.event.feed.FeedCommentCreatedEvent;
+import com.gitggal.clothesplz.event.feed.FeedCreatedEvent;
+import com.gitggal.clothesplz.event.feed.FeedLikedEvent;
 import com.gitggal.clothesplz.exception.BusinessException;
+import com.gitggal.clothesplz.mapper.clothes.ClothesMapper;
 import com.gitggal.clothesplz.mapper.feed.CommentMapper;
 import com.gitggal.clothesplz.mapper.feed.FeedMapper;
-import com.gitggal.clothesplz.service.ServiceTestSupport;
+import com.gitggal.clothesplz.repository.clothes.ClothesAttributeRepository;
+import com.gitggal.clothesplz.repository.clothes.ClothesRepository;
+import com.gitggal.clothesplz.repository.feed.FeedCommentRepository;
+import com.gitggal.clothesplz.repository.feed.FeedLikeRepository;
+import com.gitggal.clothesplz.repository.feed.FeedRepository;
+import com.gitggal.clothesplz.repository.feed.FeedSearchRepository;
+import com.gitggal.clothesplz.repository.follow.FollowRepository;
+import com.gitggal.clothesplz.repository.user.UserRepository;
+import com.gitggal.clothesplz.repository.weather.WeatherRepository;
+import com.gitggal.clothesplz.service.feed.impl.FeedServiceImpl;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -42,23 +58,44 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.test.context.support.WithMockUser;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.context.ApplicationEventPublisher;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("피드 서비스 테스트")
-public class FeedServiceTest extends ServiceTestSupport {
+public class FeedServiceTest {
 
-  @Autowired
-  private FeedService feedService;
+  @InjectMocks
+  private FeedServiceImpl feedService;
 
-  @MockitoBean
+  @Mock
+  private UserRepository userRepository;
+  @Mock
+  private WeatherRepository weatherRepository;
+  @Mock
+  private FeedRepository feedRepository;
+  @Mock
+  private FeedLikeRepository feedLikeRepository;
+  @Mock
+  private FeedCommentRepository feedCommentRepository;
+  @Mock
   private FeedMapper feedMapper;
-
-  @MockitoBean
+  @Mock
   private CommentMapper commentMapper;
+  @Mock
+  private FeedSearchRepository feedSearchRepository;
+  @Mock
+  private ClothesRepository clothesRepository;
+  @Mock
+  private ClothesMapper clothesMapper;
+  @Mock
+  private ClothesAttributeRepository clothesAttributeRepository;
+  @Mock
+  private ApplicationEventPublisher eventPublisher;
+  @Mock
+  private FollowRepository followRepository;
 
   private UUID weatherId;
   private UUID authorId;
@@ -105,9 +142,9 @@ public class FeedServiceTest extends ServiceTestSupport {
     );
 
     commentCreateRequest = new CommentCreateRequest(
-      feedId,
-      authorId,
-      "댓글 생성"
+        feedId,
+        authorId,
+        "댓글 생성"
     );
 
     pageRequest = new CommentPageRequest(null, null, 2);
@@ -152,6 +189,11 @@ public class FeedServiceTest extends ServiceTestSupport {
       // given
       given(weatherRepository.findById(eq(weatherId))).willReturn(Optional.of(mockWeather));
       given(userRepository.findById(authorId)).willReturn(Optional.of(mockAuthor));
+      UUID clotheId = feedCreateRequest.clothesIds().get(0);
+      Clothes mockClothes = mock(Clothes.class);
+      given(mockClothes.getId()).willReturn(clotheId);
+      given(clothesAttributeRepository.findAllByClothesIdIn(feedCreateRequest.clothesIds())).willReturn(List.of());
+      given(clothesRepository.findAllById(feedCreateRequest.clothesIds())).willReturn(List.of(mockClothes));
       given(mockFeed.getId()).willReturn(feedId);
       given(mockFeed.getContent()).willReturn(feedCreateRequest.content());
       given(mockFeed.getAuthor()).willReturn(mockAuthor);
@@ -162,6 +204,8 @@ public class FeedServiceTest extends ServiceTestSupport {
       given(mockWeather.getSkyStatus()).willReturn(SkyStatus.CLEAR);
       given(mockWeather.getPrecipitationType()).willReturn(PrecipitationType.NONE);
       given(mockAuthor.getId()).willReturn(authorId);
+      given(mockAuthor.getName()).willReturn("작성자");
+      given(followRepository.findFollowerIdsByFolloweeId(authorId)).willReturn(List.of());
 
       FeedDto expectedDto = mock(FeedDto.class);
       given(feedMapper.toDto(any(Feed.class))).willReturn(expectedDto);
@@ -172,7 +216,8 @@ public class FeedServiceTest extends ServiceTestSupport {
       // then
       assertThat(result).isEqualTo(expectedDto);
       then(feedRepository).should().save(any(Feed.class));
-      then(feedSearchRepository).should().save(any(FeedDocument.class));
+      then(eventPublisher).should().publishEvent(any(FeedCreatedEvent.class));
+      then(eventPublisher).should().publishEvent(any(FeedElasticSearchSyncEvent.class));
       then(feedMapper).should().toDto(any(Feed.class));
     }
 
@@ -198,6 +243,20 @@ public class FeedServiceTest extends ServiceTestSupport {
       assertThatThrownBy(() -> feedService.createFeed(feedCreateRequest))
           .isInstanceOf(BusinessException.class);
     }
+
+    @Test
+    @DisplayName("의상 정보를 찾을 수 없는 경우 예외 발생")
+    void createFeed_ClothesNotFound_ThrowsException() {
+      // given
+      given(weatherRepository.findById(eq(weatherId))).willReturn(Optional.of(mockWeather));
+      given(userRepository.findById(eq(authorId))).willReturn(Optional.of(mockAuthor));
+      given(clothesAttributeRepository.findAllByClothesIdIn(feedCreateRequest.clothesIds())).willReturn(List.of());
+      given(clothesRepository.findAllById(feedCreateRequest.clothesIds())).willReturn(List.of());
+
+      // when & then
+      assertThatThrownBy(() -> feedService.createFeed(feedCreateRequest))
+          .isInstanceOf(BusinessException.class);
+    }
   }
 
   @Nested
@@ -205,7 +264,6 @@ public class FeedServiceTest extends ServiceTestSupport {
   class UpdateFeedTests {
 
     @Test
-    @WithMockUser(roles = "ADMIN")
     @DisplayName("피드 수정 성공인 경우")
     void updateFeed_Success() {
       // given
@@ -227,11 +285,10 @@ public class FeedServiceTest extends ServiceTestSupport {
 
       // then
       assertThat(result).isEqualTo(expectedDto);
-      then(feedSearchRepository).should().save(any(FeedDocument.class));
+      then(eventPublisher).should().publishEvent(any(FeedElasticSearchSyncEvent.class));
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
     @DisplayName("피드 정보를 찾을 수 없는 경우 예외 발생")
     void updateFeed_FeedNotFound_ThrowsException() {
       // given
@@ -248,7 +305,6 @@ public class FeedServiceTest extends ServiceTestSupport {
   class DeleteFeedTests {
 
     @Test
-    @WithMockUser(roles = "ADMIN")
     @DisplayName("피드 삭제 성공인 경우")
     void deleteFeed_Success() {
       // given
@@ -259,11 +315,10 @@ public class FeedServiceTest extends ServiceTestSupport {
 
       // then
       then(feedRepository).should().delete(any(Feed.class));
-      then(feedSearchRepository).should().deleteById(eq(feedId.toString()));
+      then(eventPublisher).should().publishEvent(any(FeedElasticSearchDeleteEvent.class));
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
     @DisplayName("피드 정보를 찾을 수 없는 경우 예외 발생")
     void deleteFeed_FeedNotFound_ThrowsException() {
       // given
@@ -286,6 +341,10 @@ public class FeedServiceTest extends ServiceTestSupport {
       given(feedRepository.findWithLockById(eq(feedId))).willReturn(Optional.of(mockFeed));
       given(userRepository.findById(eq(userId))).willReturn(Optional.of(mockUser));
       given(feedLikeRepository.existsByFeedIdAndUserId(eq(feedId), eq(userId))).willReturn(false);
+      given(mockFeed.getAuthor()).willReturn(mockAuthor);
+      given(mockAuthor.getId()).willReturn(authorId);
+      given(mockUser.getName()).willReturn("유저");
+      given(mockFeed.getContent()).willReturn("피드 내용");
 
       // when
       feedService.increaseLikeCount(feedId, userId);
@@ -293,6 +352,7 @@ public class FeedServiceTest extends ServiceTestSupport {
       // then
       then(feedLikeRepository).should().save(any(FeedLike.class));
       then(mockFeed).should().increaseLikeCount();
+      then(eventPublisher).should().publishEvent(any(FeedLikedEvent.class));
     }
 
     @Test
@@ -341,7 +401,6 @@ public class FeedServiceTest extends ServiceTestSupport {
     void decreaseLikeCount_Success() {
       // given
       given(feedRepository.findWithLockById(eq(feedId))).willReturn(Optional.of(mockFeed));
-      given(userRepository.findById(eq(userId))).willReturn(Optional.of(mockUser));
       given(feedLikeRepository.findByFeedIdAndUserId(eq(feedId), eq(userId))).willReturn(Optional.of(mockFeedLike));
 
       // when
@@ -364,23 +423,10 @@ public class FeedServiceTest extends ServiceTestSupport {
     }
 
     @Test
-    @DisplayName("사용자 정보를 찾을 수 없는 경우 예외 발생")
-    void decreaseLikeCount_UserNotFound_ThrowsException() {
-      // given
-      given(feedRepository.findWithLockById(eq(feedId))).willReturn(Optional.of(mockFeed));
-      given(userRepository.findById(eq(userId))).willReturn(Optional.empty());
-
-      // when & then
-      assertThatThrownBy(() -> feedService.decreaseLikeCount(feedId, userId))
-          .isInstanceOf(BusinessException.class);
-    }
-
-    @Test
     @DisplayName("좋아요 정보를 찾을 수 없는 경우 예외 발생")
     void decreaseLikeCount_FeedLikeNotFound_ThrowsException() {
       // given
       given(feedRepository.findWithLockById(eq(feedId))).willReturn(Optional.of(mockFeed));
-      given(userRepository.findById(eq(userId))).willReturn(Optional.of(mockUser));
       given(feedLikeRepository.findByFeedIdAndUserId(eq(feedId), eq(userId))).willReturn(Optional.empty());
 
       // when & then
@@ -400,6 +446,9 @@ public class FeedServiceTest extends ServiceTestSupport {
       given(feedRepository.findWithLockById(eq(feedId))).willReturn(Optional.of(mockFeed));
       given(userRepository.findById(eq(authorId))).willReturn(Optional.of(mockAuthor));
       given(feedCommentRepository.save(any(FeedComment.class))).willAnswer(inv -> inv.getArgument(0));
+      given(mockFeed.getAuthor()).willReturn(mockAuthor);
+      given(mockAuthor.getId()).willReturn(authorId);
+      given(mockAuthor.getName()).willReturn("작성자");
 
       CommentDto expectedDto = mock(CommentDto.class);
       given(commentMapper.toDto(any(FeedComment.class))).willReturn(expectedDto);
@@ -411,6 +460,7 @@ public class FeedServiceTest extends ServiceTestSupport {
       assertThat(result).isEqualTo(expectedDto);
       then(feedCommentRepository).should().save(any(FeedComment.class));
       then(mockFeed).should().increaseCommentCount();
+      then(eventPublisher).should().publishEvent(any(FeedCommentCreatedEvent.class));
     }
 
     @Test
