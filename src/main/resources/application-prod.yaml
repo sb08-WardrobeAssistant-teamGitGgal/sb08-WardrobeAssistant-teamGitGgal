@@ -15,7 +15,7 @@ spring:
       ssl:
         enabled: true
 
-  elasticsearch:
+  opensearch:
     uris: ${ELASTIC_HOST}
     username: ${ELASTIC_USERNAME}
     password: ${ELASTIC_PASSWORD}
