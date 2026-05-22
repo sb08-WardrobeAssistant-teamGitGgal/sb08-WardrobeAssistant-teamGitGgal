@@ -31,7 +31,7 @@ public class OAuthLoginSuccessHandler extends SimpleUrlAuthenticationSuccessHand
   private final JwtRegistry jwtRegistry;
   private final UserService userService;
 
-  @Value("${clothesplz.oauth2.redirect-uri}")
+  @Value("${clothesplz.oauth.redirect-uri}")
   private String redirectUri;
 
   @Override
