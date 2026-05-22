@@ -34,3 +34,23 @@ opensearch:
   uris: ${OPENSEARCH_HOST}
   username: ${OPENSEARCH_USERNAME}
   password: ${OPENSEARCH_PASSWORD}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+      show-components: never
+      probes:
+        enabled: true
+      group:
+        readiness:
+          exclude: mail
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true

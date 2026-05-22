@@ -57,6 +57,8 @@ public class SecurityConfig {
                 new HttpStatusReturningLogoutSuccessHandler(HttpStatus.NO_CONTENT)
             ))
         .authorizeHttpRequests(auth -> auth
+            .requestMatchers(HttpMethod.GET, "/actuator/health/liveness").permitAll()
+            .requestMatchers("/actuator/**").denyAll()
             .requestMatchers(HttpMethod.GET, "/api/auth/csrf-token").permitAll() //csrf 토큰 조회 허용
             .requestMatchers(HttpMethod.POST, "/api/users").permitAll() // 회원가입 허용
             .requestMatchers(HttpMethod.POST, "/api/auth/sign-in").permitAll() // 로그인 허용
