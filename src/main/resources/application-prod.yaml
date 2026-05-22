@@ -15,11 +15,6 @@ spring:
       ssl:
         enabled: true
 
-  opensearch:
-    uris: ${ELASTIC_HOST}
-    username: ${ELASTIC_USERNAME}
-    password: ${ELASTIC_PASSWORD}
-
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
@@ -34,3 +29,8 @@ logging:
   level:
     org.hibernate.SQL: warn
     org.hibernate.orm.jdbc.bind: warn
+
+opensearch:
+  uris: ${ELASTIC_HOST}
+  username: ${ELASTIC_USERNAME}
+  password: ${ELASTIC_PASSWORD}
