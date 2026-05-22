@@ -10,6 +10,7 @@ import com.gitggal.clothesplz.dto.user.UserRoleUpdateRequest;
 import com.gitggal.clothesplz.entity.profile.Profile;
 import com.gitggal.clothesplz.entity.user.SocialAccount;
 import com.gitggal.clothesplz.entity.user.User;
+import com.gitggal.clothesplz.event.user.PermissionChangedEvent;
 import com.gitggal.clothesplz.exception.BusinessException;
 import com.gitggal.clothesplz.exception.code.UserErrorCode;
 import com.gitggal.clothesplz.mapper.user.UserMapper;
@@ -23,6 +24,7 @@ import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -40,6 +42,7 @@ public class UserServiceImpl implements UserService {
   private final PasswordEncoder passwordEncoder;
   private final JwtRegistry jwtRegistry;
   private final SocialAccountRepository socialAccountRepository;
+  private final ApplicationEventPublisher eventPublisher;
 
   @Override
   @Transactional
@@ -104,6 +107,11 @@ public class UserServiceImpl implements UserService {
     user.updateRole(request.role());
 
     jwtRegistry.invalidateJwtInformationByUserId(userId);
+
+    eventPublisher.publishEvent(new PermissionChangedEvent(
+        userId,
+        request.role()
+    ));
 
     log.info("[Service] 권한 변경 요청 완료 : userId = {}", userId);
     return userMapper.toDto(user);
