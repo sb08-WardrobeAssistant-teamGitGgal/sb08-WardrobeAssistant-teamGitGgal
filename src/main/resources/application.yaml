@@ -99,6 +99,8 @@ clothesplz:
     access-token-exp: ${ACCESS_TOKEN_EXP}
     refresh-token-secret: ${REFRESH_TOKEN_SECRET}
     refresh-token-exp: ${REFRESH_TOKEN_EXP}
+  oauth:
+    redirect-uri: ${OAUTH_REDIRECT_URI}
 
 weather:
   api:

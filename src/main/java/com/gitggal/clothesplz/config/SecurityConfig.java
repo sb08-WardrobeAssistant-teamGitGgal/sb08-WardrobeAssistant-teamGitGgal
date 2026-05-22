@@ -38,14 +38,14 @@ public class SecurityConfig {
       LoginFailureHandler loginFailureHandler,
       CustomLogoutHandler logoutHandler,
       JwtAuthenticationFilter jwtAuthenticationFilter,
-      OAuthLoginSuccessHandler oauth2LoginSuccessHandler
+      OAuthLoginSuccessHandler oauthLoginSuccessHandler
   ) throws Exception {
     http
         .csrf(csrf -> csrf
             .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
             .csrfTokenRequestHandler(new SpaCsrfTokenRequestHandler()))
         .sessionManagement(session -> session
-            .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
+            .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .formLogin(login -> login
             .loginProcessingUrl("/api/auth/sign-in")
             .usernameParameter("username")
@@ -53,20 +53,8 @@ public class SecurityConfig {
             .successHandler(loginSuccessHandler)
             .failureHandler(loginFailureHandler))
         .oauth2Login(oauth2 -> oauth2
-            .successHandler(oauth2LoginSuccessHandler)
-            .failureHandler((request, response, exception) -> {
-              log.error("OAuth2 로그인 실패", exception);
-
-              response.setStatus(HttpStatus.UNAUTHORIZED.value());
-              response.setContentType("application/json;charset=UTF-8");
-
-              response.getWriter().write("""
-          {
-            "exceptionName": "OAUTH2_LOGIN_FAILED",
-            "message": "OAuth2 로그인에 실패했습니다."
-          }
-          """);
-            }))
+            .successHandler(oauthLoginSuccessHandler)
+            .failureHandler(loginFailureHandler))
         .logout(logout -> logout
             .logoutUrl("/api/auth/sign-out")
             .addLogoutHandler(logoutHandler)

@@ -174,11 +174,32 @@ public class UserServiceImpl implements UserService {
   @Transactional
   @Override
   public ClothesUserDetails processOAuth2User(OAuthInformation info) {
+    log.info("[Service] OAuth 사용자 처리 요청 시작");
 
     User user = socialAccountRepository
         .findByProviderAndProviderId(info.provider(), info.providerId())
         .map(SocialAccount::getUser)
-        .orElseGet(() -> createOAuthUser(info));
+        .orElseGet(() -> {
+          User existingUser = userRepository.findByEmail(info.email())
+              .orElseGet(() -> createOAuthUser(info));
+
+          SocialAccount socialAccount = new SocialAccount(
+              existingUser,
+              info.provider(),
+              info.providerId()
+          );
+          socialAccountRepository.save(socialAccount);
+
+          log.info("[Service] 소셜 계정 연결 완료");
+
+          return existingUser;
+        });
+
+    if (info.nickname() != null && !info.nickname().equals(user.getName())) {
+      user.updateName(info.nickname());
+    }
+
+    log.info("[Service] OAuth 사용자 처리 요청 완료");
 
     return new ClothesUserDetails(
         userMapper.toDto(user),
@@ -189,6 +210,7 @@ public class UserServiceImpl implements UserService {
   }
 
   private User createOAuthUser(OAuthInformation info) {
+    log.info("[Service] OAuth 사용자 생성 요청 시작");
 
     User user = new User(
         info.nickname(),
@@ -205,6 +227,7 @@ public class UserServiceImpl implements UserService {
     SocialAccount socialAccount = new SocialAccount(savedUser, info.provider(), info.providerId());
     socialAccountRepository.save(socialAccount);
 
+    log.info("[Service] OAuth 사용자 생성 요청 완료");
     return savedUser;
   }
 }

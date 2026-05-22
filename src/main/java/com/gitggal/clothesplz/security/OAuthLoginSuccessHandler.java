@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.time.Instant;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
@@ -29,6 +30,9 @@ public class OAuthLoginSuccessHandler extends SimpleUrlAuthenticationSuccessHand
   private final JwtTokenProvider jwtTokenProvider;
   private final JwtRegistry jwtRegistry;
   private final UserService userService;
+
+  @Value("${clothesplz.oauth2.redirect-uri}")
+  private String redirectUri;
 
   @Override
   public void onAuthenticationSuccess(
@@ -60,8 +64,7 @@ public class OAuthLoginSuccessHandler extends SimpleUrlAuthenticationSuccessHand
       jwtRegistry.registerJwtInformation(jwtInformation);
       jwtTokenProvider.addRefreshCookie(response, refreshToken);
 
-      String redirectUrl = String.format("http://localhost:8080");
-      getRedirectStrategy().sendRedirect(request, response, redirectUrl);
+      getRedirectStrategy().sendRedirect(request, response, redirectUri);
     } catch (Exception e) {
 
       log.error("[OAuth] 로그인 처리 중 오류 발생", e);
