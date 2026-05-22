@@ -40,7 +40,7 @@ services:
       - OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m
       - DISABLE_INSTALL_DEMO_CONFIG=true
     ports:
-      - "${OPENSEARCH_PORT}:9200"
+      - "127.0.0.1:${OPENSEARCH_PORT}:9200"
     volumes:
       - opensearch-data:/usr/share/opensearch/data
     healthcheck:
