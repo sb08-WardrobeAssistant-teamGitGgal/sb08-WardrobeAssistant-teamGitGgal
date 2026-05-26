@@ -40,7 +40,7 @@ import com.gitggal.clothesplz.repository.feed.FeedRepository;
 import com.gitggal.clothesplz.repository.follow.FollowRepository;
 import com.gitggal.clothesplz.repository.user.UserRepository;
 import com.gitggal.clothesplz.repository.weather.WeatherRepository;
-import com.gitggal.clothesplz.service.feed.FeedSearchCacheService;
+import com.gitggal.clothesplz.repository.feed.FeedSearchRepository;
 import com.gitggal.clothesplz.service.feed.FeedService;
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
@@ -78,7 +78,7 @@ public class FeedServiceImpl implements FeedService {
   private final ClothesAttributeRepository clothesAttributeRepository;
   private final ApplicationEventPublisher eventPublisher;
   private final FollowRepository followRepository;
-  private final FeedSearchCacheService feedSearchCacheService;
+  private final FeedSearchRepository feedSearchRepository;
 
   @Override
   @Transactional
@@ -329,7 +329,7 @@ public class FeedServiceImpl implements FeedService {
 
     List<UUID> esMatchedIDs = null;
     if (StringUtils.hasText(feedPageRequest.keywordLike())) {
-      List<FeedDocument> documents = feedSearchCacheService.searchByContent(
+      List<FeedDocument> documents = feedSearchRepository.searchByContent(
           feedPageRequest.keywordLike());
 
       // search 검사 결과 아무것도 없을 경우 빈 페이지 반환
