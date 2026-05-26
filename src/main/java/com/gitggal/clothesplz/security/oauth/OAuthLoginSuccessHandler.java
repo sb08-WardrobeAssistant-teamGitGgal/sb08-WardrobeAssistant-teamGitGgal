@@ -68,7 +68,7 @@ public class OAuthLoginSuccessHandler extends SimpleUrlAuthenticationSuccessHand
       log.error("[OAuth] 로그인 처리 중 오류 발생", e);
 
       redirect(request, response,
-          "oauth_failed",
+          "oauth_authentication_failed",
           "잠긴 계정입니다."
       );
     } catch (Exception e) {
@@ -76,7 +76,7 @@ public class OAuthLoginSuccessHandler extends SimpleUrlAuthenticationSuccessHand
       log.error("[OAuth] 로그인 처리 중 오류 발생", e);
 
       redirect(request, response,
-          "oauth_failed",
+          "oauth_authentication_failed",
           "소셜 로그인에 실패했습니다."
       );
     }

@@ -114,7 +114,9 @@ class OAuthLoginSuccessHandlerTest {
     handler.onAuthenticationSuccess(request, response, authentication);
 
     // then
-    then(response).should().encodeRedirectURL(contains("auth/login"));
+    then(response).should().sendRedirect(contains("auth/login"));
+    then(response).should().sendRedirect(contains("oauth_authentication_failed"));
+    then(response).should().sendRedirect(contains("잠긴 계정입니다."));
   }
 
   @Test
@@ -132,6 +134,8 @@ class OAuthLoginSuccessHandlerTest {
     handler.onAuthenticationSuccess(request, response, authentication);
 
     // then
-    then(response).should().encodeRedirectURL(contains("oauth_failed"));
+    then(response).should().sendRedirect(contains("auth/login"));
+    then(response).should().sendRedirect(contains("oauth_authentication_failed"));
+    then(response).should().sendRedirect(contains("소셜 로그인에 실패했습니다."));
   }
 }

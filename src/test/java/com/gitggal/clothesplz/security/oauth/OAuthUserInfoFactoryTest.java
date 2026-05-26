@@ -36,4 +36,15 @@ class OAuthUserInfoFactoryTest {
         .isInstanceOf(BusinessException.class)
         .hasFieldOrPropertyWithValue("errorCode", UserErrorCode.UNSUPPORTED_OAUTH_PROVIDER);
   }
+
+  @Test
+  @DisplayName("빈 문자열 provider면 예외 발생")
+  void blank_provider_fail() {
+
+    assertThatThrownBy(() ->
+        OAuthUserInfoFactory.getOAuth2UserInfo("   ", Map.of())
+    ).isInstanceOf(BusinessException.class)
+        .hasFieldOrPropertyWithValue("errorCode", UserErrorCode.UNSUPPORTED_OAUTH_PROVIDER);
+
+  }
 }

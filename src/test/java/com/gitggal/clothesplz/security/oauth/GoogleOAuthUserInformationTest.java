@@ -1,8 +1,11 @@
 package com.gitggal.clothesplz.security.oauth;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 
 import com.gitggal.clothesplz.entity.user.SocialProvider;
+import com.gitggal.clothesplz.exception.BusinessException;
+import com.gitggal.clothesplz.exception.code.UserErrorCode;
 import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -72,5 +75,23 @@ class GoogleOAuthUserInformationTest {
     // then
     assertThat(result.nickname()).startsWith("User");
     assertThat(result.nickname().length()).isGreaterThan(4);
+  }
+
+  @Test
+  @DisplayName("sub가 없을 경우")
+  void fail_when_sub_missing() {
+
+    // given
+    Map<String, Object> attributes = Map.of(
+        "email", "test@gmail.com",
+        "name", "test"
+    );
+
+    GoogleOAuthUserInformation info = new GoogleOAuthUserInformation(attributes);
+
+    // when & then
+    assertThatThrownBy(info::toOAuthInformation)
+        .isInstanceOf(BusinessException.class)
+        .hasMessageContaining(UserErrorCode.INVALID_OAUTH_PROVIDER_ID.name());
   }
 }

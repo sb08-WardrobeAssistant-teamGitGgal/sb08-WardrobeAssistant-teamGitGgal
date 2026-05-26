@@ -1,8 +1,11 @@
 package com.gitggal.clothesplz.security.oauth;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 
 import com.gitggal.clothesplz.entity.user.SocialProvider;
+import com.gitggal.clothesplz.exception.BusinessException;
+import com.gitggal.clothesplz.exception.code.UserErrorCode;
 import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -113,5 +116,25 @@ class KakaoOAuthUserInformationTest {
     // then
     assertThat(result.email()).contains("@kakao.com");
     assertThat(result.nickname()).startsWith("User");
+  }
+
+  @Test
+  @DisplayName("id가 없을 경우")
+  void fail_when_id_missing() {
+
+    Map<String, Object> kakaoAccount = Map.of(
+        "email", "test@kakao.com",
+        "profile", Map.of("nickname", "test")
+    );
+
+    Map<String, Object> attributes = Map.of(
+        "kakao_account", kakaoAccount
+    );
+
+    KakaoOAuthUserInformation info = new KakaoOAuthUserInformation(attributes);
+
+    assertThatThrownBy(info::toOAuthInformation)
+        .isInstanceOf(BusinessException.class)
+        .hasMessageContaining(UserErrorCode.INVALID_OAUTH_PROVIDER_ID.name());
   }
 }
