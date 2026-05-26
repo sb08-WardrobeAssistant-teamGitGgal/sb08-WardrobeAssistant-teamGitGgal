@@ -58,10 +58,12 @@ class OpenAiClothesAiTest {
   @DisplayName("og:title과 og:image가 있으면 이름과 타입을 정상 추출한다")
   void extractClothesByUrl_success() throws Exception {
     String url = "https://example.com/product";
-    String html = "<html><head>"
-        + "<meta property=\"og:title\" content=\"테스트 재킷\"/>"
-        + "<meta property=\"og:image\" content=\"https://example.com/img.jpg\"/>"
-        + "</head></html>";
+    String html = """
+        <html><head>
+        <meta property="og:title" content="테스트 재킷"/>
+        <meta property="og:image" content="https://example.com/img.jpg"/>
+        </head></html>
+        """;
     Document doc = Jsoup.parse(html, url);
 
     given(chatClient.prompt()).willReturn(requestSpec);
@@ -110,9 +112,11 @@ class OpenAiClothesAiTest {
   @DisplayName("AI가 null을 반환하면 타입이 ETC가 된다")
   void extractClothesByUrl_aiReturnsNull_typeIsEtc() throws Exception {
     String url = "https://example.com/product";
-    String html = "<html><head>"
-        + "<meta property=\"og:title\" content=\"청바지\"/>"
-        + "</head></html>";
+    String html = """
+        <html><head>
+        <meta property="og:title" content="청바지"/>
+        </head></html>
+        """;
     Document doc = Jsoup.parse(html, url);
 
     given(chatClient.prompt()).willReturn(requestSpec);
@@ -157,7 +161,9 @@ class OpenAiClothesAiTest {
     given(requestSpec.user(anyString())).willReturn(requestSpec);
     given(requestSpec.call()).willReturn(callResponseSpec);
     given(callResponseSpec.content()).willReturn(
-        "{\"recommendedIds\":[\"" + clothesId + "\",\"not-a-uuid\"]}"
+        """
+            {"recommendedIds":["%s","not-a-uuid"]}
+            """.formatted(clothesId)
     );
 
     List<UUID> result = sut.recommendClothesIds(weather, List.of(clothes));
@@ -180,10 +186,14 @@ class OpenAiClothesAiTest {
   @DisplayName("og 메타가 없으면 h1과 첫 img를 fallback으로 사용한다")
   void extractClothesByUrl_fallbackToH1AndFirstImage() throws Exception {
     String url = "https://example.com/product";
-    String html = "<html><body>"
-        + "<h1>린넨 셔츠</h1>"
-        + "<img src=\"/images/shirt.png\"/>"
-        + "</body></html>";
+    String html = """
+        <html>
+          <body>
+            <h1>린넨 셔츠</h1>
+            <img src="/images/shirt.png"/>
+          </body>
+        </html>
+        """;
     Document doc = Jsoup.parse(html, url);
 
     given(chatClient.prompt()).willReturn(requestSpec);
@@ -211,10 +221,12 @@ class OpenAiClothesAiTest {
   @DisplayName("이미지 URL이 http/https가 아니면 null 처리한다")
   void extractClothesByUrl_invalidImageUrl_returnsNullImage() throws Exception {
     String url = "https://example.com/product";
-    String html = "<html><head>"
-        + "<meta property=\"og:title\" content=\"캡 모자\"/>"
-        + "<meta property=\"og:image\" content=\"javascript:alert('xss')\"/>"
-        + "</head></html>";
+    String html = """
+        <html><head>
+        <meta property="og:title" content="캡 모자"/>
+        <meta property="og:image" content="javascript:alert('xss')"/>
+        </head></html>
+        """;
     Document doc = Jsoup.parse(html, url);
 
     given(chatClient.prompt()).willReturn(requestSpec);
@@ -242,9 +254,11 @@ class OpenAiClothesAiTest {
   @DisplayName("AI 타입 응답이 비정상 값이면 ETC로 fallback한다")
   void extractClothesByUrl_invalidType_returnsEtc() throws Exception {
     String url = "https://example.com/product";
-    String html = "<html><head>"
-        + "<meta property=\"og:title\" content=\"데님 팬츠\"/>"
-        + "</head></html>";
+    String html = """
+        <html><head>
+        <meta property="og:title" content="데님 팬츠"/>
+        </head></html>
+        """;
     Document doc = Jsoup.parse(html, url);
 
     given(chatClient.prompt()).willReturn(requestSpec);
@@ -263,6 +277,83 @@ class OpenAiClothesAiTest {
       ClothesDto result = sut.extractClothesByUrl(url);
 
       assertThat(result.name()).isEqualTo("데님 팬츠");
+      assertThat(result.type()).isEqualTo(ClothesType.ETC);
+    }
+  }
+
+  @Test
+  @DisplayName("상품명 추출 실패면 UNKNOWN_NAME, 타입 ETC, AI 분류 미호출")
+  void extractClothesByUrl_unknownName_skipsInferType() throws Exception {
+    String url = "https://example.com/product";
+    String html = "<html><body><div>no title here</div></body></html>";
+    Document doc = Jsoup.parse(html, url);
+
+    try (MockedStatic<Jsoup> jsoupMock = mockStatic(Jsoup.class)) {
+      Connection mockConn = mock(Connection.class);
+      jsoupMock.when(() -> Jsoup.connect(url)).thenReturn(mockConn);
+      given(mockConn.userAgent(anyString())).willReturn(mockConn);
+      given(mockConn.timeout(anyInt())).willReturn(mockConn);
+      given(mockConn.get()).willReturn(doc);
+
+      ClothesDto result = sut.extractClothesByUrl(url);
+
+      assertThat(result.name()).isEqualTo("알 수 없는 의상");
+      assertThat(result.type()).isEqualTo(ClothesType.ETC);
+      verify(chatClient, never()).prompt();
+    }
+  }
+
+  @Test
+  @DisplayName("추천 응답이 blank면 빈 리스트 반환")
+  void recommendClothesIds_blankContent_returnsEmpty() {
+    Weather weather = mock(Weather.class);
+    given(weather.getTemperatureCurrent()).willReturn(20.0);
+    given(weather.getTemperatureMin()).willReturn(18.0);
+    given(weather.getTemperatureMax()).willReturn(22.0);
+    given(weather.getSkyStatus()).willReturn(null);
+    given(weather.getPrecipitationType()).willReturn(null);
+    given(weather.getPrecipitationProbability()).willReturn(10.0);
+    given(weather.getWindPhrase()).willReturn(null);
+    given(weather.getHumidity()).willReturn(50.0);
+
+    given(chatClient.prompt()).willReturn(requestSpec);
+    given(requestSpec.system(anyString())).willReturn(requestSpec);
+    given(requestSpec.user(anyString())).willReturn(requestSpec);
+    given(requestSpec.call()).willReturn(callResponseSpec);
+    given(callResponseSpec.content()).willReturn("   ");
+
+    List<UUID> result = sut.recommendClothesIds(weather, List.of());
+
+    assertThat(result).isEmpty();
+  }
+
+  @Test
+  @DisplayName("타입 값이 없으면 ETC fallback")
+  void extractClothesByUrl_missingType_returnsEtc() throws Exception {
+    String url = "https://example.com/product";
+    String html = """
+        <html><head>
+        <meta property="og:title" content="니트"/>
+        </head></html>
+        """;
+    Document doc = Jsoup.parse(html, url);
+
+    given(chatClient.prompt()).willReturn(requestSpec);
+    given(requestSpec.system(anyString())).willReturn(requestSpec);
+    given(requestSpec.user(anyString())).willReturn(requestSpec);
+    given(requestSpec.call()).willReturn(callResponseSpec);
+    given(callResponseSpec.content()).willReturn("{}");
+
+    try (MockedStatic<Jsoup> jsoupMock = mockStatic(Jsoup.class)) {
+      Connection mockConn = mock(Connection.class);
+      jsoupMock.when(() -> Jsoup.connect(url)).thenReturn(mockConn);
+      given(mockConn.userAgent(anyString())).willReturn(mockConn);
+      given(mockConn.timeout(anyInt())).willReturn(mockConn);
+      given(mockConn.get()).willReturn(doc);
+
+      ClothesDto result = sut.extractClothesByUrl(url);
+
+      assertThat(result.name()).isEqualTo("니트");
       assertThat(result.type()).isEqualTo(ClothesType.ETC);
     }
   }
