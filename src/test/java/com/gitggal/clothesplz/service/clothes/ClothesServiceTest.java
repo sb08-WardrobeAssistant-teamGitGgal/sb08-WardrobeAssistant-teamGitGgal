@@ -419,4 +419,30 @@ class ClothesServiceTest extends ServiceTestSupport {
         .isEqualTo(ClothesErrorCode.DUPLICATE_CLOTHES_ATTRIBUTE_DEFINITION_ID);
     verify(imageUploader, times(1)).delete(uploadedImageUrl);
   }
+
+  @Test
+  @DisplayName("구매 링크 URL로 의상 정보를 추출한다")
+  void extractByUrl_success() {
+    String url = "https://www.musinsa.com/products/12345";
+    ClothesDto extracted = new ClothesDto(
+        null, null, "우먼 크롭 자켓", null, ClothesType.OUTER, List.of()
+    );
+    given(clothesAi.extractClothesByUrl(url)).willReturn(extracted);
+
+    ClothesDto result = clothesService.extractByUrl(url);
+
+    assertThat(result).isEqualTo(extracted);
+    verify(clothesAi).extractClothesByUrl(url);
+  }
+
+  @Test
+  @DisplayName("구매 링크 URL 형식이 잘못되면 INVALID_PURCHASE_URL 예외가 발생한다")
+  void extractByUrl_invalidUrl_throwsException() {
+    Throwable thrown = catchThrowable(() -> clothesService.extractByUrl("not-a-url"));
+
+    assertThat(thrown).isInstanceOf(BusinessException.class);
+    assertThat(((BusinessException) thrown).getErrorCode())
+        .isEqualTo(ClothesErrorCode.INVALID_PURCHASE_URL);
+    verify(clothesAi, never()).extractClothesByUrl(any());
+  }
 }
