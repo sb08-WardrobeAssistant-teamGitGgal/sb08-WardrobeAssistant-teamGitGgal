@@ -44,7 +44,7 @@ public class WeatherController implements WeatherControllerApi {
         }
     }
 
-    @GetMapping("/api/weathers/location")
+    @GetMapping("/location")
     public WeatherAPILocationDto getWeatherLocation(
             @RequestParam(name = "latitude") double latitude,
             @RequestParam(name = "longitude") double longitude) {
