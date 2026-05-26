@@ -29,19 +29,20 @@ services:
       timeout: 5s
       retries: 5
 
-  elasticsearch:
+  opensearch:
     build:
       context: .
-      dockerfile: docker/elasticsearch/Dockerfile
-    container_name: git-ggal-elasticsearch
+      dockerfile: docker/opensearch/Dockerfile
+    container_name: git-ggal-opensearch
     environment:
       - discovery.type=single-node
-      - xpack.security.enabled=${ELASTIC_SECURITY_ENABLED:-false}
-      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+      - plugins.security.disabled=true
+      - OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m
+      - DISABLE_INSTALL_DEMO_CONFIG=true
     ports:
-      - "${ELASTIC_PORT}:9200"
+      - "127.0.0.1:${OPENSEARCH_PORT}:9200"
     volumes:
-      - elasticsearch-data:/usr/share/elasticsearch/data
+      - opensearch-data:/usr/share/opensearch/data
     healthcheck:
       test: [ "CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1" ]
       interval: 10s
@@ -51,4 +52,4 @@ services:
 volumes:
   postgres-data:
   redis-data:
-  elasticsearch-data:
+  opensearch-data:

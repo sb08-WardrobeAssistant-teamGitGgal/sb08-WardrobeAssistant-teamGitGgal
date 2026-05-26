@@ -2,9 +2,10 @@ package com.gitggal.clothesplz;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.data.elasticsearch.ElasticsearchDataAutoConfiguration;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 
-@SpringBootApplication
+@SpringBootApplication(exclude = {ElasticsearchDataAutoConfiguration.class})
 @ConfigurationPropertiesScan(basePackages = "com.gitggal.clothesplz")
 public class ClothesplzApplication {
 

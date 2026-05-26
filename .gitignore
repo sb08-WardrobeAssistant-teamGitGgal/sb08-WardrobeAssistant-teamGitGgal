@@ -38,7 +38,6 @@ out/
 
 ### Environment files ###
 .env
-application-prod.yaml
 
 ### AI ###
 CLAUDE.md
