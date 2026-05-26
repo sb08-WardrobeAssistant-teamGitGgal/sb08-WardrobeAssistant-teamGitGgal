@@ -23,8 +23,8 @@ public class FeedSearchCacheServiceImpl implements FeedSearchCacheService {
 
   // 피드 검색 키 패턴 - feed:search:청바지
   private static final String SEARCH_KEY_PREFIX = "feed:search:";
-  // TTL 5분 설정(캐시 5분 유효)
-  private static final Duration SEARCH_TTL = Duration.ofMinutes(5);
+  // TTL 3분 설정(캐시 3분 유효)
+  private static final Duration SEARCH_TTL = Duration.ofMinutes(3);
 
   @Override
   public List<FeedDocument> searchByContent(String keyword) {
