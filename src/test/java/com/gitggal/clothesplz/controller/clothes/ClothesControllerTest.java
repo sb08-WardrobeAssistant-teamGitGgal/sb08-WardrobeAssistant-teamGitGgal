@@ -273,4 +273,41 @@ class ClothesControllerTest {
     }
 
   }
+
+  @Nested
+  @DisplayName("구매 링크 추출 관련 테스트")
+  class ExtractByUrlTests {
+
+    @Test
+    @DisplayName("성공 - extractions 경로 요청 시 200과 의상 정보를 반환한다")
+    void extractByUrl_returns200() throws Exception {
+      String url = "https://www.musinsa.com/products/12345";
+      ClothesDto extracted = new ClothesDto(
+          null,
+          null,
+          "우먼 크롭 자켓",
+          "https://image.example.com/item.jpg",
+          ClothesType.OUTER,
+          List.of()
+      );
+      given(clothesService.extractByUrl(url)).willReturn(extracted);
+
+      mockMvc.perform(get("/api/clothes/extractions")
+              .queryParam("url", url))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$.name").value("우먼 크롭 자켓"))
+          .andExpect(jsonPath("$.type").value("OUTER"));
+    }
+
+    @Test
+    @DisplayName("실패 - URL 형식이 잘못되면 400을 반환한다")
+    void extractByUrl_invalidUrl_returns400() throws Exception {
+      given(clothesService.extractByUrl("not-a-url"))
+          .willThrow(new BusinessException(ClothesErrorCode.INVALID_PURCHASE_URL));
+
+      mockMvc.perform(get("/api/clothes/extractions")
+              .queryParam("url", "not-a-url"))
+          .andExpect(status().isBadRequest());
+    }
+  }
 }

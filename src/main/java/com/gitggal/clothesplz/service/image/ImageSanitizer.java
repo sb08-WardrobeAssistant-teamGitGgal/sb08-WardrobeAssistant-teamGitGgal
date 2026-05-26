@@ -29,20 +29,26 @@ public class ImageSanitizer {
     }
 
     String contentType = image.getContentType();
-    if (!StringUtils.hasText(contentType) || !contentType.startsWith("image/")) {
+    String normalizedType = contentType != null ? contentType.split(";")[0].trim().toLowerCase() : "";
+    boolean isOctetStream = "application/octet-stream".equals(normalizedType);
+    if (!StringUtils.hasText(contentType) ||
+        (!normalizedType.startsWith("image/") && !isOctetStream)
+    ) {
       log.error("[Service] 이미지 업로드 실패: 이미지 타입만 업로드 할 수 있음");
       throw new BusinessException(ImageErrorCode.INVALID_IMAGE_CONTENT_TYPE);
     }
 
-    String originalFilename = image.getOriginalFilename();
-    if (!StringUtils.hasText(originalFilename) || !originalFilename.contains(".")) {
-      log.error("[Service] 이미지 업로드 실패: 이미지 파일 형식이 확인되지 않음");
-      throw new BusinessException(ImageErrorCode.IMAGE_EXTENSION_NOT_FOUND);
-    }
+    if (!isOctetStream) {
+      String originalFilename = image.getOriginalFilename();
+      if (!StringUtils.hasText(originalFilename) || !originalFilename.contains(".")) {
+        log.error("[Service] 이미지 업로드 실패: 이미지 파일 형식이 확인되지 않음");
+        throw new BusinessException(ImageErrorCode.IMAGE_EXTENSION_NOT_FOUND);
+      }
 
-    if (!ALLOWED_EXTENSIONS.contains(extractExtension(originalFilename))) {
-      log.error("[Service] 이미지 업로드 실패: 지원하지 않는 이미지 파일 형식");
-      throw new BusinessException(ImageErrorCode.UNSUPPORTED_IMAGE_FORMAT);
+      if (!ALLOWED_EXTENSIONS.contains(extractExtension(originalFilename))) {
+        log.error("[Service] 이미지 업로드 실패: 지원하지 않는 이미지 파일 형식");
+        throw new BusinessException(ImageErrorCode.UNSUPPORTED_IMAGE_FORMAT);
+      }
     }
 
     // 파일 바이트 기반 2차 검증 (시그니처/디코딩: 우회 난이도 높음)
