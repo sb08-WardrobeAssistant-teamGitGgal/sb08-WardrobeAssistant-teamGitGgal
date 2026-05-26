@@ -109,6 +109,22 @@ class OpenAiClothesAiTest {
   }
 
   @Test
+  @DisplayName("URL 추출 중 런타임 예외면 외곽 catch로 UNKNOWN_NAME/ETC 반환")
+  void extractClothesByUrl_runtimeException_returnsFallbackFromOuterCatch() {
+    String url = "https://example.com/product";
+
+    try (MockedStatic<Jsoup> jsoupMock = mockStatic(Jsoup.class)) {
+      jsoupMock.when(() -> Jsoup.connect(url)).thenThrow(new RuntimeException("boom"));
+
+      ClothesDto result = sut.extractClothesByUrl(url);
+
+      assertThat(result.name()).isEqualTo("알 수 없는 의상");
+      assertThat(result.imageUrl()).isNull();
+      assertThat(result.type()).isEqualTo(ClothesType.ETC);
+    }
+  }
+
+  @Test
   @DisplayName("AI가 null을 반환하면 타입이 ETC가 된다")
   void extractClothesByUrl_aiReturnsNull_typeIsEtc() throws Exception {
     String url = "https://example.com/product";
@@ -343,6 +359,37 @@ class OpenAiClothesAiTest {
     given(requestSpec.user(anyString())).willReturn(requestSpec);
     given(requestSpec.call()).willReturn(callResponseSpec);
     given(callResponseSpec.content()).willReturn("{}");
+
+    try (MockedStatic<Jsoup> jsoupMock = mockStatic(Jsoup.class)) {
+      Connection mockConn = mock(Connection.class);
+      jsoupMock.when(() -> Jsoup.connect(url)).thenReturn(mockConn);
+      given(mockConn.userAgent(anyString())).willReturn(mockConn);
+      given(mockConn.timeout(anyInt())).willReturn(mockConn);
+      given(mockConn.get()).willReturn(doc);
+
+      ClothesDto result = sut.extractClothesByUrl(url);
+
+      assertThat(result.name()).isEqualTo("니트");
+      assertThat(result.type()).isEqualTo(ClothesType.ETC);
+    }
+  }
+
+  @Test
+  @DisplayName("타입 분류 응답이 비정상 JSON이면 inferType catch 후 ETC 반환")
+  void extractClothesByUrl_invalidTypeJson_returnsEtcFromInferTypeCatch() throws Exception {
+    String url = "https://example.com/product";
+    String html = """
+        <html><head>
+        <meta property="og:title" content="니트"/>
+        </head></html>
+        """;
+    Document doc = Jsoup.parse(html, url);
+
+    given(chatClient.prompt()).willReturn(requestSpec);
+    given(requestSpec.system(anyString())).willReturn(requestSpec);
+    given(requestSpec.user(anyString())).willReturn(requestSpec);
+    given(requestSpec.call()).willReturn(callResponseSpec);
+    given(callResponseSpec.content()).willReturn("not-json");
 
     try (MockedStatic<Jsoup> jsoupMock = mockStatic(Jsoup.class)) {
       Connection mockConn = mock(Connection.class);
