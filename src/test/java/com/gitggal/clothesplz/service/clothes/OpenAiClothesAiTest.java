@@ -15,6 +15,7 @@ import com.gitggal.clothesplz.entity.weather.SkyStatus;
 import com.gitggal.clothesplz.entity.weather.Weather;
 import com.gitggal.clothesplz.entity.weather.WindPhrase;
 import com.gitggal.clothesplz.repository.clothes.ClothesAttributeRepository;
+import com.gitggal.clothesplz.service.ai.impl.HtmlProductExtractor;
 import com.gitggal.clothesplz.service.ai.impl.OpenAiClothesAi;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -41,6 +42,8 @@ class OpenAiClothesAiTest {
 
   @Mock
   private ClothesAttributeRepository clothesAttributeRepository;
+  @Mock
+  private HtmlProductExtractor htmlProductExtractor;
 
   private final ObjectMapper objectMapper = new ObjectMapper();
   private OpenAiClothesAi openAiClothesAi;
@@ -49,7 +52,12 @@ class OpenAiClothesAiTest {
   void setUp() {
     when(chatClientBuilder.build()).thenReturn(chatClient);
     when(clothesAttributeRepository.findAllByClothesIdIn(any())).thenReturn(List.of());
-    openAiClothesAi = new OpenAiClothesAi(chatClientBuilder, objectMapper, clothesAttributeRepository);
+    openAiClothesAi = new OpenAiClothesAi(
+        chatClientBuilder,
+        objectMapper,
+        clothesAttributeRepository,
+        htmlProductExtractor
+    );
   }
 
   @Test

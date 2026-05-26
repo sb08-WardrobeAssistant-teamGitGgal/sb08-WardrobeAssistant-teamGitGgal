@@ -65,8 +65,14 @@ public class OpenAiClothesAi implements ClothesAi {
         당신은 패션 어드바이저입니다. 날씨 정보와 옷 목록을 보고 가장 적합한 옷을 추천해주세요.
         추천은 실용성을 유지하면서도 가능한 범위에서 조합이 단조롭지 않게 다양성을 확보하세요.
         같은 타입만 반복 선택하지 말고, 날씨 조건을 해치지 않는 선에서 타입/속성을 분산해 고르세요.
+        추천 목록을 착용하고 야외 활동을 할 수있게 상의/하의/신발은 필수 구성으로 하세요.
+        만약 필수구성 항목이 없다면 생략하세요.
         반드시 JSON 형식으로만 응답하세요: {"recommendedIds": ["uuid1", "uuid2", ...]}
-        추천 ID는 반드시 제공된 목록에 있는 것만 사용하고, 최대 10개까지만 추천하세요.
+        코드 블럭 표시는 반드시 제거하고 내용만 주세요.
+        코드 블럭 예시는 아래와 같습니다
+        ```json
+        ```
+        추천 ID는 반드시 제공된 목록에 있는 것만 사용하고, 5개 추천하세요.
         """;
   }
 
@@ -192,6 +198,10 @@ public class OpenAiClothesAi implements ClothesAi {
           당신은 의상 정보 분류기입니다.
           상품명 후보들과 URL을 보고 가장 적절한 상품명과 의상 타입을 결정하세요.
           반드시 JSON 형식으로만 응답하세요: {"name":"상품명","type":"TOP|BOTTOM|DRESS|OUTER|UNDERWEAR|ACCESSORY|SHOES|SOCKS|HAT|BAG|SCARF|ETC"}
+          코드 블럭 표시는 반드시 제거하고 내용만 주세요.
+          코드 블럭 예시는 아래와 같습니다
+          ```json
+          ```
           확신이 낮은 타입은 ETC를 반환하세요.
           """;
       String userPrompt = "상품명 후보: %s\nURL: %s".formatted(nameCandidates, url);

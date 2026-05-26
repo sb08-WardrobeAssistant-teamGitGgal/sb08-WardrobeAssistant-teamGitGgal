@@ -44,6 +44,8 @@ class OpenAiClothesAiTest {
   ChatClient.CallResponseSpec callResponseSpec;
   @Mock
   ClothesAttributeRepository clothesAttributeRepository;
+  @Mock
+  HtmlProductExtractor htmlExtractor;
 
   OpenAiClothesAi sut;
   ObjectMapper objectMapper = new ObjectMapper();
@@ -51,7 +53,12 @@ class OpenAiClothesAiTest {
   @BeforeEach
   void setUp() {
     given(chatClientBuilder.build()).willReturn(chatClient);
-    sut = new OpenAiClothesAi(chatClientBuilder, objectMapper, clothesAttributeRepository);
+    sut = new OpenAiClothesAi(
+        chatClientBuilder,
+        objectMapper,
+        clothesAttributeRepository,
+        htmlExtractor
+    );
   }
 
   @Test
