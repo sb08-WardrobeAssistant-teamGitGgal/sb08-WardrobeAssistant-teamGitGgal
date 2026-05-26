@@ -13,6 +13,7 @@ public class OAuthUserInfoFactory {
 
     return switch (registrationId.toUpperCase()) {
       case "KAKAO" -> new KakaoOAuthUserInformation(attributes);
+      case "GOOGLE" -> new GoogleOAuthUserInformation(attributes);
 
       default -> throw new BusinessException(UserErrorCode.UNSUPPORTED_OAUTH_PROVIDER);
     };
