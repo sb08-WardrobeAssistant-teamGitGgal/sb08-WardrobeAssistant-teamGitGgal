@@ -8,7 +8,8 @@ import com.gitggal.clothesplz.entity.clothes.ClothesType;
 import com.gitggal.clothesplz.entity.weather.Weather;
 import com.gitggal.clothesplz.repository.clothes.ClothesAttributeRepository;
 import com.gitggal.clothesplz.service.ai.ClothesAi;
-import com.gitggal.clothesplz.service.ai.impl.HtmlProductExtractor.ScrapeResult;
+import com.gitggal.clothesplz.service.ai.HtmlProductExtractor;
+import com.gitggal.clothesplz.service.ai.HtmlProductExtractor.ScrapeResult;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -44,12 +45,16 @@ public class OpenAiClothesAi implements ClothesAi {
   // ── 의상 추천 ──────────────────────────────────────────────────────────────
 
   @Override
-  public List<UUID> recommendClothesIds(Weather weather, List<Clothes> allClothes) {
+  public List<UUID> recommendClothesIds(
+      Weather weather,
+      List<Clothes> allClothes,
+      short tempSensitivity
+  ) {
     try {
       log.info("[OpenAI] 의상 추천 시작");
       String content = chatClient.prompt()
           .system(recommendSystemPrompt())
-          .user(buildRecommendPrompt(weather, allClothes))
+          .user(buildRecommendPrompt(weather, allClothes, tempSensitivity))
           .call()
           .content();
       log.info("[OpenAI] 의상 추천 완료");
@@ -65,21 +70,35 @@ public class OpenAiClothesAi implements ClothesAi {
         당신은 패션 어드바이저입니다. 날씨 정보와 옷 목록을 보고 가장 적합한 옷을 추천해주세요.
         추천은 실용성을 유지하면서도 가능한 범위에서 조합이 단조롭지 않게 다양성을 확보하세요.
         같은 타입만 반복 선택하지 말고, 날씨 조건을 해치지 않는 선에서 타입/속성을 분산해 고르세요.
-        추천 목록을 착용하고 야외 활동을 할 수있게 상의/하의/신발은 필수 구성으로 하세요.
+        추천 목록을 착용하고 야외 활동을 할 수있게 상의/하의/신발/악세사리 필수 구성으로 하세요.
         만약 필수구성 항목이 없다면 생략하세요.
         반드시 JSON 형식으로만 응답하세요: {"recommendedIds": ["uuid1", "uuid2", ...]}
         코드 블럭 표시는 반드시 제거하고 내용만 주세요.
         코드 블럭 예시는 아래와 같습니다
         ```json
         ```
-        추천 ID는 반드시 제공된 목록에 있는 것만 사용하고, 5개 추천하세요.
+        추천 ID는 반드시 제공된 목록에 있는 것만 사용하고, 7개 추천하세요.
         """;
   }
 
-  private String buildRecommendPrompt(Weather weather, List<Clothes> allClothes) {
+  private String buildRecommendPrompt(
+      Weather weather,
+      List<Clothes> allClothes,
+      short tempSensitivity
+  ) {
     // key: 의상ID, value: 의상 속성 목록
     Map<UUID, List<String>> attributesByClothesId = buildAttributesByClothesId(allClothes);
-    return buildWeatherSection(weather) + buildClothesSection(allClothes, attributesByClothesId);
+    return buildWeatherSection(weather)
+        + buildSensitivitySection(tempSensitivity)
+        + buildClothesSection(allClothes, attributesByClothesId);
+  }
+
+  private String buildSensitivitySection(short tempSensitivity) {
+    return """
+        사용자 온도 민감도:
+        - tempSensitivity: %d (1에 가까울수록 추위를 탐, 5에 가까울수록 더위를 탐)
+        
+        """.formatted(tempSensitivity);
   }
 
   private String buildWeatherSection(Weather weather) {

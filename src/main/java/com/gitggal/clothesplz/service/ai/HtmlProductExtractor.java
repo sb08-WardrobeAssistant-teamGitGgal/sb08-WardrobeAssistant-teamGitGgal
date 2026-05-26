@@ -1,4 +1,4 @@
-package com.gitggal.clothesplz.service.ai.impl;
+package com.gitggal.clothesplz.service.ai;
 
 import java.io.IOException;
 import java.util.ArrayList;

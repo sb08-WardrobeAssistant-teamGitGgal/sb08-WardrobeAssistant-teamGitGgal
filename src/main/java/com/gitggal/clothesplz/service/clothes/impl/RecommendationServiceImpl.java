@@ -6,12 +6,14 @@ import com.gitggal.clothesplz.dto.clothes.RecommendationDto;
 import com.gitggal.clothesplz.dto.user.UserDto;
 import com.gitggal.clothesplz.entity.clothes.Clothes;
 import com.gitggal.clothesplz.entity.clothes.ClothesType;
+import com.gitggal.clothesplz.entity.profile.Profile;
 import com.gitggal.clothesplz.entity.weather.Weather;
 import com.gitggal.clothesplz.exception.BusinessException;
 import com.gitggal.clothesplz.exception.code.WeatherErrorCode;
 import com.gitggal.clothesplz.mapper.clothes.ClothesMapper;
 import com.gitggal.clothesplz.repository.clothes.ClothesAttributeRepository;
 import com.gitggal.clothesplz.repository.clothes.ClothesRepository;
+import com.gitggal.clothesplz.repository.profile.ProfileRepository;
 import com.gitggal.clothesplz.repository.weather.WeatherRepository;
 import com.gitggal.clothesplz.service.ai.ClothesAi;
 import com.gitggal.clothesplz.service.clothes.RecommendationService;
@@ -32,6 +34,7 @@ public class RecommendationServiceImpl implements RecommendationService {
   private final WeatherRepository weatherRepository;
   private final ClothesRepository clothesRepository;
   private final ClothesAttributeRepository clothesAttributeRepository;
+  private final ProfileRepository profileRepository;
   private final ClothesMapper clothesMapper;
   private final ClothesAi clothesAi;
 
@@ -46,8 +49,13 @@ public class RecommendationServiceImpl implements RecommendationService {
     // 소유하고 있는 옷
     List<Clothes> allClothes = clothesRepository.findByOwnerId(user.id());
 
+    // 온도 민감도
+    short tempSensitivity = profileRepository.findByUserId(user.id())
+        .map(Profile::getTempSensitivity)
+        .orElse((short) 3);
+
     // AI 추천 목록
-    List<Clothes> recommended = recommendByLlm(weather, allClothes);
+    List<Clothes> recommended = recommendByLlm(weather, allClothes, tempSensitivity);
 
     // 추천 의상 목록으로 의상 속성 추출 -> 의상 ID : 속성 List 의 Map
     Map<UUID, List<ClothesAttributeWithDefDto>> attributesByClothesId =
@@ -66,14 +74,14 @@ public class RecommendationServiceImpl implements RecommendationService {
     return new RecommendationDto(weatherId.toString(), user.id().toString(), recommendedDtos);
   }
 
-  private List<Clothes> recommendByLlm(Weather weather, List<Clothes> allClothes) {
+  private List<Clothes> recommendByLlm(Weather weather, List<Clothes> allClothes, short tempSensitivity) {
     if (allClothes.isEmpty()) {
       return List.of();
     }
     List<UUID> ids;
     try {
       // OpenAI를 통한 추천
-      ids = clothesAi.recommendClothesIds(weather, allClothes);
+      ids = clothesAi.recommendClothesIds(weather, allClothes, tempSensitivity);
     } catch (RuntimeException e) {
       log.error("[Service] LLM 추천 호출 실패: {}", e.getMessage(), e);
       return fallback(weather.getTemperatureCurrent(), allClothes);

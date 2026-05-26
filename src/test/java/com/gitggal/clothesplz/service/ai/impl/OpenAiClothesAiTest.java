@@ -15,6 +15,7 @@ import com.gitggal.clothesplz.entity.clothes.Clothes;
 import com.gitggal.clothesplz.entity.clothes.ClothesType;
 import com.gitggal.clothesplz.entity.weather.Weather;
 import com.gitggal.clothesplz.repository.clothes.ClothesAttributeRepository;
+import com.gitggal.clothesplz.service.ai.HtmlProductExtractor;
 import java.util.List;
 import java.util.UUID;
 import java.io.IOException;
@@ -189,7 +190,7 @@ class OpenAiClothesAiTest {
             """.formatted(clothesId)
     );
 
-    List<UUID> result = sut.recommendClothesIds(weather, List.of(clothes));
+    List<UUID> result = sut.recommendClothesIds(weather, List.of(clothes), (short) 3);
 
     assertThat(result).containsExactly(clothesId);
   }
@@ -200,7 +201,7 @@ class OpenAiClothesAiTest {
     Weather weather = mock(Weather.class);
     given(chatClient.prompt()).willThrow(new RuntimeException("openai timeout"));
 
-    List<UUID> result = sut.recommendClothesIds(weather, List.of());
+    List<UUID> result = sut.recommendClothesIds(weather, List.of(), (short) 3);
 
     assertThat(result).isEmpty();
   }
@@ -345,7 +346,7 @@ class OpenAiClothesAiTest {
     given(requestSpec.call()).willReturn(callResponseSpec);
     given(callResponseSpec.content()).willReturn("   ");
 
-    List<UUID> result = sut.recommendClothesIds(weather, List.of());
+    List<UUID> result = sut.recommendClothesIds(weather, List.of(), (short) 3);
 
     assertThat(result).isEmpty();
   }
@@ -412,3 +413,4 @@ class OpenAiClothesAiTest {
     }
   }
 }
+

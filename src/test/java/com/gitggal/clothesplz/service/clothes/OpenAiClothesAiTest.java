@@ -15,7 +15,7 @@ import com.gitggal.clothesplz.entity.weather.SkyStatus;
 import com.gitggal.clothesplz.entity.weather.Weather;
 import com.gitggal.clothesplz.entity.weather.WindPhrase;
 import com.gitggal.clothesplz.repository.clothes.ClothesAttributeRepository;
-import com.gitggal.clothesplz.service.ai.impl.HtmlProductExtractor;
+import com.gitggal.clothesplz.service.ai.HtmlProductExtractor;
 import com.gitggal.clothesplz.service.ai.impl.OpenAiClothesAi;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -77,7 +77,7 @@ class OpenAiClothesAiTest {
             {"recommendedIds":["%s","%s"]}
             """.formatted(first, second));
 
-    List<UUID> result = openAiClothesAi.recommendClothesIds(weather, allClothes);
+    List<UUID> result = openAiClothesAi.recommendClothesIds(weather, allClothes, (short) 3);
 
     assertThat(result).containsExactly(first, second);
   }
@@ -96,7 +96,7 @@ class OpenAiClothesAiTest {
             {"recommendedIds":["not-a-uuid","%s"]}
             """.formatted(valid));
 
-    List<UUID> result = openAiClothesAi.recommendClothesIds(weather, allClothes);
+    List<UUID> result = openAiClothesAi.recommendClothesIds(weather, allClothes, (short) 3);
 
     assertThat(result).containsExactly(valid);
   }
@@ -111,7 +111,7 @@ class OpenAiClothesAiTest {
     when(chatClient.prompt().system(anyString()).user(anyString()).call().content())
         .thenReturn("not-json");
 
-    List<UUID> result = openAiClothesAi.recommendClothesIds(weather, List.of(outer));
+    List<UUID> result = openAiClothesAi.recommendClothesIds(weather, List.of(outer), (short) 3);
 
     assertThat(result).isEmpty();
   }
@@ -126,7 +126,7 @@ class OpenAiClothesAiTest {
     when(chatClient.prompt().system(anyString()).user(anyString()).call().content())
         .thenThrow(new RuntimeException("timeout"));
 
-    List<UUID> result = openAiClothesAi.recommendClothesIds(weather, List.of(top));
+    List<UUID> result = openAiClothesAi.recommendClothesIds(weather, List.of(top), (short) 3);
 
     assertThat(result).isEmpty();
   }
@@ -165,3 +165,4 @@ class OpenAiClothesAiTest {
         .build();
   }
 }
+
