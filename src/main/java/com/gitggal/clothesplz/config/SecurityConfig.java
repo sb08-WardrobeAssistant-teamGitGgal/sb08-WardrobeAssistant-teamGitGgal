@@ -3,9 +3,10 @@ package com.gitggal.clothesplz.config;
 import com.gitggal.clothesplz.security.CustomLogoutHandler;
 import com.gitggal.clothesplz.security.LoginFailureHandler;
 import com.gitggal.clothesplz.security.LoginSuccessHandler;
-import com.gitggal.clothesplz.security.OAuthLoginSuccessHandler;
 import com.gitggal.clothesplz.security.SpaCsrfTokenRequestHandler;
 import com.gitggal.clothesplz.security.jwt.JwtAuthenticationFilter;
+import com.gitggal.clothesplz.security.oauth.OAuthLoginFailureHandler;
+import com.gitggal.clothesplz.security.oauth.OAuthLoginSuccessHandler;
 import java.util.List;
 import java.util.stream.IntStream;
 import lombok.RequiredArgsConstructor;
@@ -38,7 +39,8 @@ public class SecurityConfig {
       LoginFailureHandler loginFailureHandler,
       CustomLogoutHandler logoutHandler,
       JwtAuthenticationFilter jwtAuthenticationFilter,
-      OAuthLoginSuccessHandler oauthLoginSuccessHandler
+      OAuthLoginSuccessHandler oauthLoginSuccessHandler,
+      OAuthLoginFailureHandler oAuthLoginFailureHandler
   ) throws Exception {
     http
         .csrf(csrf -> csrf
@@ -54,7 +56,7 @@ public class SecurityConfig {
             .failureHandler(loginFailureHandler))
         .oauth2Login(oauth2 -> oauth2
             .successHandler(oauthLoginSuccessHandler)
-            .failureHandler(loginFailureHandler))
+            .failureHandler(oAuthLoginFailureHandler))
         .logout(logout -> logout
             .logoutUrl("/api/auth/sign-out")
             .addLogoutHandler(logoutHandler)

@@ -1,6 +1,8 @@
 package com.gitggal.clothesplz.security.oauth;
 
 import com.gitggal.clothesplz.entity.user.SocialProvider;
+import com.gitggal.clothesplz.exception.BusinessException;
+import com.gitggal.clothesplz.exception.code.UserErrorCode;
 import java.util.Map;
 import java.util.Random;
 import lombok.RequiredArgsConstructor;
@@ -13,18 +15,22 @@ public class KakaoOAuthUserInformation implements OAuthUserInformation {
   @Override
   public OAuthInformation toOAuthInformation() {
 
-    String providerId = String.valueOf(attributes.get("id"));
+    Object id = attributes.get("id");
+    if (id == null) {
+      throw new BusinessException(UserErrorCode.INVALID_OAUTH_PROVIDER_ID);
+    }
+    String providerId = String.valueOf(id);
     Map<String, Object> kakaoAccount = getMap(attributes, "kakao_account");
     String email = (String) kakaoAccount.get("email");
     Map<String, Object> profile = getMap(kakaoAccount, "profile");
     String nickname = (String) profile.get("nickname");
 
-    if (email == null || email.isBlank()) {
-      email = nickname + "_" + providerId + "@kakao.com";
-    }
-
     if (nickname == null || nickname.isBlank()) {
       nickname = "User" + shortRandom();
+    }
+
+    if (email == null || email.isBlank()) {
+      email = nickname + "_" + providerId + "@kakao.com";
     }
 
     return new OAuthInformation(

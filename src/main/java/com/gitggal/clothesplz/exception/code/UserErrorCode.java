@@ -27,7 +27,8 @@ public enum UserErrorCode implements ErrorCode {
   JWT_TOKEN_NOT_FOUND(1205, HttpStatus.UNAUTHORIZED, "토큰을 찾을 수 없습니다."),
 
   // Oauth
-  UNSUPPORTED_OAUTH_PROVIDER(1301, HttpStatus.BAD_REQUEST, "지원하지 않는 로그인 제공자입니다.");
+  UNSUPPORTED_OAUTH_PROVIDER(1301, HttpStatus.BAD_REQUEST, "지원하지 않는 로그인 제공자입니다."),
+  INVALID_OAUTH_PROVIDER_ID(1302, HttpStatus.BAD_REQUEST, "유효하지 않은 provider id 입니다.");
 
 
   private final int code;

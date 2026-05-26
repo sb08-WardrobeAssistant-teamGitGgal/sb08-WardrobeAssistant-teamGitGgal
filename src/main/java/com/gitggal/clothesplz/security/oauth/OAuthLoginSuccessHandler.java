@@ -1,12 +1,10 @@
-package com.gitggal.clothesplz.security;
+package com.gitggal.clothesplz.security.oauth;
 
 import com.gitggal.clothesplz.dto.user.UserDto;
+import com.gitggal.clothesplz.security.ClothesUserDetails;
 import com.gitggal.clothesplz.security.jwt.JwtInformation;
 import com.gitggal.clothesplz.security.jwt.JwtRegistry;
 import com.gitggal.clothesplz.security.jwt.JwtTokenProvider;
-import com.gitggal.clothesplz.security.oauth.OAuthInformation;
-import com.gitggal.clothesplz.security.oauth.OAuthUserInfoFactory;
-import com.gitggal.clothesplz.security.oauth.OAuthUserInformation;
 import com.gitggal.clothesplz.service.user.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -58,8 +56,6 @@ public class OAuthLoginSuccessHandler extends SimpleUrlAuthenticationSuccessHand
       Instant accessExpiry = jwtTokenProvider.getAccessTokenExpiry(accessToken);
       Instant refreshExpiry = jwtTokenProvider.getRefreshTokenExpiry(refreshToken);
 
-      response.setHeader("Authorization", "Bearer " + accessToken);
-
       UserDto userDto = userDetails.getUserDto();
       JwtInformation jwtInformation = new JwtInformation(userDto, accessToken, refreshToken,
           accessExpiry, refreshExpiry);
@@ -71,30 +67,34 @@ public class OAuthLoginSuccessHandler extends SimpleUrlAuthenticationSuccessHand
 
       log.error("[OAuth] 로그인 처리 중 오류 발생", e);
 
-      String encodedMessage = URLEncoder.encode(
-          "잠긴 계정입니다.",
-          StandardCharsets.UTF_8
-      );
-
-      getRedirectStrategy().sendRedirect(
-          request,
-          response,
-          redirectUri + "#/auth/login?error=oauth_failed&error_message=" + encodedMessage
+      redirect(request, response,
+          "oauth_failed",
+          "잠긴 계정입니다."
       );
     } catch (Exception e) {
 
       log.error("[OAuth] 로그인 처리 중 오류 발생", e);
 
-      String encodedMessage = URLEncoder.encode(
-          "소셜 로그인에 실패했습니다.",
-          StandardCharsets.UTF_8
-      );
-
-      getRedirectStrategy().sendRedirect(
-          request,
-          response,
-          redirectUri + "#/auth/login?error=oauth_failed&error_message=" + encodedMessage
+      redirect(request, response,
+          "oauth_failed",
+          "소셜 로그인에 실패했습니다."
       );
     }
+  }
+
+  private void redirect(
+      HttpServletRequest request,
+      HttpServletResponse response,
+      String error,
+      String message
+  ) throws IOException {
+
+    String encodedMessage = URLEncoder.encode(message, StandardCharsets.UTF_8);
+
+    String targetUrl =
+        redirectUri + "#/auth/login?error=" + error
+            + "&error_message=" + encodedMessage;
+
+    getRedirectStrategy().sendRedirect(request, response, targetUrl);
   }
 }

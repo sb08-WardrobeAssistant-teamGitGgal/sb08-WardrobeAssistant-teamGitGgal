@@ -11,10 +11,14 @@ public class OAuthUserInfoFactory {
       Map<String, Object> attributes
   ) {
 
+    String normalized = (registrationId == null ? "" : registrationId.trim());
+    if (normalized.isEmpty()) {
+      throw new BusinessException(UserErrorCode.UNSUPPORTED_OAUTH_PROVIDER);
+    }
+
     return switch (registrationId.toUpperCase()) {
       case "KAKAO" -> new KakaoOAuthUserInformation(attributes);
       case "GOOGLE" -> new GoogleOAuthUserInformation(attributes);
-
       default -> throw new BusinessException(UserErrorCode.UNSUPPORTED_OAUTH_PROVIDER);
     };
   }

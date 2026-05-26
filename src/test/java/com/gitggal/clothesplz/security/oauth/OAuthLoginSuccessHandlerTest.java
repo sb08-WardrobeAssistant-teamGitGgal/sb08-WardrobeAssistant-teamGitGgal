@@ -1,4 +1,4 @@
-package com.gitggal.clothesplz.security;
+package com.gitggal.clothesplz.security.oauth;
 
 import static org.mockito.BDDMockito.any;
 import static org.mockito.BDDMockito.anyString;
@@ -8,6 +8,7 @@ import static org.mockito.BDDMockito.mock;
 import static org.mockito.BDDMockito.then;
 
 import com.gitggal.clothesplz.dto.user.UserDto;
+import com.gitggal.clothesplz.security.ClothesUserDetails;
 import com.gitggal.clothesplz.security.jwt.JwtInformation;
 import com.gitggal.clothesplz.security.jwt.JwtRegistry;
 import com.gitggal.clothesplz.security.jwt.JwtTokenProvider;

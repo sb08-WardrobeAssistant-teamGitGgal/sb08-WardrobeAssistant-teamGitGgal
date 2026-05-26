@@ -1,6 +1,8 @@
 package com.gitggal.clothesplz.security.oauth;
 
 import com.gitggal.clothesplz.entity.user.SocialProvider;
+import com.gitggal.clothesplz.exception.BusinessException;
+import com.gitggal.clothesplz.exception.code.UserErrorCode;
 import java.util.Map;
 import java.util.Random;
 import lombok.RequiredArgsConstructor;
@@ -15,7 +17,10 @@ public class GoogleOAuthUserInformation implements OAuthUserInformation {
   @Override
   public OAuthInformation toOAuthInformation() {
 
-    String providerId = (String) attributes.get("sub");
+    Object raw = attributes.get("sub");
+    if (!(raw instanceof String providerId) || providerId.isBlank()) {
+      throw new BusinessException(UserErrorCode.INVALID_OAUTH_PROVIDER_ID);
+    }
     String email = (String) attributes.get("email");
     String nickname = (String) attributes.get("name");
 
