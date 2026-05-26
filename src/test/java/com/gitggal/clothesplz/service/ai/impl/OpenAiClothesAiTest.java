@@ -11,8 +11,12 @@ import static org.mockito.Mockito.verify;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gitggal.clothesplz.dto.clothes.ClothesDto;
+import com.gitggal.clothesplz.entity.clothes.Clothes;
 import com.gitggal.clothesplz.entity.clothes.ClothesType;
+import com.gitggal.clothesplz.entity.weather.Weather;
 import com.gitggal.clothesplz.repository.clothes.ClothesAttributeRepository;
+import java.util.List;
+import java.util.UUID;
 import java.io.IOException;
 import org.jsoup.Connection;
 import org.jsoup.Jsoup;
@@ -129,5 +133,46 @@ class OpenAiClothesAiTest {
       assertThat(result.name()).isEqualTo("청바지");
       assertThat(result.type()).isEqualTo(ClothesType.ETC);
     }
+  }
+
+  @Test
+  @DisplayName("추천 응답에서 잘못된 UUID는 제외하고 파싱한다")
+  void recommendClothesIds_skipsInvalidUuid() {
+    Weather weather = mock(Weather.class);
+    given(weather.getTemperatureCurrent()).willReturn(20.0);
+    given(weather.getTemperatureMin()).willReturn(18.0);
+    given(weather.getTemperatureMax()).willReturn(22.0);
+    given(weather.getSkyStatus()).willReturn(null);
+    given(weather.getPrecipitationType()).willReturn(null);
+    given(weather.getPrecipitationProbability()).willReturn(10.0);
+    given(weather.getWindPhrase()).willReturn(null);
+    given(weather.getHumidity()).willReturn(50.0);
+    Clothes clothes = new Clothes(null, "흰 티", ClothesType.TOP, null, null);
+    UUID clothesId = UUID.randomUUID();
+    org.springframework.test.util.ReflectionTestUtils.setField(clothes, "id", clothesId);
+
+    given(clothesAttributeRepository.findAllByClothesIdIn(List.of(clothesId))).willReturn(List.of());
+    given(chatClient.prompt()).willReturn(requestSpec);
+    given(requestSpec.system(anyString())).willReturn(requestSpec);
+    given(requestSpec.user(anyString())).willReturn(requestSpec);
+    given(requestSpec.call()).willReturn(callResponseSpec);
+    given(callResponseSpec.content()).willReturn(
+        "{\"recommendedIds\":[\"" + clothesId + "\",\"not-a-uuid\"]}"
+    );
+
+    List<UUID> result = sut.recommendClothesIds(weather, List.of(clothes));
+
+    assertThat(result).containsExactly(clothesId);
+  }
+
+  @Test
+  @DisplayName("추천 호출 예외 시 빈 목록을 반환한다")
+  void recommendClothesIds_whenException_returnsEmptyList() {
+    Weather weather = mock(Weather.class);
+    given(chatClient.prompt()).willThrow(new RuntimeException("openai timeout"));
+
+    List<UUID> result = sut.recommendClothesIds(weather, List.of());
+
+    assertThat(result).isEmpty();
   }
 }

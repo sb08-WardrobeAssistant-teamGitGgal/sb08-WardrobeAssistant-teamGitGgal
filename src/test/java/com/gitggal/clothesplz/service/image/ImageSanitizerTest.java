@@ -48,4 +48,55 @@ class ImageSanitizerTest {
     assertThat(((BusinessException) thrown).getErrorCode())
         .isEqualTo(ImageErrorCode.INVALID_IMAGE_CONTENT_TYPE);
   }
+
+  @Test
+  @DisplayName("이미지가 비어있으면 IMAGE_EMPTY 예외가 발생한다")
+  void sanitize_emptyFile_throws() {
+    MockMultipartFile file = new MockMultipartFile("image", "empty.jpg", "image/jpeg", new byte[0]);
+
+    Throwable thrown = catchThrowable(() -> sanitizer.sanitize(file));
+
+    assertThat(thrown).isInstanceOf(BusinessException.class);
+    assertThat(((BusinessException) thrown).getErrorCode()).isEqualTo(ImageErrorCode.IMAGE_EMPTY);
+  }
+
+  @Test
+  @DisplayName("확장자가 없으면 IMAGE_EXTENSION_NOT_FOUND 예외가 발생한다")
+  void sanitize_filenameWithoutExtension_throws() throws Exception {
+    BufferedImage img = new BufferedImage(1, 1, BufferedImage.TYPE_INT_RGB);
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    ImageIO.write(img, "jpg", baos);
+
+    MockMultipartFile file = new MockMultipartFile("image", "filename", "image/jpeg", baos.toByteArray());
+
+    Throwable thrown = catchThrowable(() -> sanitizer.sanitize(file));
+
+    assertThat(thrown).isInstanceOf(BusinessException.class);
+    assertThat(((BusinessException) thrown).getErrorCode())
+        .isEqualTo(ImageErrorCode.IMAGE_EXTENSION_NOT_FOUND);
+  }
+
+  @Test
+  @DisplayName("허용되지 않는 확장자면 UNSUPPORTED_IMAGE_FORMAT 예외가 발생한다")
+  void sanitize_unsupportedExtension_throws() {
+    MockMultipartFile file = new MockMultipartFile("image", "file.gif", "image/gif", "GIF".getBytes());
+
+    Throwable thrown = catchThrowable(() -> sanitizer.sanitize(file));
+
+    assertThat(thrown).isInstanceOf(BusinessException.class);
+    assertThat(((BusinessException) thrown).getErrorCode())
+        .isEqualTo(ImageErrorCode.UNSUPPORTED_IMAGE_FORMAT);
+  }
+
+  @Test
+  @DisplayName("시그니처가 올바르지 않으면 INVALID_IMAGE_CONTENT_TYPE 예외가 발생한다")
+  void sanitize_invalidSignature_throws() {
+    MockMultipartFile file = new MockMultipartFile("image", "file.jpg", "image/jpeg", "not-image".getBytes());
+
+    Throwable thrown = catchThrowable(() -> sanitizer.sanitize(file));
+
+    assertThat(thrown).isInstanceOf(BusinessException.class);
+    assertThat(((BusinessException) thrown).getErrorCode())
+        .isEqualTo(ImageErrorCode.INVALID_IMAGE_CONTENT_TYPE);
+  }
 }

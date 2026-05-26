@@ -478,4 +478,26 @@ class ClothesServiceTest extends ServiceTestSupport {
         .isEqualTo(ClothesErrorCode.INVALID_PURCHASE_URL);
     verify(clothesAi, never()).extractClothesByUrl(any());
   }
+
+  @Test
+  @DisplayName("host가 없는 URL이면 INVALID_PURCHASE_URL 예외가 발생한다")
+  void extractByUrl_withoutHost_throwsException() {
+    Throwable thrown = catchThrowable(() -> clothesService.extractByUrl("https:///product/1"));
+
+    assertThat(thrown).isInstanceOf(BusinessException.class);
+    assertThat(((BusinessException) thrown).getErrorCode())
+        .isEqualTo(ClothesErrorCode.INVALID_PURCHASE_URL);
+    verify(clothesAi, never()).extractClothesByUrl(any());
+  }
+
+  @Test
+  @DisplayName("URI 문법이 깨진 URL이면 INVALID_PURCHASE_URL 예외가 발생한다")
+  void extractByUrl_invalidUriSyntax_throwsException() {
+    Throwable thrown = catchThrowable(() -> clothesService.extractByUrl("https://exa mple.com/item"));
+
+    assertThat(thrown).isInstanceOf(BusinessException.class);
+    assertThat(((BusinessException) thrown).getErrorCode())
+        .isEqualTo(ClothesErrorCode.INVALID_PURCHASE_URL);
+    verify(clothesAi, never()).extractClothesByUrl(any());
+  }
 }
