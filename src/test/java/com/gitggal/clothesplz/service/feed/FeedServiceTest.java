@@ -43,7 +43,6 @@ import com.gitggal.clothesplz.repository.clothes.ClothesRepository;
 import com.gitggal.clothesplz.repository.feed.FeedCommentRepository;
 import com.gitggal.clothesplz.repository.feed.FeedLikeRepository;
 import com.gitggal.clothesplz.repository.feed.FeedRepository;
-import com.gitggal.clothesplz.repository.feed.FeedSearchRepository;
 import com.gitggal.clothesplz.repository.follow.FollowRepository;
 import com.gitggal.clothesplz.repository.user.UserRepository;
 import com.gitggal.clothesplz.repository.weather.WeatherRepository;
@@ -85,7 +84,7 @@ public class FeedServiceTest {
   @Mock
   private CommentMapper commentMapper;
   @Mock
-  private FeedSearchRepository feedSearchRepository;
+  private FeedSearchCacheService feedSearchCacheService;
   @Mock
   private ClothesRepository clothesRepository;
   @Mock
@@ -666,7 +665,7 @@ public class FeedServiceTest {
           null, null, 2, "createdAt", "DESCENDING", "봄코디", null, null, null);
       FeedDocument mockDoc = mock(FeedDocument.class);
       given(mockDoc.getId()).willReturn(matchedId.toString());
-      given(feedSearchRepository.searchByContent(eq("봄코디"))).willReturn(List.of(mockDoc));
+      given(feedSearchCacheService.searchByContent(eq("봄코디"))).willReturn(List.of(mockDoc));
       given(feedRepository.findAllByCursor(eq(keywordRequest), any(FeedCursorCondition.class), eq(List.of(matchedId))))
           .willReturn(List.of(feedDto1));
       given(feedLikeRepository.findFeedIdsByUserId(eq(userId), any())).willReturn(Set.of());
@@ -676,7 +675,7 @@ public class FeedServiceTest {
       FeedDtoCursorResponse result = feedService.getFeeds(userId, keywordRequest);
 
       // then
-      then(feedSearchRepository).should().searchByContent(eq("봄코디"));
+      then(feedSearchCacheService).should().searchByContent(eq("봄코디"));
       assertThat(result.data().size()).isEqualTo(1);
       assertThat(result.data().get(0)).isEqualTo(feedDto1);
     }
@@ -687,7 +686,7 @@ public class FeedServiceTest {
       // given
       FeedPageRequest keywordRequest = new FeedPageRequest(
           null, null, 2, "createdAt", "DESCENDING", "없는키워드", null, null, null);
-      given(feedSearchRepository.searchByContent(eq("없는키워드"))).willReturn(List.of());
+      given(feedSearchCacheService.searchByContent(eq("없는키워드"))).willReturn(List.of());
 
       // when
       FeedDtoCursorResponse result = feedService.getFeeds(userId, keywordRequest);
