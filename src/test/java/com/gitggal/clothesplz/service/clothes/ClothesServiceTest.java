@@ -480,6 +480,21 @@ class ClothesServiceTest extends ServiceTestSupport {
   }
 
   @Test
+  @DisplayName("http 스킴 URL이면 추출 처리를 진행한다")
+  void extractByUrl_httpScheme_allowsHttp() {
+    String url = "http://example.com/product";
+    ClothesDto extracted = new ClothesDto(
+        null, null, "기본 셔츠", null, ClothesType.TOP, List.of()
+    );
+    given(clothesAi.extractClothesByUrl(url)).willReturn(extracted);
+
+    ClothesDto result = clothesService.extractByUrl(url);
+
+    assertThat(result).isEqualTo(extracted);
+    verify(clothesAi).extractClothesByUrl(url);
+  }
+
+  @Test
   @DisplayName("host가 없는 URL이면 INVALID_PURCHASE_URL 예외가 발생한다")
   void extractByUrl_withoutHost_throwsException() {
     Throwable thrown = catchThrowable(() -> clothesService.extractByUrl("https:///product/1"));

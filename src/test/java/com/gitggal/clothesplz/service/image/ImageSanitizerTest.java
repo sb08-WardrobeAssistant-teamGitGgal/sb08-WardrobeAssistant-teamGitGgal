@@ -50,6 +50,34 @@ class ImageSanitizerTest {
   }
 
   @Test
+  @DisplayName("contentType이 null이면 INVALID_IMAGE_CONTENT_TYPE 예외가 발생한다")
+  void sanitize_nullContentType_throws() {
+    MockMultipartFile file = new MockMultipartFile(
+        "image", "test.jpg", null, "data".getBytes()
+    );
+
+    Throwable thrown = catchThrowable(() -> sanitizer.sanitize(file));
+
+    assertThat(thrown).isInstanceOf(BusinessException.class);
+    assertThat(((BusinessException) thrown).getErrorCode())
+        .isEqualTo(ImageErrorCode.INVALID_IMAGE_CONTENT_TYPE);
+  }
+
+  @Test
+  @DisplayName("originalFilename이 null이면 IMAGE_EXTENSION_NOT_FOUND 예외가 발생한다")
+  void sanitize_nullOriginalFilename_throws() {
+    MockMultipartFile file = new MockMultipartFile(
+        "image", null, "image/jpeg", "data".getBytes()
+    );
+
+    Throwable thrown = catchThrowable(() -> sanitizer.sanitize(file));
+
+    assertThat(thrown).isInstanceOf(BusinessException.class);
+    assertThat(((BusinessException) thrown).getErrorCode())
+        .isEqualTo(ImageErrorCode.IMAGE_EXTENSION_NOT_FOUND);
+  }
+
+  @Test
   @DisplayName("이미지가 비어있으면 IMAGE_EMPTY 예외가 발생한다")
   void sanitize_emptyFile_throws() {
     MockMultipartFile file = new MockMultipartFile("image", "empty.jpg", "image/jpeg", new byte[0]);
