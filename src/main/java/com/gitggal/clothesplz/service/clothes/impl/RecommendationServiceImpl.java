@@ -39,38 +39,21 @@ public class RecommendationServiceImpl implements RecommendationService {
   public RecommendationDto getRecommendations(UUID weatherId, UserDto user) {
     log.info("[Service] 의상 추천 조회 요청 시작");
 
+    // 요청 weatherId의 날씨 조회
     Weather weather = weatherRepository.findById(weatherId)
         .orElseThrow(() -> new BusinessException(WeatherErrorCode.WEATHER_NOT_FOUND));
+
+    // 소유하고 있는 옷
     List<Clothes> allClothes = clothesRepository.findByOwnerId(user.id());
 
-    return recommendWithLlm(weatherId, weather, allClothes, user);
-  }
-
-  private RecommendationDto recommendWithLlm(
-      UUID weatherUuid,
-      Weather weather,
-      List<Clothes> allClothes,
-      UserDto user
-  ) {
-    // 의상 추천
+    // AI 추천 목록
     List<Clothes> recommended = recommendByLlm(weather, allClothes);
 
-    List<UUID> clothesId = recommended.stream().map(Clothes::getId).toList();
-
+    // 추천 의상 목록으로 의상 속성 추출 -> 의상 ID : 속성 List 의 Map
     Map<UUID, List<ClothesAttributeWithDefDto>> attributesByClothesId =
-        clothesAttributeRepository.findAllByClothesIdIn(clothesId)
-            .stream()
-            .collect(Collectors.groupingBy(
-                attr -> attr.getClothes().getId(),
-                Collectors.mapping(
-                    attr -> clothesMapper.toClothesAttributeWithDefDto(
-                        attr.getDefinition(), attr.getValue()
-                    ),
-                    Collectors.toList()
-                )
-            ));
+        findAttributesByClothesId(recommended);
 
-    // 의상 DTO 변환
+    // OOTD로 변환
     List<OotdDto> recommendedDtos = recommended.stream()
         .map(clothes -> clothesMapper.toOotdDto(
             clothes,
@@ -80,7 +63,7 @@ public class RecommendationServiceImpl implements RecommendationService {
 
     log.info("[Service] 의상 추천 조회 요청 완료");
 
-    return new RecommendationDto(weatherUuid.toString(), user.id().toString(), recommendedDtos);
+    return new RecommendationDto(weatherId.toString(), user.id().toString(), recommendedDtos);
   }
 
   private List<Clothes> recommendByLlm(Weather weather, List<Clothes> allClothes) {
@@ -96,26 +79,48 @@ public class RecommendationServiceImpl implements RecommendationService {
       return fallback(weather.getTemperatureCurrent(), allClothes);
     }
 
-    if (!ids.isEmpty()) {
-      Map<UUID, Clothes> clothesMap = allClothes.stream()
-          .collect(Collectors.toMap(
-              Clothes::getId,
-              c -> c));
-
-      List<Clothes> result = ids.stream()
-          .distinct()
-          .map(clothesMap::get)
-          .filter(Objects::nonNull)
-          .limit(10)
-          .toList();
-
-      if (!result.isEmpty()) {
-        return result;
-      }
+    List<Clothes> result = mapRecommended(ids, allClothes);
+    if (!result.isEmpty()) {
+      return result;
     }
 
     log.info("[Service] LLM 추천 없음, 규칙 기반 fallback 실행");
     return fallback(weather.getTemperatureCurrent(), allClothes);
+  }
+
+  private Map<UUID, List<ClothesAttributeWithDefDto>> findAttributesByClothesId(List<Clothes> clothesList) {
+    List<UUID> clothesIds = clothesList.stream().map(Clothes::getId).toList();
+    if (clothesIds.isEmpty()) {
+      return Map.of();
+    }
+
+    return clothesAttributeRepository.findAllByClothesIdIn(clothesIds)
+        .stream()
+        .collect(Collectors.groupingBy(
+            attr -> attr.getClothes().getId(),
+            Collectors.mapping(
+                attr -> clothesMapper.toClothesAttributeWithDefDto(
+                    attr.getDefinition(), attr.getValue()
+                ),
+                Collectors.toList()
+            )
+        ));
+  }
+
+  private List<Clothes> mapRecommended(List<UUID> ids, List<Clothes> allClothes) {
+    if (ids.isEmpty()) {
+      return List.of();
+    }
+
+    Map<UUID, Clothes> clothesMap = allClothes.stream()
+        .collect(Collectors.toMap(Clothes::getId, c -> c));
+
+    return ids.stream()
+        .distinct()
+        .map(clothesMap::get)
+        .filter(Objects::nonNull)
+        .limit(10)
+        .toList();
   }
 
   /**
