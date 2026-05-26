@@ -65,7 +65,7 @@ public class S3ImageUploader implements ImageUploader {
       PutObjectRequest request = PutObjectRequest.builder()
           .bucket(bucket)
           .key(objectKey)
-          .contentType(resolveContentType(validatedImage.contentType(), objectKey))
+          .contentType(validatedImage.contentType())
           .build();
 
       s3Client.putObject(request, RequestBody.fromBytes(validatedImage.bytes()));
@@ -118,21 +118,5 @@ public class S3ImageUploader implements ImageUploader {
       log.warn("[Service] 이미지 URL 파싱 실패: {}", imageUrl);
       return null;
     }
-  }
-
-  private String resolveContentType(String contentType, String fileName) {
-    if (StringUtils.hasText(contentType)) {
-      return contentType;
-    }
-
-    if (!StringUtils.hasText(fileName) || !fileName.contains(".")) {
-      return "image/jpeg";
-    }
-
-    String extension = fileName.substring(fileName.lastIndexOf('.')).toLowerCase();
-    return switch (extension) {
-      case ".png" -> "image/png";
-      default -> "image/jpeg";
-    };
   }
 }

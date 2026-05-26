@@ -17,64 +17,80 @@ class ImageSanitizerTest {
 
   private final ImageSanitizer sanitizer = new ImageSanitizer();
 
-  @Test
-  @DisplayName("application/octet-stream 타입 파일은 파일명 검사를 건너뛰고 바이트 검증으로 처리된다")
-  void sanitize_octetStream_success() throws Exception {
-    BufferedImage img = new BufferedImage(1, 1, BufferedImage.TYPE_INT_RGB);
+  private byte[] createJpegBytes() throws Exception {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
-    ImageIO.write(img, "jpg", baos);
-    byte[] jpegBytes = baos.toByteArray();
+    ImageIO.write(new BufferedImage(1, 1, BufferedImage.TYPE_INT_RGB), "jpg", baos);
+    return baos.toByteArray();
+  }
 
-    MockMultipartFile file = new MockMultipartFile(
-        "image", "", "application/octet-stream", jpegBytes
-    );
+  private byte[] createPngBytes() throws Exception {
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    ImageIO.write(new BufferedImage(1, 1, BufferedImage.TYPE_INT_RGB), "png", baos);
+    return baos.toByteArray();
+  }
+
+  @Test
+  @DisplayName("유효한 JPEG 이미지는 정상 처리된다")
+  void sanitize_validJpeg_success() throws Exception {
+    MockMultipartFile file = new MockMultipartFile("image", "photo.jpg", "image/jpeg", createJpegBytes());
 
     ValidatedImage result = sanitizer.sanitize(file);
 
     assertThat(result).isNotNull();
     assertThat(result.contentType()).isEqualTo("image/jpeg");
+    assertThat(result.extension()).isEqualTo(".jpg");
   }
 
   @Test
-  @DisplayName("image/가 아닌 타입이면 INVALID_IMAGE_CONTENT_TYPE 예외가 발생한다")
-  void sanitize_invalidContentType_throws() {
-    MockMultipartFile file = new MockMultipartFile(
-        "image", "test.jpg", "text/plain", "data".getBytes()
-    );
+  @DisplayName("유효한 PNG 이미지는 정상 처리된다")
+  void sanitize_validPng_success() throws Exception {
+    MockMultipartFile file = new MockMultipartFile("image", "photo.png", "image/png", createPngBytes());
 
-    Throwable thrown = catchThrowable(() -> sanitizer.sanitize(file));
+    ValidatedImage result = sanitizer.sanitize(file);
 
-    assertThat(thrown).isInstanceOf(BusinessException.class);
-    assertThat(((BusinessException) thrown).getErrorCode())
-        .isEqualTo(ImageErrorCode.INVALID_IMAGE_CONTENT_TYPE);
+    assertThat(result).isNotNull();
+    assertThat(result.contentType()).isEqualTo("image/png");
+    assertThat(result.extension()).isEqualTo(".png");
   }
 
   @Test
-  @DisplayName("contentType이 null이면 INVALID_IMAGE_CONTENT_TYPE 예외가 발생한다")
-  void sanitize_nullContentType_throws() {
-    MockMultipartFile file = new MockMultipartFile(
-        "image", "test.jpg", null, "data".getBytes()
-    );
+  @DisplayName("content-type이 application/octet-stream이어도 실제 JPEG 바이트면 정상 처리된다")
+  void sanitize_octetStream_success() throws Exception {
+    MockMultipartFile file = new MockMultipartFile("image", "", "application/octet-stream", createJpegBytes());
 
-    Throwable thrown = catchThrowable(() -> sanitizer.sanitize(file));
+    ValidatedImage result = sanitizer.sanitize(file);
 
-    assertThat(thrown).isInstanceOf(BusinessException.class);
-    assertThat(((BusinessException) thrown).getErrorCode())
-        .isEqualTo(ImageErrorCode.INVALID_IMAGE_CONTENT_TYPE);
+    assertThat(result.contentType()).isEqualTo("image/jpeg");
   }
 
   @Test
-  @DisplayName("originalFilename이 null이면 IMAGE_EXTENSION_NOT_FOUND 예외가 발생한다")
-  void sanitize_nullOriginalFilename_throws() {
-    MockMultipartFile file = new MockMultipartFile(
-        "image", null, "image/jpeg", "data".getBytes()
-    );
+  @DisplayName("잘못된 content-type 헤더이어도 실제 이미지 바이트면 정상 처리된다")
+  void sanitize_wrongContentType_success() throws Exception {
+    MockMultipartFile file = new MockMultipartFile("image", "photo.jpg", "text/plain", createJpegBytes());
 
-    Throwable thrown = catchThrowable(() -> sanitizer.sanitize(file));
+    ValidatedImage result = sanitizer.sanitize(file);
 
-    assertThat(thrown).isInstanceOf(BusinessException.class);
-    assertThat(((BusinessException) thrown).getErrorCode())
-        .isEqualTo(ImageErrorCode.IMAGE_EXTENSION_NOT_FOUND);
+    assertThat(result.contentType()).isEqualTo("image/jpeg");
+  }
+
+  @Test
+  @DisplayName("파일명이 없어도 바이트 검증으로 정상 처리된다")
+  void sanitize_nullFilename_success() throws Exception {
+    MockMultipartFile file = new MockMultipartFile("image", null, "image/jpeg", createJpegBytes());
+
+    ValidatedImage result = sanitizer.sanitize(file);
+
+    assertThat(result).isNotNull();
+  }
+
+  @Test
+  @DisplayName("확장자 없는 파일명이어도 바이트 검증으로 정상 처리된다")
+  void sanitize_noExtension_success() throws Exception {
+    MockMultipartFile file = new MockMultipartFile("image", "filename", "image/jpeg", createJpegBytes());
+
+    ValidatedImage result = sanitizer.sanitize(file);
+
+    assertThat(result).isNotNull();
   }
 
   @Test
@@ -89,42 +105,28 @@ class ImageSanitizerTest {
   }
 
   @Test
-  @DisplayName("확장자가 없으면 IMAGE_EXTENSION_NOT_FOUND 예외가 발생한다")
-  void sanitize_filenameWithoutExtension_throws() throws Exception {
-    BufferedImage img = new BufferedImage(1, 1, BufferedImage.TYPE_INT_RGB);
-    ByteArrayOutputStream baos = new ByteArrayOutputStream();
-    ImageIO.write(img, "jpg", baos);
-
-    MockMultipartFile file = new MockMultipartFile("image", "filename", "image/jpeg", baos.toByteArray());
-
-    Throwable thrown = catchThrowable(() -> sanitizer.sanitize(file));
-
-    assertThat(thrown).isInstanceOf(BusinessException.class);
-    assertThat(((BusinessException) thrown).getErrorCode())
-        .isEqualTo(ImageErrorCode.IMAGE_EXTENSION_NOT_FOUND);
-  }
-
-  @Test
-  @DisplayName("허용되지 않는 확장자면 UNSUPPORTED_IMAGE_FORMAT 예외가 발생한다")
-  void sanitize_unsupportedExtension_throws() {
-    MockMultipartFile file = new MockMultipartFile("image", "file.gif", "image/gif", "GIF".getBytes());
-
-    Throwable thrown = catchThrowable(() -> sanitizer.sanitize(file));
-
-    assertThat(thrown).isInstanceOf(BusinessException.class);
-    assertThat(((BusinessException) thrown).getErrorCode())
-        .isEqualTo(ImageErrorCode.UNSUPPORTED_IMAGE_FORMAT);
-  }
-
-  @Test
-  @DisplayName("시그니처가 올바르지 않으면 INVALID_IMAGE_CONTENT_TYPE 예외가 발생한다")
-  void sanitize_invalidSignature_throws() {
-    MockMultipartFile file = new MockMultipartFile("image", "file.jpg", "image/jpeg", "not-image".getBytes());
+  @DisplayName("이미지가 아닌 바이트(텍스트)면 INVALID_IMAGE_CONTENT_TYPE 예외가 발생한다")
+  void sanitize_nonImageBytes_throws() {
+    MockMultipartFile file = new MockMultipartFile("image", "test.jpg", "image/jpeg", "not-an-image".getBytes());
 
     Throwable thrown = catchThrowable(() -> sanitizer.sanitize(file));
 
     assertThat(thrown).isInstanceOf(BusinessException.class);
     assertThat(((BusinessException) thrown).getErrorCode())
         .isEqualTo(ImageErrorCode.INVALID_IMAGE_CONTENT_TYPE);
+  }
+
+  @Test
+  @DisplayName("GIF 등 미지원 이미지 형식이면 UNSUPPORTED_IMAGE_FORMAT 예외가 발생한다")
+  void sanitize_unsupportedImageFormat_throws() {
+    // GIF magic bytes: GIF89a
+    byte[] gifBytes = new byte[]{0x47, 0x49, 0x46, 0x38, 0x39, 0x61, 0x01, 0x00, 0x01, 0x00};
+    MockMultipartFile file = new MockMultipartFile("image", "file.gif", "image/gif", gifBytes);
+
+    Throwable thrown = catchThrowable(() -> sanitizer.sanitize(file));
+
+    assertThat(thrown).isInstanceOf(BusinessException.class);
+    assertThat(((BusinessException) thrown).getErrorCode())
+        .isEqualTo(ImageErrorCode.UNSUPPORTED_IMAGE_FORMAT);
   }
 }
