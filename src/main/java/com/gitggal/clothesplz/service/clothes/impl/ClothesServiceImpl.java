@@ -19,8 +19,11 @@ import com.gitggal.clothesplz.repository.clothes.ClothesAttributeDefRepository;
 import com.gitggal.clothesplz.repository.clothes.ClothesAttributeRepository;
 import com.gitggal.clothesplz.repository.clothes.ClothesRepository;
 import com.gitggal.clothesplz.repository.user.UserRepository;
+import com.gitggal.clothesplz.service.ai.ClothesAi;
 import com.gitggal.clothesplz.service.clothes.ClothesService;
 import com.gitggal.clothesplz.service.image.ImageUploader;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
@@ -45,6 +48,7 @@ public class ClothesServiceImpl implements ClothesService {
   private final ClothesAttributeRepository clothesAttributeRepository;
   private final ClothesMapper clothesMapper;
   private final ImageUploader imageUploader;
+  private final ClothesAi clothesAi;
 
   @Override
   @Transactional(readOnly = true)
@@ -270,7 +274,31 @@ public class ClothesServiceImpl implements ClothesService {
   @Override
   @Transactional(readOnly = true)
   public ClothesDto extractByUrl(String url) {
-    return null;
+    validatePurchaseUrl(url);
+
+    return clothesAi.extractClothesByUrl(url);
+  }
+
+  private void validatePurchaseUrl(String url) {
+    if (url == null || url.isBlank()) {
+      throw new BusinessException(ClothesErrorCode.INVALID_PURCHASE_URL);
+    }
+
+    try {
+      URI uri = new URI(url);
+      String scheme = uri.getScheme();
+      String host = uri.getHost();
+
+      if (
+          scheme == null
+          || host == null
+          || (!scheme.equalsIgnoreCase("http") && !scheme.equalsIgnoreCase("https"))
+      ) {
+        throw new BusinessException(ClothesErrorCode.INVALID_PURCHASE_URL);
+      }
+    } catch (URISyntaxException e) {
+      throw new BusinessException(ClothesErrorCode.INVALID_PURCHASE_URL);
+    }
   }
 
   private User findUserOrThrow(UUID userId) {

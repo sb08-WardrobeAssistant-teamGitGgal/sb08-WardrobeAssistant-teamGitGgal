@@ -3,16 +3,22 @@ package com.gitggal.clothesplz.service.ai.impl;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gitggal.clothesplz.dto.clothes.ClothesDto;
+import com.gitggal.clothesplz.dto.clothes.ExtractedProduct;
 import com.gitggal.clothesplz.entity.clothes.Clothes;
+import com.gitggal.clothesplz.entity.clothes.ClothesType;
 import com.gitggal.clothesplz.entity.weather.Weather;
 import com.gitggal.clothesplz.repository.clothes.ClothesAttributeRepository;
 import com.gitggal.clothesplz.service.ai.ClothesAi;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.stereotype.Component;
 
@@ -23,6 +29,8 @@ public class OpenAiClothesAi implements ClothesAi {
   private final ChatClient chatClient;
   private final ObjectMapper objectMapper;
   private final ClothesAttributeRepository clothesAttributeRepository;
+
+  private static final String UNKNOWN_NAME = "알 수 없는 의상";
 
   public OpenAiClothesAi(
       ChatClient.Builder chatClientBuilder,
@@ -149,7 +157,125 @@ public class OpenAiClothesAi implements ClothesAi {
 
   @Override
   public ClothesDto extractClothesByUrl(String url) {
-    // TODO: [심화] 구매 링크로 의상 조회 기능 작업
-    throw new UnsupportedOperationException("extractClothesByUrl is not implemented yet");
+    try {
+      log.info("[OpenAI] URL 기반 의상 정보 추출 시작");
+
+      ExtractedProduct extracted = extractProductFromHtml(url);
+      ClothesType type = inferType(extracted.name(), url);
+
+      log.info("[OpenAI] URL 기반 의상 정보 추출 완료");
+      return new ClothesDto(null, null, extracted.name(), extracted.imageUrl(), type, List.of());
+    } catch (Exception e) {
+      log.warn("[OpenAI] URL 기반 의상 정보 추출 실패", e);
+      return new ClothesDto(null, null, UNKNOWN_NAME, null, ClothesType.ETC, List.of());
+    }
+  }
+
+  /**
+   * 페이지의 상품명, 이미지 URL을 스크롤링.
+   *
+   * @param url 접속 URL 정보
+   * @return 상품명, 대표 이미지 URL
+   */
+  private ExtractedProduct extractProductFromHtml(String url) {
+    Document doc;
+    try {
+      doc = Jsoup.connect(url)
+          .userAgent("Mozilla/5.0") // 브라우저 요청처럼 보이도록 User-Agent 헤더 추가
+          .timeout(5000)            // 5초 안에 응답을 못 받으면 실패 처리
+          .get();                   // GET 요청 실행 후 HTML을 Document로 파싱
+    } catch (IOException e) {
+      log.warn("[OpenAI] 상품 HTML 조회 실패. url={}", url, e);
+      return ExtractedProduct.of(UNKNOWN_NAME, null);
+    }
+
+    // 상품명 후보를 우선순위대로 검사해서 처음으로 비어있지 않은 값을 사용
+    String name = firstText(
+        doc.select("meta[property=og:title]").attr("content"),
+        doc.select("meta[name=twitter:title]").attr("content"),
+        doc.select("[class*=GoodsName__]").text(),
+        doc.select("h1").text()
+    );
+
+    // 이미지 URL 후보를 우선순위대로 검사해서 처음으로 비어있지 않은 값을 사용
+    String imageUrl = firstText(
+        doc.select("meta[property=og:image]").attr("content"),
+        doc.select("meta[name=twitter:image]").attr("content"),
+        firstImageUrl(doc)
+    );
+    imageUrl = validateImageUrl(imageUrl);
+
+    return ExtractedProduct.of(name == null ? UNKNOWN_NAME : name, imageUrl);
+  }
+
+  // 타입 추론
+  private ClothesType inferType(String name, String url) {
+    if (name == null || name.isBlank() || UNKNOWN_NAME.equals(name)) {
+      return ClothesType.ETC;
+    }
+
+    try {
+      String systemPrompt = """
+          당신은 의상 타입 분류기입니다.
+          반드시 JSON 형식으로만 응답하세요: {"type":"TOP|BOTTOM|DRESS|OUTER|UNDERWEAR|ACCESSORY|SHOES|SOCKS|HAT|BAG|SCARF|ETC"}
+          상품명/URL만 보고 가장 가능성 높은 타입 하나를 고르세요.
+          확신이 낮으면 ETC를 반환하세요.
+          """;
+      String userPrompt = """
+          상품명: %s
+          URL: %s
+          """.formatted(name, url);
+
+      String content = chatClient.prompt()
+          .system(systemPrompt)
+          .user(userPrompt)
+          .call()
+          .content();
+
+      if (content == null || content.isBlank()) {
+        return ClothesType.ETC;
+      }
+      JsonNode node = objectMapper.readTree(content);
+      return parseType(node.path("type").asText(""));
+    } catch (Exception e) {
+      log.warn("[OpenAI] type 분류 실패", e);
+      return ClothesType.ETC;
+    }
+  }
+
+  private String firstText(String... values) {
+    for (String value : values) {
+      if (value != null && !value.isBlank() && !"null".equalsIgnoreCase(value)) {
+        return value.trim();
+      }
+    }
+    return null;
+  }
+
+  private String firstImageUrl(Document doc) {
+    Element image = doc.selectFirst("img");
+    return image == null ? null : image.absUrl("src");
+  }
+
+  private String validateImageUrl(String imageUrl) {
+    if (imageUrl == null || imageUrl.isBlank()) {
+      return null;
+    }
+    if (!imageUrl.startsWith("http://") && !imageUrl.startsWith("https://")) {
+      return null;
+    }
+    return imageUrl;
+  }
+
+  private ClothesType parseType(String rawType) {
+    if (rawType == null || rawType.isBlank()) {
+      return ClothesType.ETC;
+    }
+
+    try {
+      return ClothesType.valueOf(rawType.trim().toUpperCase());
+    } catch (IllegalArgumentException e) {
+      return ClothesType.ETC;
+    }
   }
 }
