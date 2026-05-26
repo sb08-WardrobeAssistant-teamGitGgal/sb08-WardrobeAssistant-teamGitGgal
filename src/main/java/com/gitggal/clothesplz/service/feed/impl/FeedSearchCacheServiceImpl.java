@@ -36,7 +36,8 @@ public class FeedSearchCacheServiceImpl implements FeedSearchCacheService {
       if (cached != null) {
         log.debug("[Cache] HIT: key={}", key);
         // 원활한 캐스팅을 위한 TypeReference로 타입 힌트 주기(FeedDocument로 역직렬화)
-        return objectMapper.convertValue(cached, new TypeReference<List<FeedDocument>>() {});
+        return objectMapper.convertValue(cached, new TypeReference<>() {
+        });
       }
     } catch (Exception e) {
       log.warn("[Cache] Redis 조회 실패, fallthrough: key={}, error={}", key, e.getMessage());
