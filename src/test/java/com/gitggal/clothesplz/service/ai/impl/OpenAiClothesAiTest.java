@@ -175,4 +175,95 @@ class OpenAiClothesAiTest {
 
     assertThat(result).isEmpty();
   }
+
+  @Test
+  @DisplayName("og 메타가 없으면 h1과 첫 img를 fallback으로 사용한다")
+  void extractClothesByUrl_fallbackToH1AndFirstImage() throws Exception {
+    String url = "https://example.com/product";
+    String html = "<html><body>"
+        + "<h1>린넨 셔츠</h1>"
+        + "<img src=\"/images/shirt.png\"/>"
+        + "</body></html>";
+    Document doc = Jsoup.parse(html, url);
+
+    given(chatClient.prompt()).willReturn(requestSpec);
+    given(requestSpec.system(anyString())).willReturn(requestSpec);
+    given(requestSpec.user(anyString())).willReturn(requestSpec);
+    given(requestSpec.call()).willReturn(callResponseSpec);
+    given(callResponseSpec.content()).willReturn("{\"type\":\"top\"}");
+
+    try (MockedStatic<Jsoup> jsoupMock = mockStatic(Jsoup.class)) {
+      Connection mockConn = mock(Connection.class);
+      jsoupMock.when(() -> Jsoup.connect(url)).thenReturn(mockConn);
+      given(mockConn.userAgent(anyString())).willReturn(mockConn);
+      given(mockConn.timeout(anyInt())).willReturn(mockConn);
+      given(mockConn.get()).willReturn(doc);
+
+      ClothesDto result = sut.extractClothesByUrl(url);
+
+      assertThat(result.name()).isEqualTo("린넨 셔츠");
+      assertThat(result.imageUrl()).isEqualTo("https://example.com/images/shirt.png");
+      assertThat(result.type()).isEqualTo(ClothesType.TOP);
+    }
+  }
+
+  @Test
+  @DisplayName("이미지 URL이 http/https가 아니면 null 처리한다")
+  void extractClothesByUrl_invalidImageUrl_returnsNullImage() throws Exception {
+    String url = "https://example.com/product";
+    String html = "<html><head>"
+        + "<meta property=\"og:title\" content=\"캡 모자\"/>"
+        + "<meta property=\"og:image\" content=\"javascript:alert('xss')\"/>"
+        + "</head></html>";
+    Document doc = Jsoup.parse(html, url);
+
+    given(chatClient.prompt()).willReturn(requestSpec);
+    given(requestSpec.system(anyString())).willReturn(requestSpec);
+    given(requestSpec.user(anyString())).willReturn(requestSpec);
+    given(requestSpec.call()).willReturn(callResponseSpec);
+    given(callResponseSpec.content()).willReturn("{\"type\":\"HAT\"}");
+
+    try (MockedStatic<Jsoup> jsoupMock = mockStatic(Jsoup.class)) {
+      Connection mockConn = mock(Connection.class);
+      jsoupMock.when(() -> Jsoup.connect(url)).thenReturn(mockConn);
+      given(mockConn.userAgent(anyString())).willReturn(mockConn);
+      given(mockConn.timeout(anyInt())).willReturn(mockConn);
+      given(mockConn.get()).willReturn(doc);
+
+      ClothesDto result = sut.extractClothesByUrl(url);
+
+      assertThat(result.name()).isEqualTo("캡 모자");
+      assertThat(result.imageUrl()).isNull();
+      assertThat(result.type()).isEqualTo(ClothesType.HAT);
+    }
+  }
+
+  @Test
+  @DisplayName("AI 타입 응답이 비정상 값이면 ETC로 fallback한다")
+  void extractClothesByUrl_invalidType_returnsEtc() throws Exception {
+    String url = "https://example.com/product";
+    String html = "<html><head>"
+        + "<meta property=\"og:title\" content=\"데님 팬츠\"/>"
+        + "</head></html>";
+    Document doc = Jsoup.parse(html, url);
+
+    given(chatClient.prompt()).willReturn(requestSpec);
+    given(requestSpec.system(anyString())).willReturn(requestSpec);
+    given(requestSpec.user(anyString())).willReturn(requestSpec);
+    given(requestSpec.call()).willReturn(callResponseSpec);
+    given(callResponseSpec.content()).willReturn("{\"type\":\"UNKNOWN-TYPE\"}");
+
+    try (MockedStatic<Jsoup> jsoupMock = mockStatic(Jsoup.class)) {
+      Connection mockConn = mock(Connection.class);
+      jsoupMock.when(() -> Jsoup.connect(url)).thenReturn(mockConn);
+      given(mockConn.userAgent(anyString())).willReturn(mockConn);
+      given(mockConn.timeout(anyInt())).willReturn(mockConn);
+      given(mockConn.get()).willReturn(doc);
+
+      ClothesDto result = sut.extractClothesByUrl(url);
+
+      assertThat(result.name()).isEqualTo("데님 팬츠");
+      assertThat(result.type()).isEqualTo(ClothesType.ETC);
+    }
+  }
 }
