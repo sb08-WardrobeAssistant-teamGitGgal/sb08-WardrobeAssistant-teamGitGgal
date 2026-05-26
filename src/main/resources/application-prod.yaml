@@ -31,9 +31,9 @@ logging:
     org.hibernate.orm.jdbc.bind: warn
 
 opensearch:
-  uris: ${ELASTIC_HOST}
-  username: ${ELASTIC_USERNAME}
-  password: ${ELASTIC_PASSWORD}
+  uris: ${OPENSEARCH_HOST}
+  username: ${OPENSEARCH_USERNAME}
+  password: ${OPENSEARCH_PASSWORD}
 
 management:
   endpoints:
