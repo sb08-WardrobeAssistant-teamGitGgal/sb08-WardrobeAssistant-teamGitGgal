@@ -1,5 +1,6 @@
 package com.gitggal.clothesplz.controller.feed;
 
+import com.gitggal.clothesplz.controller.feed.api.FeedControllerApi;
 import com.gitggal.clothesplz.dto.feed.CommentCreateRequest;
 import com.gitggal.clothesplz.dto.feed.CommentDto;
 import com.gitggal.clothesplz.dto.feed.CommentDtoCursorResponse;
@@ -32,7 +33,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/feeds")
-public class FeedController {
+public class FeedController implements FeedControllerApi {
 
   private final FeedService feedService;
 
