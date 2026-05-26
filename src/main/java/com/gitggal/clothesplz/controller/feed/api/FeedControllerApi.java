@@ -52,7 +52,7 @@ public interface FeedControllerApi {
           content = @Content(schema = @Schema(implementation = FeedDto.class))
       ),
       @ApiResponse(
-          responseCode = "400", description = "피드 목록 조회 실패",
+          responseCode = "400", description = "피드 등록 실패",
           content = @Content(schema = @Schema(implementation = ErrorResponse.class))
       )
   })
@@ -109,7 +109,7 @@ public interface FeedControllerApi {
   @Operation(summary = "피드 댓글 등록", description = "피드 댓글 등록 API")
   @ApiResponses(value = {
       @ApiResponse(
-          responseCode = "200", description = "피드 댓글 등록 성공",
+          responseCode = "201", description = "피드 댓글 등록 성공",
           content = @Content(schema = @Schema(implementation = CommentDto.class))
       ),
       @ApiResponse(
