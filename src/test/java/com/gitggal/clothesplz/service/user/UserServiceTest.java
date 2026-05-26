@@ -16,14 +16,19 @@ import com.gitggal.clothesplz.dto.user.UserDtoCursorResponse;
 import com.gitggal.clothesplz.dto.user.UserLockUpdateRequest;
 import com.gitggal.clothesplz.dto.user.UserRoleUpdateRequest;
 import com.gitggal.clothesplz.entity.profile.Profile;
+import com.gitggal.clothesplz.entity.user.SocialAccount;
+import com.gitggal.clothesplz.entity.user.SocialProvider;
 import com.gitggal.clothesplz.entity.user.User;
 import com.gitggal.clothesplz.entity.user.UserRole;
 import com.gitggal.clothesplz.exception.BusinessException;
 import com.gitggal.clothesplz.exception.code.UserErrorCode;
 import com.gitggal.clothesplz.mapper.user.UserMapper;
 import com.gitggal.clothesplz.repository.profile.ProfileRepository;
+import com.gitggal.clothesplz.repository.user.SocialAccountRepository;
 import com.gitggal.clothesplz.repository.user.UserRepository;
+import com.gitggal.clothesplz.security.ClothesUserDetails;
 import com.gitggal.clothesplz.security.jwt.JwtRegistry;
+import com.gitggal.clothesplz.security.oauth.OAuthInformation;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -36,6 +41,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -60,6 +66,12 @@ class UserServiceTest {
 
   @Mock
   private JwtRegistry jwtRegistry;
+
+  @Mock
+  private SocialAccountRepository socialAccountRepository;
+
+  @Mock
+  private ApplicationEventPublisher applicationEventPublisher;
 
   private UserCreateRequest request;
   private UserDto userDto;
@@ -409,6 +421,116 @@ class UserServiceTest {
           .hasFieldOrPropertyWithValue("errorCode", UserErrorCode.USER_NOT_FOUND);
 
       then(jwtRegistry).should(never()).invalidateJwtInformationByUserId(any());
+    }
+  }
+
+  @Nested
+  @DisplayName("OAuth 로그인")
+  class ProcessOAuth2User {
+
+    @Test
+    @DisplayName("성공 - 기존 social account 존재")
+    void oauth_success_existing_social_account() {
+
+      // given
+      OAuthInformation info = new OAuthInformation(
+          SocialProvider.GOOGLE,
+          "providerId123",
+          "test@test.com",
+          "홍길동"
+      );
+
+      User existingUser = new User("홍길동", "test@test.com", "pw");
+
+      SocialAccount socialAccount = new SocialAccount(existingUser, SocialProvider.GOOGLE,
+          "providerId123");
+
+      given(socialAccountRepository.findByProviderAndProviderId(
+          SocialProvider.GOOGLE, "providerId123"))
+          .willReturn(Optional.of(socialAccount));
+
+      given(userMapper.toDto(existingUser)).willReturn(userDto);
+
+      // when
+      ClothesUserDetails result = userService.processOAuth2User(info);
+
+      // then
+      assertThat(result).isNotNull();
+      assertThat(result.getUserDto()).isEqualTo(userDto);
+
+      then(userRepository).should(never()).save(any());
+      then(socialAccountRepository).should(never()).save(any());
+    }
+
+    @Test
+    @DisplayName("성공 - 기존 user 존재 + social account 새로 연결")
+    void oauth_success_existing_user_link_social() {
+
+      // given
+      OAuthInformation info = new OAuthInformation(
+          SocialProvider.GOOGLE,
+          "providerId123",
+          "test@test.com",
+          "홍길동"
+      );
+
+      User existingUser = new User("홍길동", "test@test.com", "pw");
+
+      given(socialAccountRepository.findByProviderAndProviderId(
+          SocialProvider.GOOGLE, "providerId123"))
+          .willReturn(Optional.empty());
+
+      given(userRepository.findByEmail("test@test.com"))
+          .willReturn(Optional.of(existingUser));
+
+      given(userMapper.toDto(existingUser)).willReturn(userDto);
+
+      // when
+      ClothesUserDetails result = userService.processOAuth2User(info);
+
+      // then
+      assertThat(result).isNotNull();
+
+      then(socialAccountRepository).should().save(any(SocialAccount.class));
+      then(userRepository).should(never()).save(any(User.class));
+    }
+
+    @Test
+    @DisplayName("성공 - 신규 user + social account 생성")
+    void oauth_success_create_user_and_social_account() {
+
+      // given
+      OAuthInformation info = new OAuthInformation(
+          SocialProvider.GOOGLE,
+          "providerId123",
+          "test@test.com",
+          "홍길동"
+      );
+
+      given(socialAccountRepository.findByProviderAndProviderId(
+          SocialProvider.GOOGLE, "providerId123"))
+          .willReturn(Optional.empty());
+
+      given(userRepository.findByEmail("test@test.com"))
+          .willReturn(Optional.empty());
+
+      given(userRepository.save(any(User.class)))
+          .willAnswer(invocation -> invocation.getArgument(0));
+
+      given(profileRepository.save(any(Profile.class)))
+          .willAnswer(invocation -> invocation.getArgument(0));
+
+      given(userMapper.toDto(any(User.class))).willReturn(userDto);
+
+      // when
+      ClothesUserDetails result = userService.processOAuth2User(info);
+
+      // then
+      assertThat(result).isNotNull();
+
+      then(userRepository).should().save(any(User.class));
+      then(profileRepository).should().save(any(Profile.class));
+      then(socialAccountRepository).should().save(any(SocialAccount.class));
     }
   }
 }
