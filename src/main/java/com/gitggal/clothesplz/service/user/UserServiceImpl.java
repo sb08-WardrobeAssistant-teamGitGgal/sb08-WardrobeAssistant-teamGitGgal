@@ -27,6 +27,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -205,6 +206,10 @@ public class UserServiceImpl implements UserService {
 
     if (info.nickname() != null && !info.nickname().equals(user.getName())) {
       user.updateName(info.nickname());
+    }
+
+    if (user.isLocked()) {
+      throw new LockedException("잠긴 계정입니다.");
     }
 
     log.info("[Service] OAuth 사용자 처리 요청 완료");
