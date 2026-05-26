@@ -205,8 +205,6 @@ public class OpenAiClothesAi implements ClothesAi {
     );
     imageUrl = validateImageUrl(imageUrl);
 
-    log.info("imageUrl ==> {}", imageUrl);
-
     return ExtractedProduct.of(name == null ? UNKNOWN_NAME : name, imageUrl);
   }
 

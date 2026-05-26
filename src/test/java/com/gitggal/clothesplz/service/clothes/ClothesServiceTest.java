@@ -445,4 +445,37 @@ class ClothesServiceTest extends ServiceTestSupport {
         .isEqualTo(ClothesErrorCode.INVALID_PURCHASE_URL);
     verify(clothesAi, never()).extractClothesByUrl(any());
   }
+
+  @Test
+  @DisplayName("URL이 null이면 INVALID_PURCHASE_URL 예외가 발생한다")
+  void extractByUrl_nullUrl_throwsException() {
+    Throwable thrown = catchThrowable(() -> clothesService.extractByUrl(null));
+
+    assertThat(thrown).isInstanceOf(BusinessException.class);
+    assertThat(((BusinessException) thrown).getErrorCode())
+        .isEqualTo(ClothesErrorCode.INVALID_PURCHASE_URL);
+    verify(clothesAi, never()).extractClothesByUrl(any());
+  }
+
+  @Test
+  @DisplayName("URL이 공백이면 INVALID_PURCHASE_URL 예외가 발생한다")
+  void extractByUrl_blankUrl_throwsException() {
+    Throwable thrown = catchThrowable(() -> clothesService.extractByUrl("   "));
+
+    assertThat(thrown).isInstanceOf(BusinessException.class);
+    assertThat(((BusinessException) thrown).getErrorCode())
+        .isEqualTo(ClothesErrorCode.INVALID_PURCHASE_URL);
+    verify(clothesAi, never()).extractClothesByUrl(any());
+  }
+
+  @Test
+  @DisplayName("http/https가 아닌 스킴이면 INVALID_PURCHASE_URL 예외가 발생한다")
+  void extractByUrl_nonHttpScheme_throwsException() {
+    Throwable thrown = catchThrowable(() -> clothesService.extractByUrl("ftp://example.com/product"));
+
+    assertThat(thrown).isInstanceOf(BusinessException.class);
+    assertThat(((BusinessException) thrown).getErrorCode())
+        .isEqualTo(ClothesErrorCode.INVALID_PURCHASE_URL);
+    verify(clothesAi, never()).extractClothesByUrl(any());
+  }
 }

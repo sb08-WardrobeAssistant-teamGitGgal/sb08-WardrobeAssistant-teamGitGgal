@@ -29,9 +29,10 @@ public class ImageSanitizer {
     }
 
     String contentType = image.getContentType();
-    boolean isOctetStream = "application/octet-stream".equals(contentType);
+    String normalizedType = contentType != null ? contentType.split(";")[0].trim().toLowerCase() : "";
+    boolean isOctetStream = "application/octet-stream".equals(normalizedType);
     if (!StringUtils.hasText(contentType) ||
-        (!contentType.startsWith("image/") && !isOctetStream)
+        (!normalizedType.startsWith("image/") && !isOctetStream)
     ) {
       log.error("[Service] 이미지 업로드 실패: 이미지 타입만 업로드 할 수 있음");
       throw new BusinessException(ImageErrorCode.INVALID_IMAGE_CONTENT_TYPE);
