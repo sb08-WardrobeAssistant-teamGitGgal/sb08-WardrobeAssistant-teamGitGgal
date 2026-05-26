@@ -1,5 +1,6 @@
 package com.gitggal.clothesplz.controller.weather;
 
+import com.gitggal.clothesplz.controller.weather.api.WeatherControllerApi;
 import com.gitggal.clothesplz.dto.weather.WeatherDto;
 import com.gitggal.clothesplz.dto.weather.WeatherAPILocationDto;
 import com.gitggal.clothesplz.exception.BusinessException;
@@ -18,7 +19,7 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/weathers")
-public class WeatherController {
+public class WeatherController implements WeatherControllerApi {
 
     private final WeatherService weatherService;
 
