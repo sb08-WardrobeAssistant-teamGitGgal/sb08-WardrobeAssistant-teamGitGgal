@@ -192,14 +192,7 @@ public class UserServiceImpl implements UserService {
           User existingUser = userRepository.findByEmail(info.email())
               .orElseGet(() -> createOAuthUser(info));
 
-          SocialAccount socialAccount = new SocialAccount(
-              existingUser,
-              info.provider(),
-              info.providerId()
-          );
-          socialAccountRepository.save(socialAccount);
-
-          log.info("[Service] 소셜 계정 연결 완료");
+          connectSocialAccount(existingUser, info);
 
           return existingUser;
         });
@@ -237,10 +230,18 @@ public class UserServiceImpl implements UserService {
         .build();
     profileRepository.save(profile);
 
-    SocialAccount socialAccount = new SocialAccount(savedUser, info.provider(), info.providerId());
-    socialAccountRepository.save(socialAccount);
-
     log.info("[Service] OAuth 사용자 생성 요청 완료");
     return savedUser;
+  }
+
+  private void connectSocialAccount(User user, OAuthInformation info) {
+    SocialAccount socialAccount = new SocialAccount(
+        user,
+        info.provider(),
+        info.providerId()
+    );
+    socialAccountRepository.save(socialAccount);
+
+    log.info("[Service] 소셜 계정 연결 완료");
   }
 }
