@@ -5,6 +5,8 @@ import com.gitggal.clothesplz.security.LoginFailureHandler;
 import com.gitggal.clothesplz.security.LoginSuccessHandler;
 import com.gitggal.clothesplz.security.SpaCsrfTokenRequestHandler;
 import com.gitggal.clothesplz.security.jwt.JwtAuthenticationFilter;
+import com.gitggal.clothesplz.security.oauth.OAuthLoginFailureHandler;
+import com.gitggal.clothesplz.security.oauth.OAuthLoginSuccessHandler;
 import java.util.List;
 import java.util.stream.IntStream;
 import lombok.RequiredArgsConstructor;
@@ -36,7 +38,9 @@ public class SecurityConfig {
       LoginSuccessHandler loginSuccessHandler,
       LoginFailureHandler loginFailureHandler,
       CustomLogoutHandler logoutHandler,
-      JwtAuthenticationFilter jwtAuthenticationFilter
+      JwtAuthenticationFilter jwtAuthenticationFilter,
+      OAuthLoginSuccessHandler oauthLoginSuccessHandler,
+      OAuthLoginFailureHandler oAuthLoginFailureHandler
   ) throws Exception {
     http
         .csrf(csrf -> csrf
@@ -50,6 +54,9 @@ public class SecurityConfig {
             .passwordParameter("password")
             .successHandler(loginSuccessHandler)
             .failureHandler(loginFailureHandler))
+        .oauth2Login(oauth2 -> oauth2
+            .successHandler(oauthLoginSuccessHandler)
+            .failureHandler(oAuthLoginFailureHandler))
         .logout(logout -> logout
             .logoutUrl("/api/auth/sign-out")
             .addLogoutHandler(logoutHandler)
@@ -65,6 +72,8 @@ public class SecurityConfig {
             .requestMatchers(HttpMethod.POST, "/api/auth/sign-out").permitAll() // 로그아웃 허용
             .requestMatchers(HttpMethod.POST, "/api/auth/reset-password").permitAll() // 임시 비밀번호 발급
             .requestMatchers(HttpMethod.POST, "/api/auth/refresh").permitAll()
+            .requestMatchers("/login/oauth2/code/**").permitAll()
+            .requestMatchers("/oauth2/authorization/**").permitAll()
             .requestMatchers("/api/**").authenticated() // api 인증 필요
             .anyRequest().permitAll()
         )

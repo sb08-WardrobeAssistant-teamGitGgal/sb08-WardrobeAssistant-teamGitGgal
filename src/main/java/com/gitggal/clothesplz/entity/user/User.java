@@ -3,13 +3,17 @@ package com.gitggal.clothesplz.entity.user;
 import com.gitggal.clothesplz.entity.base.BaseUpdatableEntity;
 import com.gitggal.clothesplz.exception.BusinessException;
 import com.gitggal.clothesplz.exception.code.UserErrorCode;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -42,6 +46,9 @@ public class User extends BaseUpdatableEntity {
   @Column(name = "temp_password_expires_at")
   private Instant tempPasswordExpiresAt;
 
+  @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+  private List<SocialAccount> socialAccounts = new ArrayList<>();
+
   public User(String name, String email, String password) {
     this.name = name;
     this.email = email;
@@ -73,7 +80,7 @@ public class User extends BaseUpdatableEntity {
     this.role = role;
   }
 
-  public void updateLock(boolean lock){
+  public void updateLock(boolean lock) {
     this.locked = lock;
   }
 }

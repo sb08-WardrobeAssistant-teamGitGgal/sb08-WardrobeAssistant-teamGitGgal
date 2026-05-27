@@ -54,6 +54,8 @@ clothesplz:
     access-token-exp: 900000
     refresh-token-secret: dfghdfghfghijklmnopqrstuvwxyz123456
     refresh-token-exp: 3600000
+  oauth:
+    redirect-uri: test
 
 weather:
   api:

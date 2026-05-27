@@ -45,6 +45,32 @@ spring:
         options:
           model: gpt-4o-mini
 
+  security:
+    oauth2:
+      client:
+        registration:
+          kakao:
+            client-id: ${KAKAO_OAUTH_REST_API_KEY}
+            client-secret: ${KAKAO_OAUTH_CLIENT_SECRET}
+            redirect-uri: "{baseUrl}/login/oauth2/code/kakao"
+            authorization-grant-type: authorization_code
+            client-authentication-method: client_secret_post
+            client-name: Kakao
+            scope:
+              - profile_nickname
+          google:
+            client-id: ${GOOGLE_OAUTH_CLIENT_ID}
+            client-secret: ${GOOGLE_OAUTH_CLIENT_SECRET}
+            redirect-uri: "{baseUrl}/login/oauth2/code/google"
+            scope:
+              - profile
+              - email
+        provider:
+          kakao:
+            authorization-uri: https://kauth.kakao.com/oauth/authorize
+            token-uri: https://kauth.kakao.com/oauth/token
+            user-info-uri: https://kapi.kakao.com/v2/user/me
+            user-name-attribute: id
 
 # Common Logging
 logging:
@@ -87,6 +113,8 @@ clothesplz:
     access-token-exp: ${ACCESS_TOKEN_EXP}
     refresh-token-secret: ${REFRESH_TOKEN_SECRET}
     refresh-token-exp: ${REFRESH_TOKEN_EXP}
+  oauth:
+    redirect-uri: http://localhost:8080
 
 weather:
   api:
@@ -100,4 +128,3 @@ kakao:
 openai:
   api:
     key: ${OPENAI_API_KEY}
-
