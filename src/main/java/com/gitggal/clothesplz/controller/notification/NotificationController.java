@@ -2,6 +2,7 @@ package com.gitggal.clothesplz.controller.notification;
 
 import com.gitggal.clothesplz.dto.notification.NotificationDtoCursorResponse;
 import com.gitggal.clothesplz.security.ClothesUserDetails;
+import com.gitggal.clothesplz.controller.notification.api.NotificationControllerApi;
 import com.gitggal.clothesplz.service.notification.NotificationService;
 import com.gitggal.clothesplz.util.AuthenticationUtil;
 import jakarta.validation.constraints.Positive;
@@ -26,13 +27,14 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/notifications")
 @RequiredArgsConstructor
-public class NotificationController {
+public class NotificationController implements NotificationControllerApi {
 
   private final NotificationService notificationService;
 
   /**
    * 알림 목록 조회 (커서 기반 페이지네이션)
    */
+  @Override
   @GetMapping
   public ResponseEntity<NotificationDtoCursorResponse> getNotifications(
       @RequestParam(required = false) String cursor,
@@ -52,6 +54,7 @@ public class NotificationController {
     return ResponseEntity.ok(response);
   }
 
+  @Override
   @DeleteMapping("/{notificationId}")
   public ResponseEntity<Void> deleteNotification(
       @PathVariable UUID notificationId,
