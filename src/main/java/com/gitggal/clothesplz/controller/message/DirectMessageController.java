@@ -30,6 +30,7 @@ public class DirectMessageController implements DirectMessageControllerApi {
 
   private final DirectMessageService directMessageService;
 
+  @Override
   @GetMapping
   public ResponseEntity<DirectMessageDtoCursorResponse> getMessages(
       @RequestParam UUID userId,

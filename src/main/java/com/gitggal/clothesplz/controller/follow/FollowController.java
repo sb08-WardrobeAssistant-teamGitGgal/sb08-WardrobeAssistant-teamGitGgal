@@ -38,6 +38,7 @@ public class FollowController implements FollowControllerApi {
 
   private final FollowService followService;
 
+  @Override
   @PostMapping
   public ResponseEntity<FollowDto> createFollow(
       @RequestBody @Valid FollowCreateRequest request) {
@@ -52,6 +53,7 @@ public class FollowController implements FollowControllerApi {
   }
 
 
+  @Override
   @DeleteMapping("/{followId}")
   public ResponseEntity<Void> cancelFollow(
       @PathVariable UUID followId) {
@@ -66,6 +68,7 @@ public class FollowController implements FollowControllerApi {
   }
 
 
+  @Override
   @GetMapping("/followings")
   public ResponseEntity<FollowListResponse> getFollowings(
       @RequestParam UUID followerId,
@@ -84,6 +87,7 @@ public class FollowController implements FollowControllerApi {
     return ResponseEntity.ok(response);
   }
 
+  @Override
   @GetMapping("/followers")
   public ResponseEntity<FollowListResponse> getFollowers(
       @RequestParam UUID followeeId,
@@ -102,6 +106,7 @@ public class FollowController implements FollowControllerApi {
     return ResponseEntity.ok(response);
   }
 
+  @Override
   @GetMapping("/summary")
   public ResponseEntity<FollowSummaryDto> getFollowSummary(
       @RequestParam UUID userId,

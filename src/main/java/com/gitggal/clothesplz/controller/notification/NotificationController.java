@@ -34,6 +34,7 @@ public class NotificationController implements NotificationControllerApi {
   /**
    * 알림 목록 조회 (커서 기반 페이지네이션)
    */
+  @Override
   @GetMapping
   public ResponseEntity<NotificationDtoCursorResponse> getNotifications(
       @RequestParam(required = false) String cursor,
@@ -53,6 +54,7 @@ public class NotificationController implements NotificationControllerApi {
     return ResponseEntity.ok(response);
   }
 
+  @Override
   @DeleteMapping("/{notificationId}")
   public ResponseEntity<Void> deleteNotification(
       @PathVariable UUID notificationId,
