@@ -77,8 +77,8 @@ class OpenAiClothesAiTest {
   }
 
   @Test
-  @DisplayName("Jsoup 연결 실패 시 알 수 없는 의상과 ETC 타입으로 fallback한다")
-  void extractClothesByUrl_jsoupFails_returnsFallback() throws Exception {
+  @DisplayName("htmlExtractor.scrape() 빈 결과 시 알 수 없는 의상과 ETC 타입으로 fallback한다")
+  void extractClothesByUrl_emptyScrape_returnsFallback() throws Exception {
     String url = "https://example.com/product";
     given(htmlExtractor.scrape(url)).willReturn(new ScrapeResult(List.of(), null));
 
@@ -165,7 +165,7 @@ class OpenAiClothesAiTest {
   }
 
   @Test
-  @DisplayName("og 메타가 없으면 h1과 첫 img를 fallback으로 사용한다")
+  @DisplayName("scrape() 결과가 extractClothesByUrl에 반영되는지 검증한다")
   void extractClothesByUrl_fallbackToH1AndFirstImage() throws Exception {
     String url = "https://example.com/product";
     given(htmlExtractor.scrape(url)).willReturn(
