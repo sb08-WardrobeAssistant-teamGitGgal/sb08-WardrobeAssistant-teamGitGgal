@@ -135,6 +135,6 @@ class KakaoOAuthUserInformationTest {
 
     assertThatThrownBy(info::toOAuthInformation)
         .isInstanceOf(BusinessException.class)
-        .hasMessageContaining(UserErrorCode.INVALID_OAUTH_PROVIDER_ID.name());
+        .hasFieldOrPropertyWithValue("errorCode", UserErrorCode.INVALID_OAUTH_PROVIDER_ID);
   }
 }

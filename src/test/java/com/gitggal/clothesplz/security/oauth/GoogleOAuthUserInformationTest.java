@@ -92,6 +92,6 @@ class GoogleOAuthUserInformationTest {
     // when & then
     assertThatThrownBy(info::toOAuthInformation)
         .isInstanceOf(BusinessException.class)
-        .hasMessageContaining(UserErrorCode.INVALID_OAUTH_PROVIDER_ID.name());
+        .hasFieldOrPropertyWithValue("errorCode", UserErrorCode.INVALID_OAUTH_PROVIDER_ID);
   }
 }
