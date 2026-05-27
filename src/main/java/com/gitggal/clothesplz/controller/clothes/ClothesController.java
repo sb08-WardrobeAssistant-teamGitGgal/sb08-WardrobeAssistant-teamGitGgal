@@ -39,8 +39,7 @@ public class ClothesController implements ClothesControllerApi {
   @GetMapping
   @PreAuthorize("isAuthenticated()")
   public ResponseEntity<ClothesDtoCursorResponse> getClothes(
-      @Valid ClothesGetRequest request,
-      @AuthenticationPrincipal ClothesUserDetails userDetails
+      @Valid ClothesGetRequest request
   ) {
     log.info("[Controller] 의상 조회 요청 시작");
 

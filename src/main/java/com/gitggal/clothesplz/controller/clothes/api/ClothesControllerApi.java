@@ -35,8 +35,7 @@ public interface ClothesControllerApi {
       content = @Content(schema = @Schema(implementation = ErrorResponse.class))
   )
   ResponseEntity<ClothesDtoCursorResponse> getClothes(
-      @ParameterObject ClothesGetRequest request,
-      @AuthenticationPrincipal ClothesUserDetails userDetails
+      @ParameterObject ClothesGetRequest request
   );
 
   @Operation(summary = "옷 등록", description = "새로운 옷을 등록합니다.")

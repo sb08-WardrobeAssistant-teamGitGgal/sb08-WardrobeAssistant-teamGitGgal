@@ -25,6 +25,7 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -39,6 +40,7 @@ public class RecommendationServiceImpl implements RecommendationService {
   private final ClothesAi clothesAi;
 
   @Override
+  @Transactional(readOnly = true)
   public RecommendationDto getRecommendations(UUID weatherId, UserDto user) {
     log.info("[Service] 의상 추천 조회 요청 시작");
 
