@@ -4,6 +4,7 @@ import com.gitggal.clothesplz.controller.clothes.api.AttributeDefControllerApi;
 import com.gitggal.clothesplz.dto.clothes.ClothesAttributeDefCreateRequest;
 import com.gitggal.clothesplz.dto.clothes.ClothesAttributeDefDto;
 import com.gitggal.clothesplz.dto.clothes.ClothesAttributeDefUpdateRequest;
+import com.gitggal.clothesplz.security.ClothesUserDetails;
 import com.gitggal.clothesplz.service.clothes.AttributeDefService;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -13,6 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -35,11 +37,15 @@ public class AttributeDefController implements AttributeDefControllerApi {
   @PostMapping
   @PreAuthorize("hasRole('ADMIN')")
   public ResponseEntity<ClothesAttributeDefDto> createAttributeDef(
-      @Valid @RequestBody ClothesAttributeDefCreateRequest request
+      @Valid @RequestBody ClothesAttributeDefCreateRequest request,
+      @AuthenticationPrincipal ClothesUserDetails userDetails
   ) {
     log.info("[Controller] 의상 속성 생성 요청 시작");
 
-    ClothesAttributeDefDto response = attributeDefService.createAttributeDef(request);
+    ClothesAttributeDefDto response = attributeDefService.createAttributeDef(
+        request,
+        userDetails.getUserDto().id()
+    );
 
     log.info("[Controller] 의상 속성 생성 요청 완료");
     return ResponseEntity
@@ -73,10 +79,13 @@ public class AttributeDefController implements AttributeDefControllerApi {
   @PreAuthorize("hasRole('ADMIN')")
   @DeleteMapping("/{definitionId}")
   @Override
-  public ResponseEntity<Void> deleteAttributeDefs(@PathVariable UUID definitionId) {
+  public ResponseEntity<Void> deleteAttributeDefs(
+      @PathVariable UUID definitionId,
+      @AuthenticationPrincipal ClothesUserDetails userDetails
+  ) {
     log.info("[Controller] 의상 속성 조회 삭제 시작");
 
-    attributeDefService.deleteAttributeDefs(definitionId);
+    attributeDefService.deleteAttributeDefs(definitionId, userDetails.getUserDto().id());
 
     log.info("[Controller] 의상 속성 조회 삭제 완료");
     return ResponseEntity
@@ -89,11 +98,16 @@ public class AttributeDefController implements AttributeDefControllerApi {
   @PatchMapping("/{definitionId}")
   public ResponseEntity<ClothesAttributeDefDto> updateAttributeDefs(
       @PathVariable UUID definitionId,
-      @Valid @RequestBody ClothesAttributeDefUpdateRequest request
+      @Valid @RequestBody ClothesAttributeDefUpdateRequest request,
+      @AuthenticationPrincipal ClothesUserDetails userDetails
   ) {
     log.info("[Controller] 의상 속성 수정 시작");
 
-    ClothesAttributeDefDto response = attributeDefService.updateAttributeDef(definitionId, request);
+    ClothesAttributeDefDto response = attributeDefService.updateAttributeDef(
+        definitionId,
+        request,
+        userDetails.getUserDto().id()
+    );
 
     log.info("[Controller] 의상 속성 수정 완료");
     return ResponseEntity
