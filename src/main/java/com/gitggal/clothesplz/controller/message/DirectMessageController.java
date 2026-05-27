@@ -2,6 +2,7 @@ package com.gitggal.clothesplz.controller.message;
 
 import com.gitggal.clothesplz.dto.message.DirectMessageDtoCursorResponse;
 import com.gitggal.clothesplz.security.ClothesUserDetails;
+import com.gitggal.clothesplz.controller.message.api.DirectMessageControllerApi;
 import com.gitggal.clothesplz.service.message.DirectMessageService;
 import com.gitggal.clothesplz.util.AuthenticationUtil;
 import jakarta.validation.constraints.Max;
@@ -25,10 +26,11 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/direct-messages")
 @RequiredArgsConstructor
-public class DirectMessageController {
+public class DirectMessageController implements DirectMessageControllerApi {
 
   private final DirectMessageService directMessageService;
 
+  @Override
   @GetMapping
   public ResponseEntity<DirectMessageDtoCursorResponse> getMessages(
       @RequestParam UUID userId,
