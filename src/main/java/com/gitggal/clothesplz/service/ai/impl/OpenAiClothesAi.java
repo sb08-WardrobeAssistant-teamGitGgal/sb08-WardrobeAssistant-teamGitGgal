@@ -240,10 +240,11 @@ public class OpenAiClothesAi implements ClothesAi {
       }
 
       JsonNode node = objectMapper.readTree(content);
-      String name = node.path("name").asText("");
+      String name = node.path("name").asText("").trim();
       ClothesType type = parseType(node.path("type").asText(""));
 
-      return new AiClassified(name.isBlank() ? UNKNOWN_NAME : name, type);
+      String resolvedName = name.isBlank() ? nameCandidates.get(0) : name;
+      return new AiClassified(resolvedName, type);
     } catch (Exception e) {
       log.warn("[OpenAI] 의상 분류 실패", e);
       return new AiClassified(nameCandidates.get(0), ClothesType.ETC);

@@ -27,7 +27,7 @@ public class HtmlProductExtractor {
       doc = Jsoup.connect(url).userAgent("Mozilla/5.0").timeout(5000).get();
 
     } catch (IOException e) {
-      log.warn("[HTML] 상품 페이지 조회 실패. url={}", url, e);
+      log.warn("[HTML] 상품 페이지 조회 실패.");
       return new ScrapeResult(List.of(), null);
     }
     return new ScrapeResult(
