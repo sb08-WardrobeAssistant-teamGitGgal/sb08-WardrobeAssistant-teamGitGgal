@@ -8,7 +8,7 @@ import java.util.UUID;
 
 public interface AttributeDefService {
 
-  ClothesAttributeDefDto createAttributeDef(ClothesAttributeDefCreateRequest request);
+  ClothesAttributeDefDto createAttributeDef(ClothesAttributeDefCreateRequest request, UUID actorUserId);
 
   List<ClothesAttributeDefDto> getAttributeDefs(
       String sortBy,
@@ -16,7 +16,11 @@ public interface AttributeDefService {
       String keywordLike
   );
 
-  void deleteAttributeDefs(UUID definitionId);
+  void deleteAttributeDefs(UUID definitionId, UUID actorUserId);
 
-  ClothesAttributeDefDto updateAttributeDef(UUID definitionId, ClothesAttributeDefUpdateRequest request);
+  ClothesAttributeDefDto updateAttributeDef(
+      UUID definitionId,
+      ClothesAttributeDefUpdateRequest request,
+      UUID actorUserId
+  );
 }

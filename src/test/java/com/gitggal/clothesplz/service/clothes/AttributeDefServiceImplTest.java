@@ -28,6 +28,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -43,6 +44,9 @@ class AttributeDefServiceImplTest {
 
   @Mock
   private ClothesAttributeRepository clothesAttributeRepository;
+
+  @Mock
+  private ApplicationEventPublisher eventPublisher;
 
   @InjectMocks
   private AttributeDefServiceImpl attributeDefService;
@@ -68,7 +72,7 @@ class AttributeDefServiceImplTest {
     given(clothesAttributeDefRepository.save(any(ClothesAttributeDef.class))).willReturn(saved);
     given(attributeDefMapper.toClothesAttributeDefDto(saved)).willReturn(response);
 
-    ClothesAttributeDefDto result = attributeDefService.createAttributeDef(request);
+    ClothesAttributeDefDto result = attributeDefService.createAttributeDef(request, UUID.randomUUID());
 
     ArgumentCaptor<ClothesAttributeDef> captor = ArgumentCaptor.forClass(ClothesAttributeDef.class);
     verify(clothesAttributeDefRepository).save(captor.capture());
@@ -88,7 +92,7 @@ class AttributeDefServiceImplTest {
     given(clothesAttributeDefRepository.existsByName("색상")).willReturn(true);
 
     BusinessException exception = catchThrowableOfType(
-        () -> attributeDefService.createAttributeDef(request),
+        () -> attributeDefService.createAttributeDef(request, UUID.randomUUID()),
         BusinessException.class
     );
 
@@ -161,7 +165,7 @@ class AttributeDefServiceImplTest {
         .willThrow(new DataIntegrityViolationException("duplicate key"));
 
     BusinessException exception = catchThrowableOfType(
-        () -> attributeDefService.createAttributeDef(request),
+        () -> attributeDefService.createAttributeDef(request, UUID.randomUUID()),
         BusinessException.class
     );
 
@@ -178,7 +182,7 @@ class AttributeDefServiceImplTest {
     ReflectionTestUtils.setField(attributeDef, "id", definitionId);
     given(clothesAttributeDefRepository.findById(definitionId)).willReturn(Optional.of(attributeDef));
 
-    attributeDefService.deleteAttributeDefs(definitionId);
+    attributeDefService.deleteAttributeDefs(definitionId, UUID.randomUUID());
 
     verify(clothesAttributeRepository).deleteAllByDefinitionId(definitionId);
     verify(clothesAttributeDefRepository).delete(attributeDef);
@@ -191,7 +195,7 @@ class AttributeDefServiceImplTest {
     given(clothesAttributeDefRepository.findById(definitionId)).willReturn(Optional.empty());
 
     BusinessException exception = catchThrowableOfType(
-        () -> attributeDefService.deleteAttributeDefs(definitionId),
+        () -> attributeDefService.deleteAttributeDefs(definitionId, UUID.randomUUID()),
         BusinessException.class
     );
 
@@ -217,7 +221,7 @@ class AttributeDefServiceImplTest {
     given(clothesAttributeDefRepository.findById(definitionId)).willReturn(Optional.of(attributeDef));
     given(attributeDefMapper.toClothesAttributeDefDto(attributeDef)).willReturn(response);
 
-    ClothesAttributeDefDto result = attributeDefService.updateAttributeDef(definitionId, request);
+    ClothesAttributeDefDto result = attributeDefService.updateAttributeDef(definitionId, request, UUID.randomUUID());
 
     assertThat(attributeDef.getName()).isEqualTo("재질");
     assertThat(attributeDef.getSelectableValues()).containsExactly("COTTON", "WOOL");
@@ -240,7 +244,7 @@ class AttributeDefServiceImplTest {
     given(clothesAttributeDefRepository.findById(definitionId)).willReturn(Optional.of(attributeDef));
     given(attributeDefMapper.toClothesAttributeDefDto(attributeDef)).willReturn(response);
 
-    attributeDefService.updateAttributeDef(definitionId, request);
+    attributeDefService.updateAttributeDef(definitionId, request, UUID.randomUUID());
 
     assertThat(attributeDef.getName()).isEqualTo("재질");
     assertThat(attributeDef.getSelectableValues()).containsExactly("WHITE", "BLACK");
@@ -260,7 +264,7 @@ class AttributeDefServiceImplTest {
     given(clothesAttributeDefRepository.findById(definitionId)).willReturn(Optional.of(attributeDef));
     given(attributeDefMapper.toClothesAttributeDefDto(attributeDef)).willReturn(response);
 
-    attributeDefService.updateAttributeDef(definitionId, request);
+    attributeDefService.updateAttributeDef(definitionId, request, UUID.randomUUID());
 
     assertThat(attributeDef.getName()).isEqualTo("색상");
     assertThat(attributeDef.getSelectableValues()).containsExactly("RED", "BLUE");
@@ -274,7 +278,7 @@ class AttributeDefServiceImplTest {
     given(clothesAttributeDefRepository.findById(definitionId)).willReturn(Optional.empty());
 
     BusinessException exception = catchThrowableOfType(
-        () -> attributeDefService.updateAttributeDef(definitionId, request),
+        () -> attributeDefService.updateAttributeDef(definitionId, request, UUID.randomUUID()),
         BusinessException.class
     );
 
@@ -295,7 +299,7 @@ class AttributeDefServiceImplTest {
     given(clothesAttributeDefRepository.findById(definitionId)).willReturn(Optional.of(attributeDef));
     given(attributeDefMapper.toClothesAttributeDefDto(attributeDef)).willReturn(response);
 
-    ClothesAttributeDefDto result = attributeDefService.updateAttributeDef(definitionId, request);
+    ClothesAttributeDefDto result = attributeDefService.updateAttributeDef(definitionId, request, UUID.randomUUID());
 
     assertThat(result).isEqualTo(response);
     verify(clothesAttributeDefRepository, never()).existsByName(any());
@@ -313,7 +317,7 @@ class AttributeDefServiceImplTest {
     given(clothesAttributeDefRepository.existsByName("재질")).willReturn(true);
 
     BusinessException exception = catchThrowableOfType(
-        () -> attributeDefService.updateAttributeDef(definitionId, request),
+        () -> attributeDefService.updateAttributeDef(definitionId, request, UUID.randomUUID()),
         BusinessException.class
     );
 
@@ -322,3 +326,5 @@ class AttributeDefServiceImplTest {
     verifyNoInteractions(attributeDefMapper);
   }
 }
+
+

@@ -13,24 +13,23 @@ import org.springframework.transaction.event.TransactionalEventListener;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class ClothingAttributeNotificationEventListener {
+public class ClothesNotificationEventListener {
 
   private final NotificationService notificationService;
 
   @Async
   @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-  public void handleClothingAttributeChanged(ClothingAttributeChangedEvent event) {
-
+  public void handleClothesChanged(ClothesChangedEvent event) {
     String title = switch (event.changeType()) {
-      case ADDED -> "새로운 의상 속성이 추가되었어요.";
-      case UPDATED -> "의상 속성이 변경되었어요.";
-      case DELETED -> "의상 속성이 삭제되었어요.";
+      case CREATED -> "의상이 등록되었어요.";
+      case UPDATED -> "의상 정보가 수정되었어요.";
+      case DELETED -> "의상이 삭제되었어요.";
     };
 
     String content = switch (event.changeType()) {
-      case ADDED -> "내 의상에 [" + event.attributeName() + "] 속성을 추가해보세요.";
-      case UPDATED -> "[" + event.attributeName() + "] 속성을 확인해보세요.";
-      case DELETED -> "[" + event.attributeName() + "] 속성이 삭제되었어요.";
+      case CREATED -> "[" + event.clothesName() + "] 의상이 등록되었어요.";
+      case UPDATED -> "[" + event.clothesName() + "] 의상 정보를 확인해보세요.";
+      case DELETED -> "[" + event.clothesName() + "] 의상이 삭제되었어요.";
     };
 
     try {
@@ -41,7 +40,7 @@ public class ClothingAttributeNotificationEventListener {
           NotificationLevel.INFO
       ));
     } catch (Exception e) {
-      log.warn("의상 속성 변경 알림 전송 실패. userId={}", event.userId(), e);
+      log.warn("의상 변경 알림 전송 실패. userId={}", event.userId(), e);
     }
   }
 }

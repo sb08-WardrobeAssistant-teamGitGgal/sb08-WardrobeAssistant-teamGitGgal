@@ -35,7 +35,8 @@ public interface ClothesControllerApi {
       content = @Content(schema = @Schema(implementation = ErrorResponse.class))
   )
   ResponseEntity<ClothesDtoCursorResponse> getClothes(
-      @ParameterObject ClothesGetRequest request
+      @ParameterObject ClothesGetRequest request,
+      @AuthenticationPrincipal ClothesUserDetails userDetails
   );
 
   @Operation(summary = "옷 등록", description = "새로운 옷을 등록합니다.")
@@ -92,7 +93,8 @@ public interface ClothesControllerApi {
       @Parameter(description = "의상 ID", required = true)
       UUID clothesId,
       ClothesUpdateRequest request,
-      MultipartFile image
+      MultipartFile image,
+      ClothesUserDetails userDetails
   );
 
   @Operation(summary = "구매 링크로 옷 정보 불러오기", description = "구매 링크 URL로 옷 정보를 추출합니다.")
