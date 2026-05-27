@@ -15,7 +15,7 @@ import org.springframework.transaction.event.TransactionalEventListener;
 @RequiredArgsConstructor
 public class FollowNotificationEventListener {
 
-  private NotificationService notificationService;
+  private final NotificationService notificationService;
 
   @Async
   @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
