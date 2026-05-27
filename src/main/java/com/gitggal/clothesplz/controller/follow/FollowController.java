@@ -5,6 +5,7 @@ import com.gitggal.clothesplz.dto.follow.FollowDto;
 import com.gitggal.clothesplz.dto.follow.FollowListResponse;
 import com.gitggal.clothesplz.dto.follow.FollowSummaryDto;
 import com.gitggal.clothesplz.security.ClothesUserDetails;
+import com.gitggal.clothesplz.controller.follow.api.FollowControllerApi;
 import com.gitggal.clothesplz.service.follow.FollowService;
 import com.gitggal.clothesplz.util.AuthenticationUtil;
 import jakarta.validation.Valid;
@@ -33,7 +34,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/follows")
 @RequiredArgsConstructor
-public class FollowController {
+public class FollowController implements FollowControllerApi {
 
   private final FollowService followService;
 

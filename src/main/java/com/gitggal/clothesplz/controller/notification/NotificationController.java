@@ -2,6 +2,7 @@ package com.gitggal.clothesplz.controller.notification;
 
 import com.gitggal.clothesplz.dto.notification.NotificationDtoCursorResponse;
 import com.gitggal.clothesplz.security.ClothesUserDetails;
+import com.gitggal.clothesplz.controller.notification.api.NotificationControllerApi;
 import com.gitggal.clothesplz.service.notification.NotificationService;
 import com.gitggal.clothesplz.util.AuthenticationUtil;
 import jakarta.validation.constraints.Positive;
@@ -26,7 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/notifications")
 @RequiredArgsConstructor
-public class NotificationController {
+public class NotificationController implements NotificationControllerApi {
 
   private final NotificationService notificationService;
 
