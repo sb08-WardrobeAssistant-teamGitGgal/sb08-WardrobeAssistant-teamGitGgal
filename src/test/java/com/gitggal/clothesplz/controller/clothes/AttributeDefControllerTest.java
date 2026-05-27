@@ -24,6 +24,9 @@ import com.gitggal.clothesplz.dto.clothes.ClothesAttributeDefUpdateRequest;
 import com.gitggal.clothesplz.exception.BusinessException;
 import com.gitggal.clothesplz.exception.GlobalExceptionHandler;
 import com.gitggal.clothesplz.exception.code.ClothesErrorCode;
+import com.gitggal.clothesplz.dto.user.UserDto;
+import com.gitggal.clothesplz.entity.user.UserRole;
+import com.gitggal.clothesplz.security.ClothesUserDetails;
 import com.gitggal.clothesplz.security.jwt.JwtAuthenticationFilter;
 import com.gitggal.clothesplz.service.clothes.AttributeDefService;
 import java.util.List;
@@ -75,12 +78,11 @@ class AttributeDefControllerTest {
         List.of("WHITE", "BLACK"),
         null
     );
-    given(attributeDefService.createAttributeDef(any(ClothesAttributeDefCreateRequest.class)))
+    given(attributeDefService.createAttributeDef(any(ClothesAttributeDefCreateRequest.class), any(UUID.class)))
         .willReturn(response);
 
     mockMvc.perform(post("/api/clothes/attribute-defs")
-            .with(user("admin")
-                .roles("ADMIN"))
+            .with(user(adminUserDetails()))
             .with(csrf())
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(request)))
@@ -90,7 +92,7 @@ class AttributeDefControllerTest {
         .andExpect(jsonPath("$.selectableValues[0]").value("WHITE"))
         .andExpect(jsonPath("$.selectableValues[1]").value("BLACK"));
 
-    verify(attributeDefService).createAttributeDef(any(ClothesAttributeDefCreateRequest.class));
+    verify(attributeDefService).createAttributeDef(any(ClothesAttributeDefCreateRequest.class), any(UUID.class));
   }
 
   @Test
@@ -102,7 +104,7 @@ class AttributeDefControllerTest {
     );
 
     mockMvc.perform(post("/api/clothes/attribute-defs")
-            .with(user("admin").roles("ADMIN"))
+            .with(user(adminUserDetails()))
             .with(csrf())
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(request)))
@@ -120,7 +122,7 @@ class AttributeDefControllerTest {
     );
 
     mockMvc.perform(post("/api/clothes/attribute-defs")
-            .with(user("admin").roles("ADMIN"))
+            .with(user(adminUserDetails()))
             .with(csrf())
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(request)))
@@ -138,7 +140,7 @@ class AttributeDefControllerTest {
     );
 
     mockMvc.perform(post("/api/clothes/attribute-defs")
-            .with(user("admin").roles("ADMIN"))
+            .with(user(adminUserDetails()))
             .with(csrf())
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(request)))
@@ -156,7 +158,7 @@ class AttributeDefControllerTest {
     );
 
     mockMvc.perform(post("/api/clothes/attribute-defs")
-            .with(user("admin").roles("ADMIN"))
+            .with(user(adminUserDetails()))
             .with(csrf())
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(request)))
@@ -174,7 +176,7 @@ class AttributeDefControllerTest {
     );
 
     mockMvc.perform(post("/api/clothes/attribute-defs")
-            .with(user("admin").roles("ADMIN"))
+            .with(user(adminUserDetails()))
             .with(csrf())
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(request)))
@@ -196,7 +198,7 @@ class AttributeDefControllerTest {
         .willReturn(response);
 
     mockMvc.perform(get("/api/clothes/attribute-defs")
-            .with(user("user").roles("USER"))
+            .with(user(normalUserDetails()))
             .with(csrf())
             .param("sortBy", "name")
             .param("sortDirection", "ASCENDING"))
@@ -216,7 +218,7 @@ class AttributeDefControllerTest {
         .willReturn(List.of());
 
     mockMvc.perform(get("/api/clothes/attribute-defs")
-            .with(user("user").roles("USER"))
+            .with(user(normalUserDetails()))
             .with(csrf())
             .param("sortBy", "name")
             .param("sortDirection", "DESCENDING")
@@ -230,7 +232,7 @@ class AttributeDefControllerTest {
   @DisplayName("실패 - 필수 파라미터 sortBy가 없으면 400을 반환한다")
   void getAttributeDefs_missingSortBy_returns400() throws Exception {
     mockMvc.perform(get("/api/clothes/attribute-defs")
-            .with(user("user").roles("USER"))
+            .with(user(normalUserDetails()))
             .with(csrf())
             .param("sortDirection", "ASCENDING"))
         .andExpect(status().isBadRequest());
@@ -242,7 +244,7 @@ class AttributeDefControllerTest {
   @DisplayName("실패 - 필수 파라미터 sortDirection이 없으면 400을 반환한다")
   void getAttributeDefs_missingSortDirection_returns400() throws Exception {
     mockMvc.perform(get("/api/clothes/attribute-defs")
-            .with(user("user").roles("USER"))
+            .with(user(normalUserDetails()))
             .with(csrf())
             .param("sortBy", "name"))
         .andExpect(status().isBadRequest());
@@ -257,11 +259,11 @@ class AttributeDefControllerTest {
         "색상",
         List.of("WHITE", "BLACK")
     );
-    given(attributeDefService.createAttributeDef(any(ClothesAttributeDefCreateRequest.class)))
+    given(attributeDefService.createAttributeDef(any(ClothesAttributeDefCreateRequest.class), any(UUID.class)))
         .willThrow(new BusinessException(ClothesErrorCode.DUPLICATE_ATTRIBUTE_NAME));
 
     mockMvc.perform(post("/api/clothes/attribute-defs")
-            .with(user("admin").roles("ADMIN"))
+            .with(user(adminUserDetails()))
             .with(csrf())
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(request)))
@@ -274,11 +276,11 @@ class AttributeDefControllerTest {
     UUID definitionId = UUID.randomUUID();
 
     mockMvc.perform(delete("/api/clothes/attribute-defs/" + definitionId)
-            .with(user("admin").roles("ADMIN"))
+            .with(user(adminUserDetails()))
             .with(csrf()))
         .andExpect(status().isNoContent());
 
-    verify(attributeDefService).deleteAttributeDefs(definitionId);
+    verify(attributeDefService).deleteAttributeDefs(eq(definitionId), any(UUID.class));
   }
 
   @Test
@@ -286,10 +288,10 @@ class AttributeDefControllerTest {
   void deleteAttributeDefs_notFound_returns400() throws Exception {
     UUID definitionId = UUID.randomUUID();
     doThrow(new BusinessException(ClothesErrorCode.CLOTHES_ATTRIBUTE_DEFINITION_NOT_FOUND))
-        .when(attributeDefService).deleteAttributeDefs(definitionId);
+        .when(attributeDefService).deleteAttributeDefs(eq(definitionId), any(UUID.class));
 
     mockMvc.perform(delete("/api/clothes/attribute-defs/" + definitionId)
-            .with(user("admin").roles("ADMIN"))
+            .with(user(adminUserDetails()))
             .with(csrf()))
         .andExpect(status().isBadRequest());
   }
@@ -308,11 +310,11 @@ class AttributeDefControllerTest {
         List.of("COTTON", "WOOL"),
         null
     );
-    given(attributeDefService.updateAttributeDef(eq(definitionId), any(ClothesAttributeDefUpdateRequest.class)))
+    given(attributeDefService.updateAttributeDef(eq(definitionId), any(ClothesAttributeDefUpdateRequest.class), any(UUID.class)))
         .willReturn(response);
 
     mockMvc.perform(patch("/api/clothes/attribute-defs/" + definitionId)
-            .with(user("admin").roles("ADMIN"))
+            .with(user(adminUserDetails()))
             .with(csrf())
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(request)))
@@ -322,7 +324,7 @@ class AttributeDefControllerTest {
         .andExpect(jsonPath("$.selectableValues[0]").value("COTTON"))
         .andExpect(jsonPath("$.selectableValues[1]").value("WOOL"));
 
-    verify(attributeDefService).updateAttributeDef(eq(definitionId), any(ClothesAttributeDefUpdateRequest.class));
+    verify(attributeDefService).updateAttributeDef(eq(definitionId), any(ClothesAttributeDefUpdateRequest.class), any(UUID.class));
   }
 
   @Test
@@ -333,17 +335,17 @@ class AttributeDefControllerTest {
     ClothesAttributeDefDto response = new ClothesAttributeDefDto(
         definitionId, "재질", List.of("WHITE", "BLACK"), null
     );
-    given(attributeDefService.updateAttributeDef(eq(definitionId), any(ClothesAttributeDefUpdateRequest.class)))
+    given(attributeDefService.updateAttributeDef(eq(definitionId), any(ClothesAttributeDefUpdateRequest.class), any(UUID.class)))
         .willReturn(response);
 
     mockMvc.perform(patch("/api/clothes/attribute-defs/" + definitionId)
-            .with(user("admin").roles("ADMIN"))
+            .with(user(adminUserDetails()))
             .with(csrf())
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isOk());
 
-    verify(attributeDefService).updateAttributeDef(eq(definitionId), any(ClothesAttributeDefUpdateRequest.class));
+    verify(attributeDefService).updateAttributeDef(eq(definitionId), any(ClothesAttributeDefUpdateRequest.class), any(UUID.class));
   }
 
   @Test
@@ -356,7 +358,7 @@ class AttributeDefControllerTest {
     );
 
     mockMvc.perform(patch("/api/clothes/attribute-defs/" + definitionId)
-            .with(user("admin").roles("ADMIN"))
+            .with(user(adminUserDetails()))
             .with(csrf())
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(request)))
@@ -372,7 +374,7 @@ class AttributeDefControllerTest {
     ClothesAttributeDefUpdateRequest request = new ClothesAttributeDefUpdateRequest("색상", List.of());
 
     mockMvc.perform(patch("/api/clothes/attribute-defs/" + definitionId)
-            .with(user("admin").roles("ADMIN"))
+            .with(user(adminUserDetails()))
             .with(csrf())
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(request)))
@@ -391,7 +393,7 @@ class AttributeDefControllerTest {
     );
 
     mockMvc.perform(patch("/api/clothes/attribute-defs/" + definitionId)
-            .with(user("admin").roles("ADMIN"))
+            .with(user(adminUserDetails()))
             .with(csrf())
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(request)))
@@ -405,14 +407,31 @@ class AttributeDefControllerTest {
   void updateAttributeDefs_notFound_returns400() throws Exception {
     UUID definitionId = UUID.randomUUID();
     ClothesAttributeDefUpdateRequest request = new ClothesAttributeDefUpdateRequest("재질", List.of("COTTON"));
-    given(attributeDefService.updateAttributeDef(eq(definitionId), any(ClothesAttributeDefUpdateRequest.class)))
+    given(attributeDefService.updateAttributeDef(eq(definitionId), any(ClothesAttributeDefUpdateRequest.class), any(UUID.class)))
         .willThrow(new BusinessException(ClothesErrorCode.CLOTHES_ATTRIBUTE_DEFINITION_NOT_FOUND));
 
     mockMvc.perform(patch("/api/clothes/attribute-defs/" + definitionId)
-            .with(user("admin").roles("ADMIN"))
+            .with(user(adminUserDetails()))
             .with(csrf())
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isBadRequest());
   }
+
+  private ClothesUserDetails adminUserDetails() {
+    return new ClothesUserDetails(
+        new UserDto(UUID.randomUUID(), null, "admin@test.com", "admin", UserRole.ADMIN, false),
+        "password"
+    );
+  }
+
+  private ClothesUserDetails normalUserDetails() {
+    return new ClothesUserDetails(
+        new UserDto(UUID.randomUUID(), null, "user@test.com", "user", UserRole.USER, false),
+        "password"
+    );
+  }
 }
+
+
+
