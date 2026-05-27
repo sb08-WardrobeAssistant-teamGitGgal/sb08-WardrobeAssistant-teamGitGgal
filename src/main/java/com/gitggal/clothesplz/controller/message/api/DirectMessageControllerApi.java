@@ -10,6 +10,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Positive;
 import java.util.UUID;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -32,7 +34,7 @@ public interface DirectMessageControllerApi {
       @Parameter(description = "상대방 사용자 ID", required = true) UUID userId,
       @Parameter(description = "커서") String cursor,
       @Parameter(description = "커서 보조 ID") UUID idAfter,
-      @Parameter(description = "페이지 크기", required = true) int limit,
+      @Parameter(description = "페이지 크기", required = true) @Positive @Max(100) int limit,
       @Parameter(hidden = true) @AuthenticationPrincipal ClothesUserDetails userDetails
   );
 }

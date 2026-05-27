@@ -7,6 +7,7 @@ import com.gitggal.clothesplz.dto.follow.FollowSummaryDto;
 import com.gitggal.clothesplz.exception.ErrorResponse;
 import com.gitggal.clothesplz.security.ClothesUserDetails;
 import io.swagger.v3.oas.annotations.Operation;
+import jakarta.validation.constraints.Positive;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -66,7 +67,7 @@ public interface FollowControllerApi {
       @Parameter(description = "이름 검색어") String nameLike,
       @Parameter(description = "커서") String cursor,
       @Parameter(description = "커서 보조 ID") UUID idAfter,
-      @Parameter(description = "페이지 크기", required = true) int limit
+      @Parameter(description = "페이지 크기", required = true) @Positive int limit
   );
 
   @Operation(summary = "팔로워 목록 조회", description = "팔로워 목록 조회 API")
@@ -85,7 +86,7 @@ public interface FollowControllerApi {
       @Parameter(description = "이름 검색어") String nameLike,
       @Parameter(description = "커서") String cursor,
       @Parameter(description = "커서 보조 ID") UUID idAfter,
-      @Parameter(description = "페이지 크기", required = true) int limit
+      @Parameter(description = "페이지 크기", required = true) @Positive int limit
   );
 
   @Operation(summary = "팔로우 요약 정보 조회", description = "팔로우 요약 정보 조회 API")
