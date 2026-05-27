@@ -419,4 +419,100 @@ class ClothesServiceTest extends ServiceTestSupport {
         .isEqualTo(ClothesErrorCode.DUPLICATE_CLOTHES_ATTRIBUTE_DEFINITION_ID);
     verify(imageUploader, times(1)).delete(uploadedImageUrl);
   }
+
+  @Test
+  @DisplayName("구매 링크 URL로 의상 정보를 추출한다")
+  void extractByUrl_success() {
+    String url = "https://www.musinsa.com/products/12345";
+    ClothesDto extracted = new ClothesDto(
+        null, null, "우먼 크롭 자켓", null, ClothesType.OUTER, List.of()
+    );
+    given(clothesAi.extractClothesByUrl(url)).willReturn(extracted);
+
+    ClothesDto result = clothesService.extractByUrl(url);
+
+    assertThat(result).isEqualTo(extracted);
+    verify(clothesAi).extractClothesByUrl(url);
+  }
+
+  @Test
+  @DisplayName("구매 링크 URL 형식이 잘못되면 INVALID_PURCHASE_URL 예외가 발생한다")
+  void extractByUrl_invalidUrl_throwsException() {
+    Throwable thrown = catchThrowable(() -> clothesService.extractByUrl("not-a-url"));
+
+    assertThat(thrown).isInstanceOf(BusinessException.class);
+    assertThat(((BusinessException) thrown).getErrorCode())
+        .isEqualTo(ClothesErrorCode.INVALID_PURCHASE_URL);
+    verify(clothesAi, never()).extractClothesByUrl(any());
+  }
+
+  @Test
+  @DisplayName("URL이 null이면 INVALID_PURCHASE_URL 예외가 발생한다")
+  void extractByUrl_nullUrl_throwsException() {
+    Throwable thrown = catchThrowable(() -> clothesService.extractByUrl(null));
+
+    assertThat(thrown).isInstanceOf(BusinessException.class);
+    assertThat(((BusinessException) thrown).getErrorCode())
+        .isEqualTo(ClothesErrorCode.INVALID_PURCHASE_URL);
+    verify(clothesAi, never()).extractClothesByUrl(any());
+  }
+
+  @Test
+  @DisplayName("URL이 공백이면 INVALID_PURCHASE_URL 예외가 발생한다")
+  void extractByUrl_blankUrl_throwsException() {
+    Throwable thrown = catchThrowable(() -> clothesService.extractByUrl("   "));
+
+    assertThat(thrown).isInstanceOf(BusinessException.class);
+    assertThat(((BusinessException) thrown).getErrorCode())
+        .isEqualTo(ClothesErrorCode.INVALID_PURCHASE_URL);
+    verify(clothesAi, never()).extractClothesByUrl(any());
+  }
+
+  @Test
+  @DisplayName("http/https가 아닌 스킴이면 INVALID_PURCHASE_URL 예외가 발생한다")
+  void extractByUrl_nonHttpScheme_throwsException() {
+    Throwable thrown = catchThrowable(() -> clothesService.extractByUrl("ftp://example.com/product"));
+
+    assertThat(thrown).isInstanceOf(BusinessException.class);
+    assertThat(((BusinessException) thrown).getErrorCode())
+        .isEqualTo(ClothesErrorCode.INVALID_PURCHASE_URL);
+    verify(clothesAi, never()).extractClothesByUrl(any());
+  }
+
+  @Test
+  @DisplayName("http 스킴 URL이면 추출 처리를 진행한다")
+  void extractByUrl_httpScheme_allowsHttp() {
+    String url = "http://example.com/product";
+    ClothesDto extracted = new ClothesDto(
+        null, null, "기본 셔츠", null, ClothesType.TOP, List.of()
+    );
+    given(clothesAi.extractClothesByUrl(url)).willReturn(extracted);
+
+    ClothesDto result = clothesService.extractByUrl(url);
+
+    assertThat(result).isEqualTo(extracted);
+    verify(clothesAi).extractClothesByUrl(url);
+  }
+
+  @Test
+  @DisplayName("host가 없는 URL이면 INVALID_PURCHASE_URL 예외가 발생한다")
+  void extractByUrl_withoutHost_throwsException() {
+    Throwable thrown = catchThrowable(() -> clothesService.extractByUrl("https:///product/1"));
+
+    assertThat(thrown).isInstanceOf(BusinessException.class);
+    assertThat(((BusinessException) thrown).getErrorCode())
+        .isEqualTo(ClothesErrorCode.INVALID_PURCHASE_URL);
+    verify(clothesAi, never()).extractClothesByUrl(any());
+  }
+
+  @Test
+  @DisplayName("URI 문법이 깨진 URL이면 INVALID_PURCHASE_URL 예외가 발생한다")
+  void extractByUrl_invalidUriSyntax_throwsException() {
+    Throwable thrown = catchThrowable(() -> clothesService.extractByUrl("https://exa mple.com/item"));
+
+    assertThat(thrown).isInstanceOf(BusinessException.class);
+    assertThat(((BusinessException) thrown).getErrorCode())
+        .isEqualTo(ClothesErrorCode.INVALID_PURCHASE_URL);
+    verify(clothesAi, never()).extractClothesByUrl(any());
+  }
 }

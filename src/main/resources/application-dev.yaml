@@ -14,9 +14,6 @@ spring:
       host: localhost
       port: 6379
 
-  elasticsearch:
-    uris: http://localhost:${ELASTIC_PORT}
-
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
@@ -33,6 +30,9 @@ spring:
     locations:
       - classpath:db/migration # 스키마 저장 위치 - 관례
       - classpath:db/seed      # 데이터 저장 위치 - 관례
+
+opensearch:
+  uris: http://localhost:${OPENSEARCH_PORT}
 
 logging:
   level:
