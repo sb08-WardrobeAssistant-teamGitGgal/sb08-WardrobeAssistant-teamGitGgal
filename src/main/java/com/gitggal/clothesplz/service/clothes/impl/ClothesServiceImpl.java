@@ -11,6 +11,7 @@ import com.gitggal.clothesplz.entity.clothes.Clothes;
 import com.gitggal.clothesplz.entity.clothes.ClothesAttribute;
 import com.gitggal.clothesplz.entity.clothes.ClothesAttributeDef;
 import com.gitggal.clothesplz.entity.user.User;
+import com.gitggal.clothesplz.event.clothes.ClothesChangedEvent;
 import com.gitggal.clothesplz.exception.BusinessException;
 import com.gitggal.clothesplz.exception.code.ClothesErrorCode;
 import com.gitggal.clothesplz.exception.code.UserErrorCode;
@@ -33,6 +34,7 @@ import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -49,6 +51,7 @@ public class ClothesServiceImpl implements ClothesService {
   private final ClothesMapper clothesMapper;
   private final ImageUploader imageUploader;
   private final ClothesAi clothesAi;
+  private final ApplicationEventPublisher eventPublisher;
 
   @Override
   @Transactional(readOnly = true)
@@ -152,6 +155,11 @@ public class ClothesServiceImpl implements ClothesService {
         attributeDef.add(clothesMapper.toClothesAttributeWithDefDto(def, value));
       }
       clothesAttributeRepository.saveAll(clothesAttributeList);
+      eventPublisher.publishEvent(new ClothesChangedEvent(
+          owner.getId(),
+          clothes.getName(),
+          ClothesChangedEvent.ChangeType.CREATED
+      ));
 
       log.info("[Service] 의상 생성 요청 완료");
       return clothesMapper.toClothesDto(clothes, owner, attributeDef);
@@ -176,6 +184,11 @@ public class ClothesServiceImpl implements ClothesService {
 
     clothesAttributeRepository.deleteAllByClothesId(clothesId);
     clothesRepository.delete(clothes);
+    eventPublisher.publishEvent(new ClothesChangedEvent(
+        clothes.getOwner().getId(),
+        clothes.getName(),
+        ClothesChangedEvent.ChangeType.DELETED
+    ));
 
     if (clothes.getImageUrl() != null && !clothes.getImageUrl().isBlank()) {
       imageUploader.delete(clothes.getImageUrl());
@@ -258,6 +271,11 @@ public class ClothesServiceImpl implements ClothesService {
       if (uploadedImageUrl != null && oldImageUrl != null && !oldImageUrl.isBlank()) {
         imageUploader.delete(oldImageUrl);
       }
+      eventPublisher.publishEvent(new ClothesChangedEvent(
+          clothes.getOwner().getId(),
+          clothes.getName(),
+          ClothesChangedEvent.ChangeType.UPDATED
+      ));
 
       log.info("[Service] 의상 수정 요청 완료: clothesId = {}", clothesId);
       return clothesMapper.toClothesDto(clothes, clothes.getOwner(), attributeDef);
