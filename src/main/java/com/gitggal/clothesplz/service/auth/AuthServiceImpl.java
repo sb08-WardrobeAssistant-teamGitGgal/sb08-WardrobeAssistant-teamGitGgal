@@ -11,19 +11,18 @@ import com.gitggal.clothesplz.security.jwt.JwtInformation;
 import com.gitggal.clothesplz.security.jwt.JwtRegistry;
 import com.gitggal.clothesplz.security.jwt.JwtTokenProvider;
 import com.nimbusds.jose.JOSEException;
-import jakarta.transaction.Transactional;
 import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 @Slf4j
 @Service
@@ -35,10 +34,7 @@ public class AuthServiceImpl implements AuthService {
   private final ClothesUserDetailsService clothesUserDetailsService;
   private final PasswordEncoder passwordEncoder;
   private final UserRepository userRepository;
-  private final JavaMailSender javaMailSender;
-
-  @Value("${spring.mail.username}")
-  private String senderEmail;
+  private final PasswordResetMailSender passwordResetMailSender;
 
   @Override
   public JwtInformation refresh(String refreshToken) {
@@ -87,7 +83,7 @@ public class AuthServiceImpl implements AuthService {
           jwtInformation
       );
 
-      if(!rotated){
+      if (!rotated) {
         throw new BusinessException(UserErrorCode.JWT_TOKEN_INVALID);
       }
 
@@ -127,20 +123,23 @@ public class AuthServiceImpl implements AuthService {
       throw new BusinessException(UserErrorCode.TEMP_PASSWORD_GENERATION_FAILED);
     }
 
-    // 메일 전송
-    try {
-      SimpleMailMessage message = new SimpleMailMessage();
-      message.setFrom(senderEmail);
-      message.setTo(email);
-      message.setSubject("[옷장을 부탁해] 임시 비밀번호 발급");
-      message.setText("안녕하세요. 옷장을 부탁해입니다. \n 임시 비밀번호가 발급되었습니다. "
-          + "\n 임시 비밀번호 : " + tempPassword + " \n3분 뒤 임시 비밀번호는 파기됩니다.\n "
-          + "로그인 후 마이페이지에서 비밀번호를 변경해 주세요");
-      javaMailSender.send(message);
-      log.info("[Service] 임시 비밀번호 발급 완료");
-    } catch (Exception e) {
-      log.warn("[Service] 이메일 전송 실패: message = {}", e.getMessage());
-      user.clearTempPassword();
+    final String finalTempPassword = tempPassword;
+    runAfterCommit(() -> passwordResetMailSender.sendTempPasswordEmail(email, finalTempPassword));
+  }
+
+  private void runAfterCommit(Runnable task) {
+    if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+      task.run();
+      return;
     }
+
+    TransactionSynchronizationManager.registerSynchronization(
+        new TransactionSynchronization() {
+          @Override
+          public void afterCommit() {
+            task.run();
+          }
+        }
+    );
   }
 }

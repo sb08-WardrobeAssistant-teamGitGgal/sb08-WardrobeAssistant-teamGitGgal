@@ -32,8 +32,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 @ExtendWith(MockitoExtension.class)
@@ -50,7 +48,7 @@ class AuthServiceTest {
   private ClothesUserDetailsService clothesUserDetailsService;
 
   @Mock
-  private JavaMailSender javaMailSender;
+  private PasswordResetMailSender passwordResetMailSender;
 
   @Mock
   private UserRepository userRepository;
@@ -244,7 +242,7 @@ class AuthServiceTest {
       assertThat(user.getTempPassword()).isEqualTo("encodedTempPassword");
       assertThat(user.getTempPasswordExpiresAt()).isNotNull();
 
-      then(javaMailSender).should().send(any(SimpleMailMessage.class));
+      then(passwordResetMailSender).should().sendTempPasswordEmail(anyString(), anyString());
     }
 
     @Test
@@ -260,7 +258,7 @@ class AuthServiceTest {
       // when & then
       authService.sendTempPassword(request);
 
-      then(javaMailSender).should(never()).send(any(SimpleMailMessage.class));
+      then(passwordResetMailSender).should(never()).sendTempPasswordEmail(anyString(), anyString());
     }
   }
 }
