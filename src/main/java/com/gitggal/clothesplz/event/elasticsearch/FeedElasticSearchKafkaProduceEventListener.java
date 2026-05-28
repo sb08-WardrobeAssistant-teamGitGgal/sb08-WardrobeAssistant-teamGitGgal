@@ -26,8 +26,8 @@ public class FeedElasticSearchKafkaProduceEventListener {
       kafkaTemplate.send("feed-es-sync", event.feedId().toString(), payload)
           .whenComplete((result, e) -> {
             if (e != null) {
-              log.error("[ES Kafka] es 동기화 메시지 전송 최종 실패 (재시도 모두 소진) - feedId={}, error={}",
-                  event.feedId(), e.getMessage());
+              log.error("[ES Kafka] es 동기화 메시지 전송 최종 실패 - feedId={}, errorType={}, error={}",
+                  event.feedId(), e.getClass().getSimpleName(), e.getMessage());
             }
           });
     } catch (JsonProcessingException e) {
@@ -43,8 +43,8 @@ public class FeedElasticSearchKafkaProduceEventListener {
       kafkaTemplate.send("feed-es-delete", event.feedId().toString(), payload)
           .whenComplete((result, e) -> {
             if (e != null) {
-              log.error("[ES Kafka] es 삭제 메시지 전송 최종 실패 (재시도 모두 소진) - feedId={}, error={}",
-                  event.feedId(), e.getMessage());
+              log.error("[ES Kafka] es 삭제 메시지 전송 최종 실패 - feedId={}, errorType={}, error={}",
+                  event.feedId(), e.getClass().getSimpleName(), e.getMessage());
             }
           });
     } catch (JsonProcessingException e) {
