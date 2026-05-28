@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
+import static org.mockito.BDDMockito.willAnswer;
 import static org.mockito.Mockito.never;
 
 import com.gitggal.clothesplz.dto.user.ResetPasswordRequest;
@@ -33,6 +34,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("AuthService Test")
@@ -87,7 +89,7 @@ class AuthServiceTest {
         "test@test.com",
         "oldPassword"
     );
-
+    ReflectionTestUtils.setField(user, "id", userId);
     clothesUserDetails = new ClothesUserDetails(userDto, "password", null, null);
 
     oldRefreshToken = "old.refresh.token";
@@ -113,7 +115,8 @@ class AuthServiceTest {
       given(tokenProvider.generateRefreshToken(clothesUserDetails)).willReturn(newRefreshToken);
       given(tokenProvider.getAccessTokenExpiry(newAccessToken)).willReturn(accessTokenExpiry);
       given(tokenProvider.getRefreshTokenExpiry(newRefreshToken)).willReturn(refreshTokenExpiry);
-      given(jwtRegistry.rotateJwtInformation(anyString(), any(JwtInformation.class))).willReturn(true);
+      given(jwtRegistry.rotateJwtInformation(anyString(), any(JwtInformation.class))).willReturn(
+          true);
 
       // when
       JwtInformation result = authService.refresh(oldRefreshToken);
@@ -209,7 +212,8 @@ class AuthServiceTest {
       given(clothesUserDetailsService.loadUserById(userId)).willReturn(clothesUserDetails);
       given(tokenProvider.generateAccessToken(clothesUserDetails)).willReturn(newAccessToken);
       given(tokenProvider.generateRefreshToken(clothesUserDetails)).willReturn(newRefreshToken);
-      given(jwtRegistry.rotateJwtInformation(anyString(), any(JwtInformation.class))).willReturn(false);
+      given(jwtRegistry.rotateJwtInformation(anyString(), any(JwtInformation.class))).willReturn(
+          false);
 
       // when & then
       assertThatThrownBy(() -> authService.refresh(oldRefreshToken))
@@ -242,7 +246,8 @@ class AuthServiceTest {
       assertThat(user.getTempPassword()).isEqualTo("encodedTempPassword");
       assertThat(user.getTempPasswordExpiresAt()).isNotNull();
 
-      then(passwordResetMailSender).should().sendTempPasswordEmail(anyString(), anyString());
+      then(passwordResetMailSender).should()
+          .sendTempPasswordEmail(anyString(), anyString(), any(Runnable.class));
     }
 
     @Test
@@ -258,7 +263,37 @@ class AuthServiceTest {
       // when & then
       authService.sendTempPassword(request);
 
-      then(passwordResetMailSender).should(never()).sendTempPasswordEmail(anyString(), anyString());
+      then(passwordResetMailSender).should(never())
+          .sendTempPasswordEmail(anyString(), anyString(), any(Runnable.class));
     }
+  }
+
+  @Test
+  @DisplayName("메일 전송 실패")
+  void sendTempPassword_fail_sendMail() {
+    // given
+    ResetPasswordRequest request = new ResetPasswordRequest("test@test.com");
+
+    given(userRepository.findByEmail(request.email())).willReturn(Optional.of(user));
+
+    given(passwordEncoder.encode(anyString())).willReturn("encodedTempPassword");
+
+    willAnswer(invocation -> {
+      Runnable rollbackAction = invocation.getArgument(2);
+      rollbackAction.run();
+      return null;
+    }).given(passwordResetMailSender)
+        .sendTempPasswordEmail(anyString(), anyString(), any(Runnable.class));
+
+    given(userRepository.findById(any(UUID.class))).willReturn(Optional.of(user));
+
+    // when
+    authService.sendTempPassword(request);
+
+    // then
+    assertThat(user.getTempPassword()).isNull();
+    assertThat(user.getTempPasswordExpiresAt()).isNull();
+
+    then(userRepository).should().findById(any(UUID.class));
   }
 }

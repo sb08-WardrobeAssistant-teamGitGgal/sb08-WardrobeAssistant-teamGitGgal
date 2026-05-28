@@ -19,7 +19,7 @@ public class PasswordResetMailSender {
   private String senderEmail;
 
   @Async("taskExecutor")
-  public void sendTempPasswordEmail(String email, String tempPassword) {
+  public void sendTempPasswordEmail(String email, String tempPassword, Runnable onFailure) {
     try {
       SimpleMailMessage message = new SimpleMailMessage();
       message.setFrom(senderEmail);
@@ -29,9 +29,10 @@ public class PasswordResetMailSender {
           + "\n 임시 비밀번호 : " + tempPassword + " \n3분 뒤 임시 비밀번호는 파기됩니다.\n "
           + "로그인 후 마이페이지에서 비밀번호를 변경해 주세요");
       javaMailSender.send(message);
-      log.info("[Service] 임시 비밀번호 이메일 전송 완료: email={}", email);
+      log.info("[Service] 임시 비밀번호 이메일 전송 완료");
     } catch (Exception e) {
-      log.warn("[Service] 임시 비밀번호 이메일 전송 실패: email={}, message={}", email, e.getMessage());
+      log.warn("[Service] 임시 비밀번호 이메일 전송 실패:  message={}", e.getMessage());
+      onFailure.run();
     }
   }
 }

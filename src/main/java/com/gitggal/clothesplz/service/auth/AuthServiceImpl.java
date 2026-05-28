@@ -20,6 +20,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
@@ -124,7 +125,8 @@ public class AuthServiceImpl implements AuthService {
     }
 
     final String finalTempPassword = tempPassword;
-    runAfterCommit(() -> passwordResetMailSender.sendTempPasswordEmail(email, finalTempPassword));
+    runAfterCommit(() -> passwordResetMailSender.sendTempPasswordEmail(email, finalTempPassword,
+        () -> clearTempPasswordById(user.getId())));
   }
 
   private void runAfterCommit(Runnable task) {
@@ -141,5 +143,14 @@ public class AuthServiceImpl implements AuthService {
           }
         }
     );
+  }
+
+  @Transactional(propagation = Propagation.REQUIRES_NEW)
+  public void clearTempPasswordById(UUID userId) {
+    userRepository.findById(userId)
+        .ifPresent(user -> {
+          user.clearTempPassword();
+          log.info("[Service] 메일 전송 실패로 임시 비밀번호 초기화: userId={}", userId);
+        });
   }
 }
