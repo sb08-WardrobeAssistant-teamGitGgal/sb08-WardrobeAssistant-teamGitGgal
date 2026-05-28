@@ -26,6 +26,8 @@ spring:
 
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
+    admin:
+      auto-create: false # 토픽 자동 생성 차단
 
 # Common Logging
 logging:
