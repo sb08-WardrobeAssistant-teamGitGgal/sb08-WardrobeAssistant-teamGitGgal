@@ -35,6 +35,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.4'
+    implementation 'org.jsoup:jsoup:1.22.2'
 
     // Database / migration
     implementation 'org.flywaydb:flyway-core'
@@ -72,10 +73,15 @@ dependencies {
     // Security
     implementation 'org.springframework.boot:spring-boot-starter-security'
     testImplementation 'org.springframework.security:spring-security-test'
+    implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
 
     // AWS
     implementation platform('software.amazon.awssdk:bom:2.31.62')
     implementation 'software.amazon.awssdk:s3'
+
+    // Image processing
+    implementation 'org.apache.tika:tika-core:2.9.2'
+    implementation 'com.twelvemonkeys.imageio:imageio-webp:3.11.0'
 
     // jwt
     implementation 'com.nimbusds:nimbus-jose-jwt:10.3'
@@ -162,7 +168,7 @@ jacocoTestCoverageVerification {
 def querydslDir = "src/main/generated"
 
 sourceSets {
-    main.java.srcDirs += [ querydslDir ]
+    main.java.srcDirs += [querydslDir]
 }
 
 tasks.named('compileJava') {

@@ -37,7 +37,11 @@ public class ClothesController implements ClothesControllerApi {
 
   @Override
   @GetMapping
-  public ResponseEntity<ClothesDtoCursorResponse> getClothes(@Valid ClothesGetRequest request) {
+  @PreAuthorize("isAuthenticated()")
+  public ResponseEntity<ClothesDtoCursorResponse> getClothes(
+      @Valid ClothesGetRequest request,
+      @AuthenticationPrincipal ClothesUserDetails userDetails
+  ) {
     log.info("[Controller] 의상 조회 요청 시작");
 
     ClothesDtoCursorResponse response = clothesService.getClothes(request);
@@ -50,6 +54,7 @@ public class ClothesController implements ClothesControllerApi {
 
   @Override
   @PostMapping
+  @PreAuthorize("isAuthenticated()")
   public ResponseEntity<ClothesDto> createClothes(
       @RequestPart @Valid ClothesCreateRequest request,
       @RequestPart(required = false) MultipartFile image
@@ -81,10 +86,12 @@ public class ClothesController implements ClothesControllerApi {
 
   @Override
   @PatchMapping("/{clothesId}")
+  @PreAuthorize("hasRole('ADMIN') or @clothesRepository.existsByIdAndOwnerId(#clothesId, #userDetails?.userDto?.id)")
   public ResponseEntity<ClothesDto> updateClothes(
       @PathVariable UUID clothesId,
       @RequestPart @Valid ClothesUpdateRequest request,
-      @RequestPart(required = false) MultipartFile image
+      @RequestPart(required = false) MultipartFile image,
+      @AuthenticationPrincipal ClothesUserDetails userDetails
   ) {
     log.info("[Controller] 의상 수정 요청 시작");
 
@@ -102,6 +109,7 @@ public class ClothesController implements ClothesControllerApi {
 
   @Override
   @GetMapping("/extractions")
+  @PreAuthorize("isAuthenticated()")
   public ResponseEntity<ClothesDto> extractByUrl(
       @RequestParam String url
   ) {

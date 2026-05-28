@@ -15,7 +15,7 @@ public interface ClothesAi {
    * @param allClothes 의상 목록
    * @return 현재 날씨에 맞는 의상 ID
    */
-  List<UUID> recommendClothesIds(Weather weather, List<Clothes> allClothes);
+  List<UUID> recommendClothesIds(Weather weather, List<Clothes> allClothes, short tempSensitivity);
 
   /**
    * 구매 링크 URL을 전달하면 초기 의상 정보를 추출한다.

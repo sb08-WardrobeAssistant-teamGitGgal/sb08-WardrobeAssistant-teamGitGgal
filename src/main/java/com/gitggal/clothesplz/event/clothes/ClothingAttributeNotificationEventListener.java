@@ -33,18 +33,15 @@ public class ClothingAttributeNotificationEventListener {
       case DELETED -> "[" + event.attributeName() + "] 속성이 삭제되었어요.";
     };
 
-    event.allUserIds().forEach(userId -> {
-          try {
-            notificationService.send(new NotificationRequest(
-                userId,
-                title,
-                content,
-                NotificationLevel.INFO
-            ));
-          } catch (Exception e) {
-            log.warn("의상 속성 변경 알림 전송 실패. userId={}", userId, e);
-          }
-        }
-    );
+    try {
+      notificationService.send(new NotificationRequest(
+          event.userId(),
+          title,
+          content,
+          NotificationLevel.INFO
+      ));
+    } catch (Exception e) {
+      log.warn("의상 속성 변경 알림 전송 실패. userId={}", event.userId(), e);
+    }
   }
 }

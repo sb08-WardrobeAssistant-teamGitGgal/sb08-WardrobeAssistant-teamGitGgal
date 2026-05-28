@@ -12,16 +12,16 @@ import com.gitggal.clothesplz.dto.follow.FollowCreateRequest;
 import com.gitggal.clothesplz.dto.follow.FollowDto;
 import com.gitggal.clothesplz.dto.follow.FollowListResponse;
 import com.gitggal.clothesplz.dto.follow.FollowSummaryDto;
-import com.gitggal.clothesplz.dto.notification.NotificationRequest;
 import com.gitggal.clothesplz.entity.follow.Follow;
 import com.gitggal.clothesplz.entity.user.User;
+import com.gitggal.clothesplz.event.follow.FollowCreatedEvent;
 import com.gitggal.clothesplz.exception.BusinessException;
 import com.gitggal.clothesplz.exception.code.FollowErrorCode;
 import com.gitggal.clothesplz.mapper.follow.FollowMapper;
 import com.gitggal.clothesplz.repository.follow.FollowRepository;
 import com.gitggal.clothesplz.repository.user.UserRepository;
 import com.gitggal.clothesplz.service.follow.impl.FollowServiceImpl;
-import com.gitggal.clothesplz.service.notification.NotificationService;
+import org.springframework.context.ApplicationEventPublisher;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -47,7 +47,7 @@ public class FollowServiceTest {
   private FollowMapper followMapper;
 
   @Mock
-  private NotificationService notificationService;
+  private ApplicationEventPublisher eventPublisher;
 
   @InjectMocks
   private FollowServiceImpl followService;
@@ -91,8 +91,8 @@ public class FollowServiceTest {
     // followRepository.save()가 정확히 호출되었는지 확인
     then(followRepository).should().save(any(Follow.class));
 
-    // notificationService.send()가 알림 요청과 함께 호출되었는지 확인
-    then(notificationService).should().send(any(NotificationRequest.class));
+    // eventPublisher.publishEvent()가 FollowCreatedEvent와 함께 호출되었는지 확인
+    then(eventPublisher).should().publishEvent(any(FollowCreatedEvent.class));
   }
 
   @Test

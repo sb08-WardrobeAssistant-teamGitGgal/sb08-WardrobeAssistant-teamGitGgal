@@ -4,6 +4,7 @@ import com.gitggal.clothesplz.dto.clothes.ClothesAttributeDefCreateRequest;
 import com.gitggal.clothesplz.dto.clothes.ClothesAttributeDefDto;
 import com.gitggal.clothesplz.dto.clothes.ClothesAttributeDefUpdateRequest;
 import com.gitggal.clothesplz.exception.ErrorResponse;
+import com.gitggal.clothesplz.security.ClothesUserDetails;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
@@ -14,6 +15,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 
 
 @Tag(name = "의상 속성 관리", description = "의상 관련 API")
@@ -31,7 +33,9 @@ public interface AttributeDefControllerApi {
       content = @Content(schema = @Schema(implementation = ErrorResponse.class))
   )
   ResponseEntity<ClothesAttributeDefDto> createAttributeDef(
-      ClothesAttributeDefCreateRequest request
+      ClothesAttributeDefCreateRequest request,
+      @Parameter(hidden = true)
+      @AuthenticationPrincipal ClothesUserDetails userDetails
   );
 
   @Operation(summary = "의상 속성 정의 목록 조회", description = "의상 속성 정의 목록을 조회합니다.")
@@ -74,8 +78,9 @@ public interface AttributeDefControllerApi {
       content = @Content(schema = @Schema(implementation = ErrorResponse.class))
   )
   ResponseEntity<Void> deleteAttributeDefs(
-      @Parameter(description = "속성 정의 ID", required = true)
-      UUID definitionId
+      @Parameter(description = "속성 정의 ID", required = true) UUID definitionId,
+      @Parameter(hidden = true)
+      @AuthenticationPrincipal ClothesUserDetails userDetails
   );
 
   @Operation(summary = "의상 속성 정의 수정", description = "의상 속성 정의를 수정합니다.")
@@ -102,6 +107,8 @@ public interface AttributeDefControllerApi {
   ResponseEntity<ClothesAttributeDefDto> updateAttributeDefs(
       @Parameter(description = "속성 정의 ID", required = true)
       UUID definitionId,
-      ClothesAttributeDefUpdateRequest request
+      ClothesAttributeDefUpdateRequest request,
+      @Parameter(hidden = true)
+      @AuthenticationPrincipal ClothesUserDetails userDetails
   );
 }
