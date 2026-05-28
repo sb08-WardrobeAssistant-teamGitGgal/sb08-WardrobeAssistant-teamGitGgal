@@ -97,6 +97,9 @@ dependencies {
 
     // Retry
     implementation 'org.springframework.retry:spring-retry'
+
+    // Kafka
+    implementation 'org.springframework.kafka:spring-kafka'
 }
 
 tasks.named('test') {
@@ -123,7 +126,8 @@ def jacocoExcludePatterns = [
         "**/*ErrorCode*",
         "**/*Mapper*",
         "**/entity/**",
-        "**/publisher/**"
+        "**/publisher/**",
+        "**/elasticsearch/**"
 ]
 
 jacocoTestReport {
