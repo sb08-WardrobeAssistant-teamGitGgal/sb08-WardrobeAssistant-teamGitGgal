@@ -6,7 +6,6 @@ import com.gitggal.clothesplz.dto.clothes.ClothesDto;
 import com.gitggal.clothesplz.entity.clothes.Clothes;
 import com.gitggal.clothesplz.entity.clothes.ClothesType;
 import com.gitggal.clothesplz.entity.weather.Weather;
-import com.gitggal.clothesplz.repository.clothes.ClothesAttributeRepository;
 import com.gitggal.clothesplz.service.ai.ClothesAi;
 import com.gitggal.clothesplz.service.ai.HtmlProductExtractor;
 import com.gitggal.clothesplz.service.ai.HtmlProductExtractor.ScrapeResult;
@@ -28,18 +27,15 @@ public class OpenAiClothesAi implements ClothesAi {
 
   private final ChatClient chatClient;
   private final ObjectMapper objectMapper;
-  private final ClothesAttributeRepository clothesAttributeRepository;
   private final HtmlProductExtractor htmlExtractor;
 
   public OpenAiClothesAi(
       ChatClient.Builder chatClientBuilder,
       ObjectMapper objectMapper,
-      ClothesAttributeRepository clothesAttributeRepository,
       HtmlProductExtractor htmlExtractor
   ) {
     this.chatClient = chatClientBuilder.build();
     this.objectMapper = objectMapper;
-    this.clothesAttributeRepository = clothesAttributeRepository;
     this.htmlExtractor = htmlExtractor;
   }
 
@@ -49,9 +45,15 @@ public class OpenAiClothesAi implements ClothesAi {
   public List<UUID> recommendClothesIds(
       Weather weather,
       List<Clothes> allClothes,
-      short tempSensitivity
+      short tempSensitivity,
+      Map<UUID, List<String>> attributesByClothesId
   ) {
-    String userPrompt = buildRecommendPrompt(weather, allClothes, tempSensitivity);
+    String userPrompt = buildRecommendPrompt(
+        weather,
+        allClothes,
+        tempSensitivity,
+        attributesByClothesId
+    );
     try {
       log.info("[OpenAI] 의상 추천 시작");
       String content = chatClient.prompt()
@@ -84,10 +86,9 @@ public class OpenAiClothesAi implements ClothesAi {
   private String buildRecommendPrompt(
       Weather weather,
       List<Clothes> allClothes,
-      short tempSensitivity
+      short tempSensitivity,
+      Map<UUID, List<String>> attributesByClothesId
   ) {
-    // key: 의상ID, value: 의상 속성 목록
-    Map<UUID, List<String>> attributesByClothesId = buildAttributesByClothesId(allClothes);
     return buildWeatherSection(weather)
            + buildSensitivitySection(tempSensitivity)
            + buildClothesSection(allClothes, attributesByClothesId);
@@ -141,22 +142,6 @@ public class OpenAiClothesAi implements ClothesAi {
     }
     sb.append("\n추천할 id 5개를 반환하세요.");
     return sb.toString();
-  }
-
-  private Map<UUID, List<String>> buildAttributesByClothesId(List<Clothes> allClothes) {
-    if (allClothes.isEmpty()) {
-      return Map.of();
-    }
-    List<UUID> clothesIds = allClothes.stream().map(Clothes::getId).toList();
-
-    return clothesAttributeRepository.findAllByClothesIdIn(clothesIds).stream()
-        .collect(Collectors.groupingBy(
-            attr -> attr.getClothes().getId(),
-            Collectors.mapping(
-                attr -> attr.getDefinition().getName() + ":" + attr.getValue(),
-                Collectors.toList()
-            )
-        ));
   }
 
   // AI 응답을 파싱 -> 의상 ID만 추출

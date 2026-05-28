@@ -57,17 +57,31 @@ public class RecommendationServiceImpl implements RecommendationService {
         .orElse((short) 3);
 
     // AI 추천 목록
-    List<Clothes> recommended = recommendByLlm(weather, allClothes, tempSensitivity);
-
-    // 추천 의상 목록으로 의상 속성 추출 -> 의상 ID : 속성 List 의 Map
     Map<UUID, List<ClothesAttributeWithDefDto>> attributesByClothesId =
-        findAttributesByClothesId(recommended);
+        findAttributesByClothesId(allClothes);
+    Map<UUID, List<String>> promptAttributesByClothesId =
+        toPromptAttributesByClothesId(attributesByClothesId);
+    List<Clothes> recommended = recommendByLlm(
+        weather,
+        allClothes,
+        tempSensitivity,
+        promptAttributesByClothesId
+    );
+
+    // 추천 의상 목록으로 의상 속성 매핑 재사용
+    Map<UUID, List<ClothesAttributeWithDefDto>> recommendedAttributesByClothesId =
+        recommended.stream()
+            .collect(Collectors.toMap(
+                Clothes::getId,
+                clothes -> attributesByClothesId.getOrDefault(clothes.getId(), List.of()),
+                (a, b) -> a
+            ));
 
     // OOTD로 변환
     List<OotdDto> recommendedDtos = recommended.stream()
         .map(clothes -> clothesMapper.toOotdDto(
             clothes,
-            attributesByClothesId.getOrDefault(clothes.getId(), List.of())
+            recommendedAttributesByClothesId.getOrDefault(clothes.getId(), List.of())
         ))
         .toList();
 
@@ -76,14 +90,24 @@ public class RecommendationServiceImpl implements RecommendationService {
     return new RecommendationDto(weatherId.toString(), user.id().toString(), recommendedDtos);
   }
 
-  private List<Clothes> recommendByLlm(Weather weather, List<Clothes> allClothes, short tempSensitivity) {
+  private List<Clothes> recommendByLlm(
+      Weather weather,
+      List<Clothes> allClothes,
+      short tempSensitivity,
+      Map<UUID, List<String>> promptAttributesByClothesId
+  ) {
     if (allClothes.isEmpty()) {
       return List.of();
     }
     List<UUID> ids;
     try {
       // OpenAI를 통한 추천
-      ids = clothesAi.recommendClothesIds(weather, allClothes, tempSensitivity);
+      ids = clothesAi.recommendClothesIds(
+          weather,
+          allClothes,
+          tempSensitivity,
+          promptAttributesByClothesId
+      );
     } catch (RuntimeException e) {
       log.error("[Service] LLM 추천 호출 실패: {}", e.getMessage(), e);
       return fallback(weather.getTemperatureCurrent(), allClothes);
@@ -114,6 +138,18 @@ public class RecommendationServiceImpl implements RecommendationService {
                 ),
                 Collectors.toList()
             )
+        ));
+  }
+
+  private Map<UUID, List<String>> toPromptAttributesByClothesId(
+      Map<UUID, List<ClothesAttributeWithDefDto>> attributesByClothesId
+  ) {
+    return attributesByClothesId.entrySet().stream()
+        .collect(Collectors.toMap(
+            Map.Entry::getKey,
+            entry -> entry.getValue().stream()
+                .map(attr -> attr.definitionName() + ":" + attr.value())
+                .toList()
         ));
   }
 
