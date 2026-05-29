@@ -71,15 +71,16 @@ public class OpenAiClothesAi implements ClothesAi {
 
   private String recommendSystemPrompt() {
     return """
-        날씨/온도민감도/의상목록을 보고 추천 ID 5개를 고르세요.
+        날씨/온도민감도/의상목록을 보고 추천 ID 최대 7개, 최소 4개를 고르세요.
         규칙:
         - 제공된 id 중에서만 선택
         - 타입이 한쪽으로 치우치지 않게 분산
         - 동일 타입은 최대 2개
         - 적절한 항목이 없으면 가능한 범위에서만 추천
         출력:
-        {"recommendedIds":["uuid1","uuid2","uuid3","uuid4","uuid5"]}
+        {"recommendedIds":["uuid1","uuid2","uuid3","uuid4","uuid5", ...]}
         JSON 외 텍스트/코드블록 금지
+        추천 uuid는 최소 4개 ~ 7개를 추천
         """;
   }
 

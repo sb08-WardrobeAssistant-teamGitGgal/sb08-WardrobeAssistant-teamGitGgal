@@ -17,6 +17,8 @@ import com.gitggal.clothesplz.repository.profile.ProfileRepository;
 import com.gitggal.clothesplz.repository.weather.WeatherRepository;
 import com.gitggal.clothesplz.service.ai.ClothesAi;
 import com.gitggal.clothesplz.service.clothes.RecommendationService;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -49,7 +51,8 @@ public class RecommendationServiceImpl implements RecommendationService {
         .orElseThrow(() -> new BusinessException(WeatherErrorCode.WEATHER_NOT_FOUND));
 
     // 소유하고 있는 옷
-    List<Clothes> allClothes = clothesRepository.findByOwnerId(user.id());
+    List<Clothes> allClothes = new ArrayList<>(clothesRepository.findByOwnerId(user.id()));
+    Collections.shuffle(allClothes);
 
     // 온도 민감도
     short tempSensitivity = profileRepository.findByUserId(user.id())
