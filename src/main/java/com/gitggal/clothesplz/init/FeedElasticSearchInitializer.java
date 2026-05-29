@@ -28,7 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class FeedElasticSearchInitializer implements CommandLineRunner {
 
   private static final String LOCK_KEY = "feed:es:init:lock";
-  private static final Duration LOCK_TTL = Duration.ofMinutes(10);
+  private static final Duration LOCK_TTL = Duration.ofMinutes(30);
 
   private final FeedRepository feedRepository;
   private final FeedSearchRepository feedSearchRepository;
@@ -43,7 +43,7 @@ public class FeedElasticSearchInitializer implements CommandLineRunner {
     Boolean acquired = redisTemplate.opsForValue()
         .setIfAbsent(LOCK_KEY, lockValue, LOCK_TTL);
 
-    if (Boolean.FALSE.equals(acquired)) {
+    if (!Boolean.TRUE.equals(acquired)) {
       log.info("[ES 초기화] 다른 서버에서 초기화 진행 중...., 건너뜁니다.");
       return;
     }
