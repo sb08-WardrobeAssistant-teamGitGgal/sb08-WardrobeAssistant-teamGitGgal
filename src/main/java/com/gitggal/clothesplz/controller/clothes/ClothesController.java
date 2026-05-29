@@ -54,7 +54,7 @@ public class ClothesController implements ClothesControllerApi {
 
   @Override
   @PostMapping
-  @PreAuthorize("hasRole('ADMIN') or #userDetails.userDto.id.equals(#request.ownerId())")
+  @PreAuthorize("hasRole('ADMIN') or (#userDetails != null and #userDetails.userDto.id.equals(#request.ownerId()))")
   public ResponseEntity<ClothesDto> createClothes(
       @RequestPart @Valid ClothesCreateRequest request,
       @RequestPart(required = false) MultipartFile image,
