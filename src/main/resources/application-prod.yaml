@@ -1,5 +1,6 @@
 server:
   port: ${PORT}
+  forward-headers-strategy: framework
 
 spring:
   datasource:
@@ -23,6 +24,23 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
+    admin:
+      auto-create: false # 토픽 자동 생성 차단
+    topic:
+      partitions: ${KAFKA_TOPIC_PARTITIONS:3}
+      replicas: ${KAFKA_TOPIC_REPLICAS:3}
+
+  security:
+    oauth2:
+      client:
+        registration:
+          kakao:
+            redirect-uri: "${OAUTH_REDIRECT_URI}/login/oauth2/code/kakao"
+          google:
+            redirect-uri: "${OAUTH_REDIRECT_URI}/login/oauth2/code/google"
 
 # Common Logging
 logging:

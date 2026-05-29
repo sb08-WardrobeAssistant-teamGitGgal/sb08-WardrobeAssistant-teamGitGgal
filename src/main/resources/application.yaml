@@ -72,10 +72,31 @@ spring:
             user-info-uri: https://kapi.kakao.com/v2/user/me
             user-name-attribute: id
 
+  kafka:
+    producer:
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      # 전송 실패 시 kafka 클라이언트가 자동으로 최대 3회 재시도
+      retries: 3
+      acks: all
+      properties:
+        # 재시도 사이 대기 시간
+        retry.backoff.ms: 1000
+        # 재시도 포함해서 전체 전송 허용하는 시간
+        delivery.timeout.ms: 30000
+    consumer:
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      # 처음 구독하거나 오프셋이 없을 때 토픽의 맨 처음부터 메시지 읽음
+      auto-offset-reset: earliest
+      # 메시지 처리 완료 후 수동으로 커밋(실패 시 retry 토픽으로 이동)
+      enable-auto-commit: false
+      group-id: clothesplz-group
+
 # Common Logging
 logging:
   level:
     root: info
+    org.apache.kafka: warn
+    org.springframework.kafka: warn
 
 # Actuator
 management:
