@@ -10,6 +10,7 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseCookie;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.logout.LogoutHandler;
 import org.springframework.stereotype.Component;
@@ -25,11 +26,16 @@ public class CustomLogoutHandler implements LogoutHandler {
   @Override
   public void logout(HttpServletRequest request, HttpServletResponse response,
       Authentication authentication) {
+    if (!isAuthenticated(authentication)) {
+      log.warn("[Security] 로그아웃: 인증되지 않은 사용자입니다.");
+      return;
+    }
+
     ResponseCookie responseCookie = tokenProvider.generateRefreshTokenExpirationCookie();
     response.addHeader("Set-Cookie", responseCookie.toString());
 
     Cookie[] cookies = request.getCookies();
-    if(cookies == null) {
+    if (cookies == null) {
       log.warn("[Security] 로그아웃: 쿠키가 없습니다.");
       return;
     }
@@ -40,7 +46,7 @@ public class CustomLogoutHandler implements LogoutHandler {
         .ifPresent(cookie -> {
           String refreshToken = cookie.getValue();
 
-          if(!tokenProvider.validateRefreshToken(refreshToken)) {
+          if (!tokenProvider.validateRefreshToken(refreshToken)) {
             log.warn("[Security] 로그아웃: 유효하지 않은 refreshToken 입니다.");
             return;
           }
@@ -49,5 +55,11 @@ public class CustomLogoutHandler implements LogoutHandler {
           jwtRegistry.invalidateJwtInformationByUserId(userId);
         });
 
+  }
+
+  private boolean isAuthenticated(Authentication authentication) {
+    return authentication != null
+        && authentication.isAuthenticated()
+        && !(authentication instanceof AnonymousAuthenticationToken);
   }
 }

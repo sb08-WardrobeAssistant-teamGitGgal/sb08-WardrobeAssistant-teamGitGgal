@@ -70,6 +70,7 @@ public class CustomLogoutHandlerTest {
 
     Cookie cookie = new Cookie("REFRESH_TOKEN", refreshToken);
 
+    when(authentication.isAuthenticated()).thenReturn(true);
     when(tokenProvider.generateRefreshTokenExpirationCookie()).thenReturn(expiredCookie);
     when(request.getCookies()).thenReturn(new Cookie[]{cookie});
     when(tokenProvider.validateRefreshToken(refreshToken)).thenReturn(true);
@@ -81,7 +82,6 @@ public class CustomLogoutHandlerTest {
     verify(response).addHeader(eq("Set-Cookie"), anyString());
     verify(tokenProvider).validateRefreshToken(refreshToken);
     verify(tokenProvider).getUserId(refreshToken);
-    verify(jwtRegistry).invalidateJwtInformationByUserId(userId);
   }
 
   @Nested
@@ -91,6 +91,7 @@ public class CustomLogoutHandlerTest {
     @Test
     @DisplayName("쿠키가 없는 경우")
     void logout_fail_noCookies(){
+      when(authentication.isAuthenticated()).thenReturn(true);
       when(tokenProvider.generateRefreshTokenExpirationCookie()).thenReturn(expiredCookie);
       when(request.getCookies()).thenReturn(null);
 
@@ -105,13 +106,13 @@ public class CustomLogoutHandlerTest {
     void logout_fail_noRefreshTokenCookie(){
       Cookie otherCookie = new Cookie("OTHER_COOKIE", "other-value");
 
+      when(authentication.isAuthenticated()).thenReturn(true);
       when(tokenProvider.generateRefreshTokenExpirationCookie()).thenReturn(expiredCookie);
       when(request.getCookies()).thenReturn(new Cookie[]{otherCookie});
 
       customLogoutHandler.logout(request, response, authentication);
 
       verify(response).addHeader(eq("Set-Cookie"), anyString());
-      verify(jwtRegistry, never()).invalidateJwtInformationByUserId(userId);
       verify(jwtRegistry, never()).invalidateJwtInformationByUserId(userId);
     }
 
@@ -121,6 +122,7 @@ public class CustomLogoutHandlerTest {
       String invalidToken = "invalid.refresh.token";
       Cookie cookie = new Cookie("REFRESH_TOKEN", invalidToken);
 
+      when(authentication.isAuthenticated()).thenReturn(true);
       when(tokenProvider.generateRefreshTokenExpirationCookie()).thenReturn(expiredCookie);
       when(request.getCookies()).thenReturn(new Cookie[]{cookie});
       when(tokenProvider.validateRefreshToken(invalidToken)).thenReturn(false);
@@ -130,6 +132,16 @@ public class CustomLogoutHandlerTest {
       verify(response).addHeader(eq("Set-Cookie"), anyString());
       verify(tokenProvider).validateRefreshToken(invalidToken);
       verify(tokenProvider, never()).getUserId(anyString());
+      verify(jwtRegistry, never()).invalidateJwtInformationByUserId(userId);
+    }
+
+    @Test
+    @DisplayName("인증되지 않은 사용자인 경우")
+    void logout_fail_unauthenticated() {
+      customLogoutHandler.logout(request, response, authentication);
+
+      verify(response, never()).addHeader(eq("Set-Cookie"), anyString());
+      verify(tokenProvider, never()).generateRefreshTokenExpirationCookie();
       verify(jwtRegistry, never()).invalidateJwtInformationByUserId(userId);
     }
   }
