@@ -4,8 +4,6 @@ import com.gitggal.clothesplz.dto.clothes.ClothesGetRequest;
 import com.gitggal.clothesplz.entity.clothes.Clothes;
 import com.gitggal.clothesplz.entity.clothes.ClothesType;
 import com.gitggal.clothesplz.entity.clothes.QClothes;
-import com.gitggal.clothesplz.entity.clothes.QClothesAttribute;
-import com.gitggal.clothesplz.entity.clothes.QClothesAttributeDef;
 import com.gitggal.clothesplz.repository.clothes.ClothesRepositoryCustom;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
@@ -21,8 +19,6 @@ public class ClothesRepositoryImpl implements ClothesRepositoryCustom {
 
   private final JPAQueryFactory factory;
   private final QClothes clothes = QClothes.clothes;
-  private final QClothesAttribute clothesAttr = QClothesAttribute.clothesAttribute;
-  private final QClothesAttributeDef clothesAttrDef = QClothesAttributeDef.clothesAttributeDef;
 
   @Override
   public List<Clothes> findAllByCursor(ClothesGetRequest request, Instant instantCursor) {
