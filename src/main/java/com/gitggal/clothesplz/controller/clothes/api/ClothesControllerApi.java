@@ -57,7 +57,8 @@ public interface ClothesControllerApi {
   )
   ResponseEntity<ClothesDto> createClothes(
       ClothesCreateRequest request,
-      MultipartFile image
+      MultipartFile image,
+      @AuthenticationPrincipal ClothesUserDetails userDetails
   );
 
   @Operation(summary = "옷 삭제", description = "옷 정보를 삭제합니다.")
