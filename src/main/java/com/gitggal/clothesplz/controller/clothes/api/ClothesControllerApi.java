@@ -35,7 +35,8 @@ public interface ClothesControllerApi {
       content = @Content(schema = @Schema(implementation = ErrorResponse.class))
   )
   ResponseEntity<ClothesDtoCursorResponse> getClothes(
-      @ParameterObject ClothesGetRequest request
+      @ParameterObject ClothesGetRequest request,
+      @AuthenticationPrincipal ClothesUserDetails userDetails
   );
 
   @Operation(summary = "옷 등록", description = "새로운 옷을 등록합니다.")
@@ -56,7 +57,8 @@ public interface ClothesControllerApi {
   )
   ResponseEntity<ClothesDto> createClothes(
       ClothesCreateRequest request,
-      MultipartFile image
+      MultipartFile image,
+      @AuthenticationPrincipal ClothesUserDetails userDetails
   );
 
   @Operation(summary = "옷 삭제", description = "옷 정보를 삭제합니다.")

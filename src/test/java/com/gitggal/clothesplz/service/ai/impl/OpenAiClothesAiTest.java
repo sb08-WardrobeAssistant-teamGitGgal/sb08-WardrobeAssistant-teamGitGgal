@@ -12,10 +12,10 @@ import com.gitggal.clothesplz.dto.clothes.ClothesDto;
 import com.gitggal.clothesplz.entity.clothes.Clothes;
 import com.gitggal.clothesplz.entity.clothes.ClothesType;
 import com.gitggal.clothesplz.entity.weather.Weather;
-import com.gitggal.clothesplz.repository.clothes.ClothesAttributeRepository;
 import com.gitggal.clothesplz.service.ai.HtmlProductExtractor;
 import com.gitggal.clothesplz.service.ai.HtmlProductExtractor.ScrapeResult;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -38,8 +38,6 @@ class OpenAiClothesAiTest {
   @Mock
   ChatClient.CallResponseSpec callResponseSpec;
   @Mock
-  ClothesAttributeRepository clothesAttributeRepository;
-  @Mock
   HtmlProductExtractor htmlExtractor;
 
   OpenAiClothesAi sut;
@@ -51,7 +49,6 @@ class OpenAiClothesAiTest {
     sut = new OpenAiClothesAi(
         chatClientBuilder,
         objectMapper,
-        clothesAttributeRepository,
         htmlExtractor
     );
   }
@@ -137,7 +134,6 @@ class OpenAiClothesAiTest {
     UUID clothesId = UUID.randomUUID();
     org.springframework.test.util.ReflectionTestUtils.setField(clothes, "id", clothesId);
 
-    given(clothesAttributeRepository.findAllByClothesIdIn(List.of(clothesId))).willReturn(List.of());
     given(chatClient.prompt()).willReturn(requestSpec);
     given(requestSpec.system(anyString())).willReturn(requestSpec);
     given(requestSpec.user(anyString())).willReturn(requestSpec);
@@ -148,7 +144,7 @@ class OpenAiClothesAiTest {
             """.formatted(clothesId)
     );
 
-    List<UUID> result = sut.recommendClothesIds(weather, List.of(clothes), (short) 3);
+    List<UUID> result = sut.recommendClothesIds(weather, List.of(clothes), (short) 3, Map.of());
 
     assertThat(result).containsExactly(clothesId);
   }
@@ -159,7 +155,7 @@ class OpenAiClothesAiTest {
     Weather weather = mock(Weather.class);
     given(chatClient.prompt()).willThrow(new RuntimeException("openai timeout"));
 
-    List<UUID> result = sut.recommendClothesIds(weather, List.of(), (short) 3);
+    List<UUID> result = sut.recommendClothesIds(weather, List.of(), (short) 3, Map.of());
 
     assertThat(result).isEmpty();
   }
@@ -253,7 +249,7 @@ class OpenAiClothesAiTest {
     given(requestSpec.call()).willReturn(callResponseSpec);
     given(callResponseSpec.content()).willReturn("   ");
 
-    List<UUID> result = sut.recommendClothesIds(weather, List.of(), (short) 3);
+    List<UUID> result = sut.recommendClothesIds(weather, List.of(), (short) 3, Map.of());
 
     assertThat(result).isEmpty();
   }
