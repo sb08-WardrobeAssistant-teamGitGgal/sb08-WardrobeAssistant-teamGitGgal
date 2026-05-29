@@ -1,5 +1,6 @@
 package com.gitggal.clothesplz.service.ai.impl;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gitggal.clothesplz.dto.clothes.ClothesDto;
@@ -13,7 +14,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.stereotype.Component;
@@ -129,15 +129,22 @@ public class OpenAiClothesAi implements ClothesAi {
 
     for (Clothes clothes : allClothes) {
       List<String> attributes = attributesByClothesId.getOrDefault(clothes.getId(), List.of());
+      List<String> attrs = attributes.stream()
+          .limit(MAX_ATTRIBUTES_PER_CLOTHES)
+          .toList();
+      String serializedAttrs;
+      try {
+        serializedAttrs = objectMapper.writeValueAsString(attrs);
+      } catch (JsonProcessingException e) {
+        log.warn("[OpenAI] attrs 직렬화 실패. clothesId={}", clothes.getId(), e);
+        serializedAttrs = "[]";
+      }
       sb.append("""
-          - {"id":"%s","type":"%s","attrs":[%s]}
+          - {"id":"%s","type":"%s","attrs":%s}
           """.formatted(
           clothes.getId(),
           clothes.getType(),
-          attributes.stream()
-              .limit(MAX_ATTRIBUTES_PER_CLOTHES)
-              .map(a -> "\"" + a + "\"")
-              .collect(Collectors.joining(", "))
+          serializedAttrs
       ));
     }
     sb.append("\n추천할 id 5개를 반환하세요.");

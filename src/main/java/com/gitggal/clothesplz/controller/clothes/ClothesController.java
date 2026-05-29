@@ -37,7 +37,7 @@ public class ClothesController implements ClothesControllerApi {
 
   @Override
   @GetMapping
-  @PreAuthorize("hasRole('ADMIN') or #userDetails.userDto.id.equals(#request.ownerId())")
+  @PreAuthorize("hasRole('ADMIN') or (#userDetails != null and #userDetails.userDto.id.equals(#request.ownerId()))")
   public ResponseEntity<ClothesDtoCursorResponse> getClothes(
       @Valid ClothesGetRequest request,
       @AuthenticationPrincipal ClothesUserDetails userDetails
