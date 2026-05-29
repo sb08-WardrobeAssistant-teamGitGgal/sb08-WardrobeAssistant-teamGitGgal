@@ -4,6 +4,7 @@ import com.gitggal.clothesplz.dto.clothes.ClothesDto;
 import com.gitggal.clothesplz.entity.clothes.Clothes;
 import com.gitggal.clothesplz.entity.weather.Weather;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public interface ClothesAi {
@@ -15,7 +16,12 @@ public interface ClothesAi {
    * @param allClothes 의상 목록
    * @return 현재 날씨에 맞는 의상 ID
    */
-  List<UUID> recommendClothesIds(Weather weather, List<Clothes> allClothes, short tempSensitivity);
+  List<UUID> recommendClothesIds(
+      Weather weather,
+      List<Clothes> allClothes,
+      short tempSensitivity,
+      Map<UUID, List<String>> attributesByClothesId
+  );
 
   /**
    * 구매 링크 URL을 전달하면 초기 의상 정보를 추출한다.
