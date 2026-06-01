@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gitggal.clothesplz.dto.notification.NotificationRequest;
 import com.gitggal.clothesplz.entity.notification.NotificationLevel;
+import com.gitggal.clothesplz.event.PayloadDeserializationException;
 import com.gitggal.clothesplz.service.notification.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,7 +26,8 @@ public class ClothesNotificationKafkaListener {
   @RetryableTopic(
       attempts = "5",
       backoff = @Backoff(delay = 1000, multiplier = 2.0),
-      kafkaTemplate = "kafkaTemplate"
+      kafkaTemplate = "kafkaTemplate",
+      exclude = {PayloadDeserializationException.class}
   )
   @KafkaListener(topics = "clothes-notification", groupId = "clothesplz-group")
   public void onClothesChanged(String payload) {
@@ -57,7 +59,7 @@ public class ClothesNotificationKafkaListener {
       ));
     } catch (JsonProcessingException e) {
       log.error("[Clothes Kafka Consumer] 역직렬화 실패 - payload={}", payload, e);
-      throw new RuntimeException(e);
+      throw new PayloadDeserializationException(payload, e);
     }
   }
 

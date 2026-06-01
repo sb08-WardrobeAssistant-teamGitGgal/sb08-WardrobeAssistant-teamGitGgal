@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gitggal.clothesplz.dto.notification.NotificationRequest;
 import com.gitggal.clothesplz.entity.notification.NotificationLevel;
+import com.gitggal.clothesplz.event.PayloadDeserializationException;
 import com.gitggal.clothesplz.service.notification.NotificationService;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -28,7 +29,9 @@ public class FeedNotificationKafkaListener {
 
       backoff = @Backoff(delay = 1000, multiplier = 2.0),
 
-      kafkaTemplate = "kafkaTemplate"
+      kafkaTemplate = "kafkaTemplate",
+
+      exclude = {PayloadDeserializationException.class}
   )
   @KafkaListener(topics = "feed-comment-notification", groupId = "clothesplz-group")
   public void onCommentCreated(String payload) {
@@ -49,7 +52,7 @@ public class FeedNotificationKafkaListener {
       ));
     } catch (JsonProcessingException e) {
       log.error("[Feed Comment Kafka Consumer] 역직렬화 실패 - payload={}", payload, e);
-      throw new RuntimeException(e);
+      throw new PayloadDeserializationException(payload, e);
     }
   }
 
@@ -58,7 +61,9 @@ public class FeedNotificationKafkaListener {
 
       backoff = @Backoff(delay = 1000, multiplier = 2.0),
 
-      kafkaTemplate = "kafkaTemplate"
+      kafkaTemplate = "kafkaTemplate",
+
+      exclude = {PayloadDeserializationException.class}
   )
   @KafkaListener(topics = "feed-liked-notification", groupId = "clothesplz-group")
   public void onFeedLiked(String payload) {
@@ -74,14 +79,18 @@ public class FeedNotificationKafkaListener {
       ));
     } catch (JsonProcessingException e) {
       log.error("[Feed Liked Kafka Consumer] 역직렬화 실패 - payload={}", payload, e);
-      throw new RuntimeException(e);
+      throw new PayloadDeserializationException(payload, e);
     }
   }
 
   @RetryableTopic(
       attempts = "5",
+
       backoff = @Backoff(delay = 1000, multiplier = 2.0),
-      kafkaTemplate = "kafkaTemplate"
+
+      kafkaTemplate = "kafkaTemplate",
+
+      exclude = {PayloadDeserializationException.class}
   )
   @KafkaListener(topics = "feed-created-notification", groupId = "clothesplz-group")
   public void onFeedCreated(String payload) {
@@ -104,7 +113,7 @@ public class FeedNotificationKafkaListener {
       }
     } catch (JsonProcessingException e) {
       log.error("[Feed Created Kafka Consumer] 역직렬화 실패 - payload={}", payload, e);
-      throw new RuntimeException(e);
+      throw new PayloadDeserializationException(payload, e);
     }
   }
 
