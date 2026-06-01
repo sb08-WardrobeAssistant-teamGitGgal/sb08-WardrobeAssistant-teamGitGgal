@@ -49,4 +49,12 @@ public class KafkaConfig {
         .replicas(replicas)
         .build();
   }
+
+  @Bean
+  public NewTopic permissionNotificationTopic() {
+    return TopicBuilder.name("permission-notification")
+        .partitions(partitions).
+        replicas(replicas).
+        build();
+  }
 }

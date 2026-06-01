@@ -22,6 +22,8 @@ public class FollowNotificationEventListener {
   @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
   public void handleFollowCreated(FollowCreatedEvent event) {
 
+    log.info("[Follow Kafka] 메시지 전송 시작: followeeId={}", event.followeeId());
+
     try {
 
       String payload = objectMapper.writeValueAsString(event);
@@ -34,6 +36,8 @@ public class FollowNotificationEventListener {
         if (e != null) {
           log.error("[Follow Kafka] 메시지 전송 실패 - followeeId={}, error={}", event.followeeId(),
               e.getMessage());
+        } else {
+          log.info("[Follow Kafka] 메시지 전송 성공: followeeId={}", event.followeeId());
         }
       });
 
