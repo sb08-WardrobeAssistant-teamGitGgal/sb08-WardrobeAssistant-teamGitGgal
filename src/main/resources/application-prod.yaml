@@ -3,6 +3,12 @@ server:
   forward-headers-strategy: framework
 
 spring:
+  cloud:
+    aws:
+      cloudwatch:
+        enabled: true
+        region: ${AWS_REGION:ap-northeast-2}
+
   datasource:
     url: jdbc:postgresql://${POSTGRES_URL}:${POSTGRES_PORT}/${POSTGRES_DB}
     driver-class-name: org.postgresql.Driver
@@ -75,7 +81,6 @@ management:
   cloudwatch:
     metrics:
       export:
-        enabled: true
         namespace: clothesplz
         step: 1m
 
