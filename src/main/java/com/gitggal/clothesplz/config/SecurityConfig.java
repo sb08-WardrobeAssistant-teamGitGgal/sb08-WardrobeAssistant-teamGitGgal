@@ -7,23 +7,21 @@ import com.gitggal.clothesplz.security.SpaCsrfTokenRequestHandler;
 import com.gitggal.clothesplz.security.jwt.JwtAuthenticationFilter;
 import com.gitggal.clothesplz.security.oauth.OAuthLoginFailureHandler;
 import com.gitggal.clothesplz.security.oauth.OAuthLoginSuccessHandler;
-import java.util.List;
-import java.util.stream.IntStream;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.security.web.authentication.logout.HttpStatusReturningLogoutSuccessHandler;
+import org.springframework.security.web.authentication.logout.LogoutFilter;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 
 @Slf4j
@@ -60,16 +58,19 @@ public class SecurityConfig {
         .logout(logout -> logout
             .logoutUrl("/api/auth/sign-out")
             .addLogoutHandler(logoutHandler)
-            .logoutSuccessHandler(
-                new HttpStatusReturningLogoutSuccessHandler(HttpStatus.NO_CONTENT)
-            ))
+            .logoutSuccessHandler((request, response, authentication) -> {
+              if (!isAuthenticated(authentication)) {
+                response.sendError(HttpStatus.UNAUTHORIZED.value());
+                return;
+              }
+              response.setStatus(HttpStatus.NO_CONTENT.value());
+            }))
         .authorizeHttpRequests(auth -> auth
             .requestMatchers(HttpMethod.GET, "/actuator/health/liveness").permitAll()
             .requestMatchers("/actuator/**").denyAll()
             .requestMatchers(HttpMethod.GET, "/api/auth/csrf-token").permitAll() //csrf 토큰 조회 허용
             .requestMatchers(HttpMethod.POST, "/api/users").permitAll() // 회원가입 허용
             .requestMatchers(HttpMethod.POST, "/api/auth/sign-in").permitAll() // 로그인 허용
-            .requestMatchers(HttpMethod.POST, "/api/auth/sign-out").permitAll() // 로그아웃 허용
             .requestMatchers(HttpMethod.POST, "/api/auth/reset-password").permitAll() // 임시 비밀번호 발급
             .requestMatchers(HttpMethod.POST, "/api/auth/refresh").permitAll()
             .requestMatchers("/login/oauth2/code/**").permitAll()
@@ -77,26 +78,19 @@ public class SecurityConfig {
             .requestMatchers("/api/**").authenticated() // api 인증 필요
             .anyRequest().permitAll()
         )
-        .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+        .addFilterBefore(jwtAuthenticationFilter, LogoutFilter.class);
     return http.build();
 
+  }
+
+  private static boolean isAuthenticated(Authentication authentication) {
+    return authentication != null
+        && authentication.isAuthenticated()
+        && !(authentication instanceof AnonymousAuthenticationToken);
   }
 
   @Bean
   public PasswordEncoder passwordEncoder() {
     return new BCryptPasswordEncoder();
-  }
-
-  @Bean
-  public CommandLineRunner debugFilterChain(SecurityFilterChain filterChain) {
-    return args -> {
-      int filterSize = filterChain.getFilters().size();
-      List<String> filterNames = IntStream.range(0, filterSize)
-          .mapToObj(idx -> String.format("\t[%s/%s] %s", idx + 1, filterSize,
-              filterChain.getFilters().get(idx).getClass()))
-          .toList();
-
-      filterNames.forEach(log::info);
-    };
   }
 }

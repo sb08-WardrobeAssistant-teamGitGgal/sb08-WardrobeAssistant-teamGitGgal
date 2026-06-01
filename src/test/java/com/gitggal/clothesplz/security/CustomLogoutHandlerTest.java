@@ -1,34 +1,30 @@
 package com.gitggal.clothesplz.security;
 
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.gitggal.clothesplz.dto.user.UserDto;
+import com.gitggal.clothesplz.entity.user.UserRole;
 import com.gitggal.clothesplz.security.jwt.JwtRegistry;
 import com.gitggal.clothesplz.security.jwt.JwtTokenProvider;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.time.Instant;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.ResponseCookie;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 
 @ExtendWith(MockitoExtension.class)
-public class CustomLogoutHandlerTest {
-
-  @Mock
-  private ObjectMapper objectMapper;
+class CustomLogoutHandlerTest {
 
   @Mock
   private JwtTokenProvider tokenProvider;
@@ -45,92 +41,97 @@ public class CustomLogoutHandlerTest {
   @Mock
   private Authentication authentication;
 
-  @InjectMocks
-  private CustomLogoutHandler customLogoutHandler;
+  @Mock
+  private AnonymousAuthenticationToken anonymousAuthentication;
 
+  private CustomLogoutHandler logoutHandler;
   private UUID userId;
-  private String refreshToken;
-  private ResponseCookie expiredCookie;
+  private ClothesUserDetails userDetails;
 
   @BeforeEach
   void setUp() {
-    refreshToken = "refresh-token";
+    logoutHandler = new CustomLogoutHandler(tokenProvider, jwtRegistry);
     userId = UUID.randomUUID();
-    expiredCookie = ResponseCookie.from("REFRESH_TOKEN", "")
-        .maxAge(0)
-        .path("/")
-        .httpOnly(true)
-        .secure(true)
-        .build();
+    UserDto userDto = new UserDto(userId, Instant.now(), "test@test.com", "tester", UserRole.USER,
+        false);
+    userDetails = new ClothesUserDetails(userDto, "password");
   }
 
   @Test
-  @DisplayName("로그아웃 성공")
-  void logout_success() {
+  @DisplayName("로그아웃 성공 - 인증된 사용자")
+  void logout_authenticated() {
 
-    Cookie cookie = new Cookie("REFRESH_TOKEN", refreshToken);
+    given(authentication.isAuthenticated()).willReturn(true);
+    given(authentication.getPrincipal()).willReturn(userDetails);
+    given(tokenProvider.generateRefreshTokenExpirationCookie())
+        .willReturn(ResponseCookie.from("refreshToken", "").maxAge(0).build());
 
-    when(tokenProvider.generateRefreshTokenExpirationCookie()).thenReturn(expiredCookie);
-    when(request.getCookies()).thenReturn(new Cookie[]{cookie});
-    when(tokenProvider.validateRefreshToken(refreshToken)).thenReturn(true);
-    when(tokenProvider.getUserId(refreshToken)).thenReturn(userId);
+    logoutHandler.logout(request, response, authentication);
 
-    customLogoutHandler.logout(request, response, authentication);
-
-    verify(jwtRegistry).invalidateJwtInformationByUserId(userId);
-    verify(response).addHeader(eq("Set-Cookie"), anyString());
-    verify(tokenProvider).validateRefreshToken(refreshToken);
-    verify(tokenProvider).getUserId(refreshToken);
+    verify(response).addHeader(any(), any());
     verify(jwtRegistry).invalidateJwtInformationByUserId(userId);
   }
 
-  @Nested
-  @DisplayName("로그아웃 실패")
-  class LogoutFailure{
+  @Test
+  @DisplayName("로그아웃 성공 - refresh token이 만료")
+  void logout_withExpiredRefreshToken_stillInvalidatesServerSide() {
 
-    @Test
-    @DisplayName("쿠키가 없는 경우")
-    void logout_fail_noCookies(){
-      when(tokenProvider.generateRefreshTokenExpirationCookie()).thenReturn(expiredCookie);
-      when(request.getCookies()).thenReturn(null);
+    given(authentication.isAuthenticated()).willReturn(true);
+    given(authentication.getPrincipal()).willReturn(userDetails);
+    given(tokenProvider.generateRefreshTokenExpirationCookie())
+        .willReturn(ResponseCookie.from("refreshToken", "").maxAge(0).build());
 
-      customLogoutHandler.logout(request, response, authentication);
+    logoutHandler.logout(request, response, authentication);
 
-      verify(response).addHeader(eq("Set-Cookie"), anyString());
-      verify(jwtRegistry, never()).invalidateJwtInformationByUserId(userId);
-    }
+    verify(tokenProvider, never()).validateRefreshToken(any());
+    verify(jwtRegistry).invalidateJwtInformationByUserId(userId);
+  }
 
-    @Test
-    @DisplayName("refresh Token이 없는 경우")
-    void logout_fail_noRefreshTokenCookie(){
-      Cookie otherCookie = new Cookie("OTHER_COOKIE", "other-value");
+  @Test
+  @DisplayName("로그아웃 실패 - 인증이 없을 경우")
+  void logout_nullAuthentication() {
 
-      when(tokenProvider.generateRefreshTokenExpirationCookie()).thenReturn(expiredCookie);
-      when(request.getCookies()).thenReturn(new Cookie[]{otherCookie});
+    logoutHandler.logout(request, response, null);
 
-      customLogoutHandler.logout(request, response, authentication);
+    verify(jwtRegistry, never()).invalidateJwtInformationByUserId(any());
+    verify(tokenProvider, never()).generateRefreshTokenExpirationCookie();
+  }
 
-      verify(response).addHeader(eq("Set-Cookie"), anyString());
-      verify(jwtRegistry, never()).invalidateJwtInformationByUserId(userId);
-      verify(jwtRegistry, never()).invalidateJwtInformationByUserId(userId);
-    }
+  @Test
+  @DisplayName("로그아웃 실패 - 인증되지 않은 사용자")
+  void logout_notAuthenticated() {
 
-    @Test
-    @DisplayName("유효하지 않은 Refresh Token일 경우")
-    void logout_fail_invalidRefreshToken() {
-      String invalidToken = "invalid.refresh.token";
-      Cookie cookie = new Cookie("REFRESH_TOKEN", invalidToken);
+    given(authentication.isAuthenticated()).willReturn(false);
 
-      when(tokenProvider.generateRefreshTokenExpirationCookie()).thenReturn(expiredCookie);
-      when(request.getCookies()).thenReturn(new Cookie[]{cookie});
-      when(tokenProvider.validateRefreshToken(invalidToken)).thenReturn(false);
+    logoutHandler.logout(request, response, authentication);
 
-      customLogoutHandler.logout(request, response, authentication);
+    verify(jwtRegistry, never()).invalidateJwtInformationByUserId(any());
+    verify(tokenProvider, never()).generateRefreshTokenExpirationCookie();
+  }
 
-      verify(response).addHeader(eq("Set-Cookie"), anyString());
-      verify(tokenProvider).validateRefreshToken(invalidToken);
-      verify(tokenProvider, never()).getUserId(anyString());
-      verify(jwtRegistry, never()).invalidateJwtInformationByUserId(userId);
-    }
+  @Test
+  @DisplayName("로그아웃 실패 - 익명 사용자")
+  void logout_anonymousAuthentication() {
+
+    given(anonymousAuthentication.isAuthenticated()).willReturn(true);
+
+    logoutHandler.logout(request, response, anonymousAuthentication);
+
+    verify(jwtRegistry, never()).invalidateJwtInformationByUserId(any());
+    verify(tokenProvider, never()).generateRefreshTokenExpirationCookie();
+  }
+
+  @Test
+  @DisplayName("로그아웃 - 인증 타입이 다를 경우")
+  void logout_unsupportedPrincipalType() {
+    given(authentication.isAuthenticated()).willReturn(true);
+    given(authentication.getPrincipal()).willReturn("unexpected-string-principal");
+    given(tokenProvider.generateRefreshTokenExpirationCookie())
+        .willReturn(ResponseCookie.from("refreshToken", "").maxAge(0).build());
+
+    logoutHandler.logout(request, response, authentication);
+
+    verify(response).addHeader(any(), any());
+    verify(jwtRegistry, never()).invalidateJwtInformationByUserId(any());
   }
 }
