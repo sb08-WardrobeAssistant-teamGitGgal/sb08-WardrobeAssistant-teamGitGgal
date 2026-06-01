@@ -51,7 +51,7 @@ public class PermissionNotificationKafkaListener {
   }
 
   @DltHandler
-  public void handleDlt(String payload, Exception e) {
-    log.error("[Permission DLT] 최종 실패 - payload={}, error={}", payload, e.getMessage());
+  public void handleDlt(Exception e) {
+    log.error("[Permission DLT] 최종 실패 - error={}", e.getMessage());
   }
 }

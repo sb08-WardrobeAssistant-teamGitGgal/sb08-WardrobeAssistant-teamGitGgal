@@ -69,7 +69,7 @@ public class DirectMessageKafkaListener {
   }
 
   @DltHandler
-  public void handleDlt(String payload, Exception e) {
+  public void handleDlt(Exception e) {
     log.error("[DM DLT] 최종 실패 - error={}", e.getMessage());
   }
 }
