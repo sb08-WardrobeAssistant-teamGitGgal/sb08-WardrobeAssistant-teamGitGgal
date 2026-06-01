@@ -39,4 +39,10 @@ public interface FollowRepository extends JpaRepository<Follow, UUID>, FollowRep
    */
   @Query("SELECT f.follower.id FROM Follow f WHERE f.followee.id = :followeeId")
   List<UUID> findFollowerIdsByFolloweeId(@Param("followeeId") UUID followeeId);
+
+  /**
+   * 팔로잉 피드 필터용: 자신이 팔로우하는 모든 followee Id 조회
+   */
+  @Query("SELECT f.followee.id FROM Follow f WHERE f.follower.id = :followerId")
+  List<UUID> findFolloweeIdsByFollowerId(@Param("followerId") UUID followerId);
 }

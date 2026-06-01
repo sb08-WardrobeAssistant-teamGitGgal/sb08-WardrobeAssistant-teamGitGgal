@@ -36,7 +36,12 @@ public record FeedPageRequest(
     @Schema(allowableValues = {"NONE", "RAIN", "RAIN_SNOW", "SNOW", "SHOWER"})
     String precipitationTypeEqual,
 
-    UUID authorIdEqual
+    UUID authorIdEqual,
+
+    // 래퍼타입 vs. 기본타입:
+    // 래퍼타입의 기본값 null, 기본타입의 기본값 false
+    // 파라미터가 없을 경우 전체 피드로 필터링하기 위함
+    Boolean followingOnly
 ) {
 
 }
