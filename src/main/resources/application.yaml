@@ -103,7 +103,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health, info, metrics, loggers, caches, circuitbreakers, prometheus
+        include: health
   endpoint:
     health:
       show-details: always
@@ -113,6 +113,12 @@ management:
   info:
     env:
       enabled: true
+  metrics:
+    export:
+      cloudwatch:
+        enabled: false
+        namespace: clothesplz
+        step: 1m
 
 # s3
 storage:
