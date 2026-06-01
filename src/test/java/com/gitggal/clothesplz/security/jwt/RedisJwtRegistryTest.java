@@ -74,6 +74,23 @@ class RedisJwtRegistryTest {
   }
 
   @Test
+  @DisplayName("userId 조회")
+  void hasActiveJwtInformationByUserId_invalid() {
+    givenRedisHashOperations();
+    given(hashOperations.entries(userKey()))
+        .willReturn(Map.of("accessToken", "access-token", "refreshToken", "refresh-token"));
+    given(tokenProvider.validateAccessToken("access-token")).willReturn(false);
+
+    boolean active = jwtRegistry.hasActiveJwtInformationByUserId(userDto.id());
+
+    assertThat(active).isFalse();
+
+    verify(redisTemplate).delete(accessKey("access-token"));
+    verify(redisTemplate).delete(refreshKey("refresh-token"));
+    verify(redisTemplate).delete(userKey());
+  }
+
+  @Test
   @DisplayName("Access Token 조회 - 활성")
   void hasActiveJwtInformationByAccessToken() {
     givenRedisHashOperations();

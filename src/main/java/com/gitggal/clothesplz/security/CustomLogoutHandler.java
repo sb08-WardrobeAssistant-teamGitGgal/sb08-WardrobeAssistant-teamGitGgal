@@ -32,7 +32,13 @@ public class CustomLogoutHandler implements LogoutHandler {
     ResponseCookie responseCookie = tokenProvider.generateRefreshTokenExpirationCookie();
     response.addHeader("Set-Cookie", responseCookie.toString());
 
-    ClothesUserDetails userDetails = (ClothesUserDetails) authentication.getPrincipal();
+    Object principal = authentication.getPrincipal();
+    if (!(principal instanceof ClothesUserDetails userDetails)) {
+      log.warn("[Security] 로그아웃: 지원하지 않는 principal 타입입니다. type={}",
+          principal == null ? "null" : principal.getClass().getName());
+      return;
+    }
+
     UUID userId = userDetails.getUserDto().id();
     jwtRegistry.invalidateJwtInformationByUserId(userId);
 

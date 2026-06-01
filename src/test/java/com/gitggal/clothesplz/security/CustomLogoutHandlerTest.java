@@ -120,4 +120,18 @@ class CustomLogoutHandlerTest {
     verify(jwtRegistry, never()).invalidateJwtInformationByUserId(any());
     verify(tokenProvider, never()).generateRefreshTokenExpirationCookie();
   }
+
+  @Test
+  @DisplayName("로그아웃 - 인증 타입이 다를 경우")
+  void logout_unsupportedPrincipalType() {
+    given(authentication.isAuthenticated()).willReturn(true);
+    given(authentication.getPrincipal()).willReturn("unexpected-string-principal");
+    given(tokenProvider.generateRefreshTokenExpirationCookie())
+        .willReturn(ResponseCookie.from("refreshToken", "").maxAge(0).build());
+
+    logoutHandler.logout(request, response, authentication);
+
+    verify(response).addHeader(any(), any());
+    verify(jwtRegistry, never()).invalidateJwtInformationByUserId(any());
+  }
 }
