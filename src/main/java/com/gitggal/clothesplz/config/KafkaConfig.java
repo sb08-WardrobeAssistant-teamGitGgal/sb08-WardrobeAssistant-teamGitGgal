@@ -53,8 +53,16 @@ public class KafkaConfig {
   @Bean
   public NewTopic permissionNotificationTopic() {
     return TopicBuilder.name("permission-notification")
-        .partitions(partitions).
-        replicas(replicas).
-        build();
+        .partitions(partitions)
+        .replicas(replicas)
+        .build();
+  }
+
+  @Bean
+  public NewTopic clothingAttributeNotificationTopic() {
+    return TopicBuilder.name("clothing-attribute-notification")
+        .partitions(partitions)
+        .replicas(replicas)
+        .build();
   }
 }
