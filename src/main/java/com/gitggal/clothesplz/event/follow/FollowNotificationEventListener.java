@@ -2,9 +2,6 @@ package com.gitggal.clothesplz.event.follow;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.gitggal.clothesplz.dto.notification.NotificationRequest;
-import com.gitggal.clothesplz.entity.notification.NotificationLevel;
-import com.gitggal.clothesplz.service.notification.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
