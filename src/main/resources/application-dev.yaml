@@ -29,7 +29,7 @@ spring:
     baseline-version: 0
     locations:
       - classpath:db/migration # 스키마 저장 위치 - 관례
-#      - classpath:db/seed      # 데이터 저장 위치 - 관례
+      - classpath:db/seed      # 데이터 저장 위치 - 관례
 
   kafka:
     bootstrap-servers: 127.0.0.1:${KAFKA_PORT}
