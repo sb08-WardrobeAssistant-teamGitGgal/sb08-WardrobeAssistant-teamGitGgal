@@ -327,6 +327,25 @@ public class FeedServiceImpl implements FeedService {
         feedPageRequest.sortBy()
     );
 
+    // followingOnly 검증
+    List<UUID> followingIds = null;
+    if (Boolean.TRUE.equals(feedPageRequest.followingOnly())) {
+      followingIds = followRepository.findFolloweeIdsByFollowerId(userId);
+      // 사용자의 팔로잉이 없을 경우 빈 페이지 반환
+      if (followingIds.isEmpty()) {
+        return new FeedDtoCursorResponse(
+            List.of(),
+            null,
+            null,
+            false,
+            0,
+            feedPageRequest.sortBy(),
+            feedPageRequest.sortDirection()
+        );
+      }
+    }
+
+    // es 검색
     List<UUID> esMatchedIDs = null;
     if (StringUtils.hasText(feedPageRequest.keywordLike())) {
       List<FeedDocument> documents = feedSearchRepository.searchByContent(
@@ -355,7 +374,8 @@ public class FeedServiceImpl implements FeedService {
     List<FeedDto> feeds = feedRepository.findAllByCursor(
         feedPageRequest,
         feedCursorCondition,
-        esMatchedIDs
+        esMatchedIDs,
+        followingIds
     );
 
     boolean hasNext = feeds.size() > feedPageRequest.limit();
@@ -387,7 +407,7 @@ public class FeedServiceImpl implements FeedService {
       }
     }
 
-    long totalCount = feedRepository.countByCondition(feedPageRequest, esMatchedIDs);
+    long totalCount = feedRepository.countByCondition(feedPageRequest, esMatchedIDs, followingIds);
 
     log.info("[Service] 피드 목록 조회 요청 완료 - totalCount: {}", totalCount);
 

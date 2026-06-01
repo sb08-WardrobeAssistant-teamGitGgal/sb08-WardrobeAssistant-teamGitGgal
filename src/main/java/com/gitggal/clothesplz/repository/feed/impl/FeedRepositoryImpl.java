@@ -35,7 +35,12 @@ public class FeedRepositoryImpl implements FeedRepositoryCustom {
   private final JPAQueryFactory queryFactory;
 
   @Override
-  public List<FeedDto> findAllByCursor(FeedPageRequest feedPageRequest, FeedCursorCondition feedCursorCondition, List<UUID> esMatchedIds) {
+  public List<FeedDto> findAllByCursor(
+      FeedPageRequest feedPageRequest,
+      FeedCursorCondition feedCursorCondition,
+      List<UUID> esMatchedIds,
+      List<UUID> followingIds
+  ) {
 
     return queryFactory
         .select(Projections.constructor(FeedDto.class,
@@ -77,6 +82,7 @@ public class FeedRepositoryImpl implements FeedRepositoryCustom {
             skyStatusEqual(feedPageRequest.skyStatusEqual()),
             precipitationTypeEqual(feedPageRequest.precipitationTypeEqual()),
             authorIdEqual(feedPageRequest.authorIdEqual()),
+            followingAuthorIdIn(followingIds),
             cursorCondition(
                 feedCursorCondition,
                 feedPageRequest.sortBy(),
@@ -90,7 +96,11 @@ public class FeedRepositoryImpl implements FeedRepositoryCustom {
   }
 
   @Override
-  public long countByCondition(FeedPageRequest feedPageRequest, List<UUID> esMatchedIds) {
+  public long countByCondition(
+      FeedPageRequest feedPageRequest,
+      List<UUID> esMatchedIds,
+      List<UUID> followingIds
+  ) {
     Long count = queryFactory
         .select(feed.count())
         .from(feed)
@@ -99,7 +109,8 @@ public class FeedRepositoryImpl implements FeedRepositoryCustom {
             idIn(esMatchedIds),
             skyStatusEqual(feedPageRequest.skyStatusEqual()),
             precipitationTypeEqual(feedPageRequest.precipitationTypeEqual()),
-            authorIdEqual(feedPageRequest.authorIdEqual())
+            authorIdEqual(feedPageRequest.authorIdEqual()),
+            followingAuthorIdIn(followingIds)
         )
         .fetchOne();
     return count != null ? count : 0L;
@@ -176,5 +187,15 @@ public class FeedRepositoryImpl implements FeedRepositoryCustom {
         new OrderSpecifier<>(direction, feed.createdAt),
         new OrderSpecifier<>(direction, feed.id),
     };
+  }
+
+  // 내가 팔로우한 사람의 피드만 필터링
+  private BooleanExpression followingAuthorIdIn(List<UUID> followingIds) {
+    // 전체 피드 조회
+    if (followingIds == null) return null;
+    // 내가 팔로우한 사람이 없을 경우 결과 0건 반환
+    if (followingIds.isEmpty()) return Expressions.FALSE;
+    // feed의 작성자 id가 팔로우 리스트에 있는 경우만 select
+    return feed.author.id.in(followingIds);
   }
 }
