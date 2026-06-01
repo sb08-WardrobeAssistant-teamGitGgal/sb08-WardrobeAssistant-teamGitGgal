@@ -71,6 +71,12 @@ public class InMemoryJwtRegistry implements JwtRegistry {
       return false;
     }
 
+    JwtInformation info = origin.get(userId);
+    if (info == null || !accessToken.equals(info.accessToken())) {
+      invalidateJwtInformationByUserId(userId);
+      return false;
+    }
+
     return tokenProvider.validateAccessToken(accessToken);
   }
 
@@ -79,6 +85,12 @@ public class InMemoryJwtRegistry implements JwtRegistry {
   public boolean hasActiveJwtInformationByRefreshToken(String refreshToken) {
     UUID userId = refreshTokenIndex.get(refreshToken);
     if (userId == null) {
+      return false;
+    }
+
+    JwtInformation info = origin.get(userId);
+    if (info == null || !refreshToken.equals(info.refreshToken())) {
+      invalidateJwtInformationByUserId(userId);
       return false;
     }
 
