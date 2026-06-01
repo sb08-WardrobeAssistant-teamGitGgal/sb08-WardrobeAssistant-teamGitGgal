@@ -33,4 +33,12 @@ public class KafkaConfig {
         .replicas(replicas)
         .build();
   }
+
+  @Bean
+  public NewTopic followNotificationTopic() {
+    return TopicBuilder.name("follow-notification")
+        .partitions(partitions)
+        .replicas(replicas)
+        .build();
+  }
 }
