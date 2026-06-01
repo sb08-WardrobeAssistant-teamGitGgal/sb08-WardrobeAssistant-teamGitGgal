@@ -63,13 +63,13 @@ public class DirectMessageKafkaListener {
       }
 
     } catch (JsonProcessingException e) {
-      log.error("[DM Kafka Consumer] 역직렬화 실패 - payload={}", payload, e);
+      log.error("[DM Kafka Consumer] 역직렬화 실패 - receiverId 파싱 불가, payloadLength={}", payload.length(), e);
       throw new PayloadDeserializationException(payload, e);
     }
   }
 
   @DltHandler
   public void handleDlt(String payload, Exception e) {
-    log.error("[DM DLT] 최종 실패 - payload={}, error={}", payload, e.getMessage());
+    log.error("[DM DLT] 최종 실패 - error={}", e.getMessage());
   }
 }
