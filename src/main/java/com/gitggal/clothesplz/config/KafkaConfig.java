@@ -41,4 +41,12 @@ public class KafkaConfig {
         .replicas(replicas)
         .build();
   }
+
+  @Bean
+  public NewTopic dmNotificationTopic() {
+    return TopicBuilder.name("dm-notification")
+        .partitions(partitions)
+        .replicas(replicas)
+        .build();
+  }
 }

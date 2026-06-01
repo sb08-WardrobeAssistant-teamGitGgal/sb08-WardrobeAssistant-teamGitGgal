@@ -1,11 +1,10 @@
 package com.gitggal.clothesplz.event.message;
 
-import com.gitggal.clothesplz.dto.notification.NotificationRequest;
-import com.gitggal.clothesplz.entity.notification.NotificationLevel;
-import com.gitggal.clothesplz.service.notification.NotificationService;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
@@ -16,36 +15,35 @@ import org.springframework.transaction.event.TransactionalEventListener;
 @RequiredArgsConstructor
 public class DirectMessageEventListener {
 
-  private final SimpMessagingTemplate messagingTemplate;
-  private final NotificationService notificationService;
+  private final KafkaTemplate<String, String> kafkaTemplate;
 
-  @Async
+  private final ObjectMapper objectMapper;
+
+  @Async("taskExecutor")
   @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
   public void handleDirectMessageSent(DirectMessageSentEvent event) {
 
-    log.info("[EventListener] DM 알림 이벤트 수신 시작: receiverId={}", event.receiverId());
+    log.info("[DM Kafka Producer] 메시지 전송 시작: receiverId={}", event.receiverId());
 
     try {
-      notificationService.send(new NotificationRequest(
-          event.receiverId(),
-          "[DM] " + event.senderName(),
-          event.dto().content(),
-          NotificationLevel.INFO
-      ));
 
-      log.info("[EventListener] 알림 DB 저장 및 Redis 발행 완료");
+      String payload = objectMapper.writeValueAsString(event);
 
-    } catch (Exception e) {
-      log.error("[EventListener] 알림 생성 중 오류 발생: receiverId={}", event.receiverId(), e);
+      kafkaTemplate.send(
+          "dm-notification",
+          event.receiverId().toString(),
+          payload
+      ).whenComplete((result, e) -> {
+        if (e != null) {
+          log.error("[DM Kafka Producer] 전송 실패 - receiverId={}, error={}", event.receiverId(),
+              e.getMessage());
+        } else {
+          log.info("[DM Kafka Producer] 전송 성공: receiverId={}", event.receiverId());
+        }
+      });
+
+    } catch (JsonProcessingException e) {
+      log.error("[DM Kafka Producer] 직렬화 실패 - receiverId={}", event.receiverId(), e);
     }
-
-    try {
-      messagingTemplate.convertAndSend(event.destination(), event.dto());
-
-      log.info("[EventListener] STOMP 푸시 전송 성공: destination={}", event.destination());
-    } catch (Exception e) {
-      log.error("[EventListener] STOMP 푸시 전송 실패: destination={}", event.destination(), e);
-    }
-
   }
 }
