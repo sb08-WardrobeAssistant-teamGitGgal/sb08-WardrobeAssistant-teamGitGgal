@@ -72,9 +72,9 @@ management:
       enabled: true
     readinessstate:
       enabled: true
-  cloudwatch:
-    metrics:
-      export:
+  metrics:
+    export:
+      cloudwatch:
         enabled: true
         namespace: clothesplz
         step: 1m
