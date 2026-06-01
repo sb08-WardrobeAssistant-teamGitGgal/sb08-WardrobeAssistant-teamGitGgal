@@ -1,10 +1,10 @@
 package com.gitggal.clothesplz.event.clothes;
 
-import com.gitggal.clothesplz.dto.notification.NotificationRequest;
-import com.gitggal.clothesplz.entity.notification.NotificationLevel;
-import com.gitggal.clothesplz.service.notification.NotificationService;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
@@ -15,32 +15,30 @@ import org.springframework.transaction.event.TransactionalEventListener;
 @RequiredArgsConstructor
 public class ClothesNotificationEventListener {
 
-  private final NotificationService notificationService;
+  private final KafkaTemplate<String, String> kafkaTemplate;
 
-  @Async
+  private final ObjectMapper objectMapper;
+
+  @Async("taskExecutor")
   @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
   public void handleClothesChanged(ClothesChangedEvent event) {
-    String title = switch (event.changeType()) {
-      case CREATED -> "의상이 등록되었어요.";
-      case UPDATED -> "의상 정보가 수정되었어요.";
-      case DELETED -> "의상이 삭제되었어요.";
-    };
-
-    String content = switch (event.changeType()) {
-      case CREATED -> "[" + event.clothesName() + "] 의상이 등록되었어요.";
-      case UPDATED -> "[" + event.clothesName() + "] 의상 정보를 확인해보세요.";
-      case DELETED -> "[" + event.clothesName() + "] 의상이 삭제되었어요.";
-    };
 
     try {
-      notificationService.send(new NotificationRequest(
-          event.userId(),
-          title,
-          content,
-          NotificationLevel.INFO
-      ));
-    } catch (Exception e) {
-      log.warn("의상 변경 알림 전송 실패. userId={}", event.userId(), e);
+
+      String payload = objectMapper.writeValueAsString(event);
+
+      kafkaTemplate.send("clothes-notification", event.userId().toString(), payload)
+          .whenComplete((result, e) -> {
+
+            if (e != null) {
+              log.error("[Clothes Kafka Producer] 전송 실패 - userId={}, error={}", event.userId(),
+                  e.getMessage());
+            } else {
+              log.info("[Clothes Kafka Producer] 전송 성공: userId={}", event.userId());
+            }
+          });
+    } catch (JsonProcessingException e) {
+      log.error("[Clothes Kafka Producer] 직렬화 실패 - userId={}", event.userId(), e);
     }
   }
 }

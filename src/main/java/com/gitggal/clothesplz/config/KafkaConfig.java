@@ -89,4 +89,12 @@ public class KafkaConfig {
         .replicas(replicas)
         .build();
   }
+
+  @Bean
+  public NewTopic clothesNotificationTopic() {
+    return TopicBuilder.name("clothes-notification")
+        .partitions(partitions)
+        .replicas(replicas)
+        .build();
+  }
 }
