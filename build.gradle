@@ -78,6 +78,7 @@ dependencies {
     // AWS
     implementation platform('software.amazon.awssdk:bom:2.31.62')
     implementation 'software.amazon.awssdk:s3'
+    implementation 'software.amazon.awssdk:cloudwatch'
     implementation 'io.micrometer:micrometer-registry-cloudwatch2'
 
     // Image processing
