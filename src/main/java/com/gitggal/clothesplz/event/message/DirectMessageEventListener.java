@@ -35,8 +35,7 @@ public class DirectMessageEventListener {
           payload
       ).whenComplete((result, e) -> {
         if (e != null) {
-          log.error("[DM Kafka Producer] 전송 실패 - receiverId={}, error={}", event.receiverId(),
-              e.getMessage());
+          log.error("[DM Kafka Producer] 전송 실패 - receiverId={}", event.receiverId(), e);
         } else {
           log.info("[DM Kafka Producer] 전송 성공: receiverId={}", event.receiverId());
         }
