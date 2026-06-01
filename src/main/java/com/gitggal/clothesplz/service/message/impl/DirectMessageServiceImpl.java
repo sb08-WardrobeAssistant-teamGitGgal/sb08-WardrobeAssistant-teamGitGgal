@@ -11,11 +11,15 @@ import com.gitggal.clothesplz.exception.code.MessageErrorCode;
 import com.gitggal.clothesplz.exception.code.UserErrorCode;
 import com.gitggal.clothesplz.mapper.message.DirectMessageMapper;
 import com.gitggal.clothesplz.repository.message.DirectMessageRepository;
+import com.gitggal.clothesplz.repository.profile.ProfileRepository;
 import com.gitggal.clothesplz.repository.user.UserRepository;
 import com.gitggal.clothesplz.service.message.DirectMessageService;
 import com.gitggal.clothesplz.util.message.DmKeyGenerator;
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,6 +39,7 @@ public class DirectMessageServiceImpl implements DirectMessageService {
 
   private final DirectMessageRepository directMessageRepository;
   private final UserRepository userRepository;
+  private final ProfileRepository profileRepository;
   private final DirectMessageMapper directMessageMapper;
 
   private final ApplicationEventPublisher eventPublisher;
@@ -77,7 +82,11 @@ public class DirectMessageServiceImpl implements DirectMessageService {
 
     DirectMessage savedMessage = directMessageRepository.save(message);
 
-    DirectMessageDto dto = directMessageMapper.toDto(savedMessage);
+    Map<UUID, String> imageByUserId = new HashMap<>();
+    profileRepository.findByUserIdIn(Set.of(request.senderId(), request.receiverId()))
+        .forEach(p -> imageByUserId.put(p.getUser().getId(), p.getImageUrl()));
+
+    DirectMessageDto dto = directMessageMapper.toDto(savedMessage, imageByUserId);
 
     String dmKey = DmKeyGenerator.generateKey(request.senderId(), request.receiverId());
 
@@ -140,8 +149,12 @@ public class DirectMessageServiceImpl implements DirectMessageService {
 
     long totalCount = directMessageRepository.countBetween(userId, partnerId);
 
+    Map<UUID, String> imageByUserId = new HashMap<>();
+    profileRepository.findByUserIdIn(Set.of(userId, partnerId))
+        .forEach(p -> imageByUserId.put(p.getUser().getId(), p.getImageUrl()));
+
     List<DirectMessageDto> dtoList = pageData.stream()
-        .map(directMessageMapper::toDto)
+        .map(dm -> directMessageMapper.toDto(dm, imageByUserId))
         .toList();
 
     log.info("[Service] DM 목록 조회 완료: totalCount={}", totalCount);

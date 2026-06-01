@@ -3,6 +3,7 @@ package com.gitggal.clothesplz.service.message;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.mock;
@@ -19,6 +20,7 @@ import com.gitggal.clothesplz.exception.BusinessException;
 import com.gitggal.clothesplz.exception.code.MessageErrorCode;
 import com.gitggal.clothesplz.mapper.message.DirectMessageMapper;
 import com.gitggal.clothesplz.repository.message.DirectMessageRepository;
+import com.gitggal.clothesplz.repository.profile.ProfileRepository;
 import com.gitggal.clothesplz.repository.user.UserRepository;
 import com.gitggal.clothesplz.service.message.impl.DirectMessageServiceImpl;
 import java.time.Instant;
@@ -41,6 +43,8 @@ public class DirectMessageServiceTest {
   private DirectMessageRepository directMessageRepository;
   @Mock
   private UserRepository userRepository;
+  @Mock
+  private ProfileRepository profileRepository;
   @Mock
   private DirectMessageMapper directMessageMapper;
   @Mock
@@ -78,7 +82,7 @@ public class DirectMessageServiceTest {
         new UserSummary(receiverId, "James", null),
         "[TEST] 테스트용 메시지 입니다.");
 
-    given(directMessageMapper.toDto(saved)).willReturn(dto);
+    given(directMessageMapper.toDto(eq(saved), any())).willReturn(dto);
 
     // when
     DirectMessageDto result = directMessageService.send(request, senderId);
@@ -154,7 +158,7 @@ public class DirectMessageServiceTest {
         "메시지 내용"
     );
 
-    given(directMessageMapper.toDto(message)).willReturn(dto);
+    given(directMessageMapper.toDto(eq(message), any())).willReturn(dto);
 
     // when
     DirectMessageDtoCursorResponse result =
@@ -189,8 +193,8 @@ public class DirectMessageServiceTest {
     given(directMessageRepository.countBetween(userId, partnerId))
         .willReturn(3L);
 
-    given(directMessageMapper.toDto(message1)).willReturn(mock(DirectMessageDto.class));
-    given(directMessageMapper.toDto(message2)).willReturn(mock(DirectMessageDto.class));
+    given(directMessageMapper.toDto(eq(message1), any())).willReturn(mock(DirectMessageDto.class));
+    given(directMessageMapper.toDto(eq(message2), any())).willReturn(mock(DirectMessageDto.class));
 
     // when
     DirectMessageDtoCursorResponse result =
