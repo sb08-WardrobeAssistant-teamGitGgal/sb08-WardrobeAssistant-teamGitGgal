@@ -17,6 +17,7 @@ import com.gitggal.clothesplz.service.message.DirectMessageService;
 import com.gitggal.clothesplz.util.message.DmKeyGenerator;
 import java.time.Instant;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -150,7 +151,7 @@ public class DirectMessageServiceImpl implements DirectMessageService {
     long totalCount = directMessageRepository.countBetween(userId, partnerId);
 
     Map<UUID, String> imageByUserId = new HashMap<>();
-    profileRepository.findByUserIdIn(Set.of(userId, partnerId))
+    profileRepository.findByUserIdIn(new HashSet<>(List.of(userId, partnerId)))
         .forEach(p -> imageByUserId.put(p.getUser().getId(), p.getImageUrl()));
 
     List<DirectMessageDto> dtoList = pageData.stream()
