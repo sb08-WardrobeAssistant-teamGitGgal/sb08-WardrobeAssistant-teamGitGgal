@@ -77,7 +77,7 @@ management:
       cloudwatch:
         enabled: true
         namespace: clothesplz
-        region: ${AWS_REGION}
+        region: ${AWS_REGION:ap-northeast-2}
         step: 1m
 
 clothesplz:
