@@ -37,7 +37,7 @@ public class ClothesController implements ClothesControllerApi {
 
   @Override
   @GetMapping
-  @PreAuthorize("isAuthenticated()")
+  @PreAuthorize("hasRole('ADMIN') or (#userDetails != null and #userDetails.userDto.id.equals(#request.ownerId()))")
   public ResponseEntity<ClothesDtoCursorResponse> getClothes(
       @Valid ClothesGetRequest request,
       @AuthenticationPrincipal ClothesUserDetails userDetails
@@ -54,10 +54,11 @@ public class ClothesController implements ClothesControllerApi {
 
   @Override
   @PostMapping
-  @PreAuthorize("isAuthenticated()")
+  @PreAuthorize("hasRole('ADMIN') or (#userDetails != null and #userDetails.userDto.id.equals(#request.ownerId()))")
   public ResponseEntity<ClothesDto> createClothes(
       @RequestPart @Valid ClothesCreateRequest request,
-      @RequestPart(required = false) MultipartFile image
+      @RequestPart(required = false) MultipartFile image,
+      @AuthenticationPrincipal ClothesUserDetails userDetails
   ) {
     log.info("[Controller] 의상 생성 요청 시작");
 
