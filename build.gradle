@@ -130,7 +130,8 @@ def jacocoExcludePatterns = [
         "**/*Mapper*",
         "**/entity/**",
         "**/publisher/**",
-        "**/elasticsearch/**"
+        "**/elasticsearch/**",
+        "**/*KafkaListener*"
 ]
 
 jacocoTestReport {

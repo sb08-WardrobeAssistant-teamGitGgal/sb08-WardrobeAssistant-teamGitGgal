@@ -1,10 +1,10 @@
 package com.gitggal.clothesplz.event.clothes;
 
-import com.gitggal.clothesplz.dto.notification.NotificationRequest;
-import com.gitggal.clothesplz.entity.notification.NotificationLevel;
-import com.gitggal.clothesplz.service.notification.NotificationService;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
@@ -15,33 +15,31 @@ import org.springframework.transaction.event.TransactionalEventListener;
 @RequiredArgsConstructor
 public class ClothingAttributeNotificationEventListener {
 
-  private final NotificationService notificationService;
+  private final KafkaTemplate<String, String> kafkaTemplate;
 
-  @Async
+  private final ObjectMapper objectMapper;
+
+  @Async("taskExecutor")
   @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
   public void handleClothingAttributeChanged(ClothingAttributeChangedEvent event) {
 
-    String title = switch (event.changeType()) {
-      case ADDED -> "새로운 의상 속성이 추가되었어요.";
-      case UPDATED -> "의상 속성이 변경되었어요.";
-      case DELETED -> "의상 속성이 삭제되었어요.";
-    };
-
-    String content = switch (event.changeType()) {
-      case ADDED -> "내 의상에 [" + event.attributeName() + "] 속성을 추가해보세요.";
-      case UPDATED -> "[" + event.attributeName() + "] 속성을 확인해보세요.";
-      case DELETED -> "[" + event.attributeName() + "] 속성이 삭제되었어요.";
-    };
+    log.info("[ClothingAttr Kafka Producer] 메시지 전송 시작: userId={}", event.userId());
 
     try {
-      notificationService.send(new NotificationRequest(
-          event.userId(),
-          title,
-          content,
-          NotificationLevel.INFO
-      ));
-    } catch (Exception e) {
-      log.warn("의상 속성 변경 알림 전송 실패. userId={}", event.userId(), e);
+
+      String payload = objectMapper.writeValueAsString(event);
+
+      kafkaTemplate.send("clothing-attribute-notification", event.userId().toString(), payload)
+          .whenComplete((result, e) -> {
+            if (e != null) {
+              log.error("[ClothingAttr Kafka Producer] 전송 실패 - userId={}, error={}", event.userId(), e.getMessage());
+            } else {
+              log.info("[ClothingAttr Kafka Producer] 전송 성공: userId={}", event.userId());
+            }
+          });
+    } catch (JsonProcessingException e) {
+      log.error("[ClothingAttr Kafka Producer] 직렬화 실패 - userId={}", event.userId(), e);
     }
+
   }
 }
