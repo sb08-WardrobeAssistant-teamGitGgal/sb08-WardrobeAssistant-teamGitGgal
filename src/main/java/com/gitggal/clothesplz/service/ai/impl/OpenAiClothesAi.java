@@ -24,6 +24,8 @@ public class OpenAiClothesAi implements ClothesAi {
 
   private static final String UNKNOWN_NAME = "알 수 없는 의상";
   private static final int MAX_ATTRIBUTES_PER_CLOTHES = 5;
+  private static final int MIN_RECOMMENDATIONS = 4;
+  private static final int MAX_RECOMMENDATIONS = 7;
 
   private final ChatClient chatClient;
   private final ObjectMapper objectMapper;
@@ -71,17 +73,18 @@ public class OpenAiClothesAi implements ClothesAi {
 
   private String recommendSystemPrompt() {
     return """
-        날씨/온도민감도/의상목록을 보고 추천 ID 최대 7개, 최소 4개를 고르세요.
+        날씨, 온도 민감도, 의상 목록을 보고 어울리는 의상 ID를 %d~%d개 고르세요.
         규칙:
         - 제공된 id 중에서만 선택
+        - 날씨와 tempSensitivity에 맞는 의상 우선
+        - 적합한 후보 안에서 매번 다양한 조합이 나오도록 선택
         - 타입이 한쪽으로 치우치지 않게 분산
         - 동일 타입은 최대 2개
-        - 적절한 항목이 없으면 가능한 범위에서만 추천
+        - 적절한 항목이 부족하면 가능한 만큼만 추천
         출력:
-        {"recommendedIds":["uuid1","uuid2","uuid3","uuid4","uuid5", ...]}
+        {"recommendedIds":["uuid1","uuid2", ...]}
         JSON 외 텍스트/코드블록 금지
-        추천 uuid는 최소 4개 ~ 7개를 추천
-        """;
+        """.formatted(MIN_RECOMMENDATIONS, MAX_RECOMMENDATIONS);
   }
 
   private String buildRecommendPrompt(
@@ -148,7 +151,6 @@ public class OpenAiClothesAi implements ClothesAi {
           serializedAttrs
       ));
     }
-    sb.append("\n추천할 id 5개를 반환하세요.");
     return sb.toString();
   }
 
