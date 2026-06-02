@@ -8,7 +8,15 @@ import java.util.UUID;
 
 public interface FeedRepositoryCustom {
 
-  List<FeedDto> findAllByCursor(FeedPageRequest feedPageRequest, FeedCursorCondition feedCursorCondition, List<UUID> esMatchedIds);
+  List<FeedDto> findAllByCursor(
+      FeedPageRequest feedPageRequest,
+      FeedCursorCondition feedCursorCondition,
+      List<UUID> esMatchedIds,
+      List<UUID> followingIds
+  );
 
-  long countByCondition(FeedPageRequest feedPageRequest, List<UUID> esMatchedIds);
+  long countByCondition(
+      FeedPageRequest feedPageRequest,
+      List<UUID> esMatchedIds,
+      List<UUID> followingIds);
 }

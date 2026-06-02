@@ -110,7 +110,7 @@ public class FeedRepositoryTest extends RepositoryTestSupport {
 
   private FeedPageRequest defaultRequest(int limit) {
     return new FeedPageRequest(null, null, limit, "createdAt", "DESCENDING",
-        null, null, null, null);
+        null, null, null, null, null);
   }
 
   // ===== findAllByCursor =====
@@ -123,7 +123,7 @@ public class FeedRepositoryTest extends RepositoryTestSupport {
     saveFeed("피드3");
     em.clear();
 
-    List<FeedDto> result = feedRepository.findAllByCursor(defaultRequest(2), new FeedCursorCondition(null, null, null), null);
+    List<FeedDto> result = feedRepository.findAllByCursor(defaultRequest(2), new FeedCursorCondition(null, null, null), null, null);
 
     assertThat(result).hasSize(3);
   }
@@ -134,7 +134,7 @@ public class FeedRepositoryTest extends RepositoryTestSupport {
     saveFeed("피드1");
     em.clear();
 
-    List<FeedDto> result = feedRepository.findAllByCursor(defaultRequest(5), new FeedCursorCondition(null, null, null), null);
+    List<FeedDto> result = feedRepository.findAllByCursor(defaultRequest(5), new FeedCursorCondition(null, null, null), null, null);
 
     assertThat(result).hasSize(1);
   }
@@ -156,9 +156,9 @@ public class FeedRepositoryTest extends RepositoryTestSupport {
     em.clear();
 
     // t3 > t2 > t1 내림차순, 다음 페이지는 t1만 해당
-    FeedPageRequest request = new FeedPageRequest(null, null, 10, "createdAt", "DESCENDING", null, null, null, null);
+    FeedPageRequest request = new FeedPageRequest(null, null, 10, "createdAt", "DESCENDING", null, null, null, null, null);
     FeedCursorCondition cursor = new FeedCursorCondition(t2, null, feed2.getId());
-    List<FeedDto> result = feedRepository.findAllByCursor(request, cursor, null);
+    List<FeedDto> result = feedRepository.findAllByCursor(request, cursor, null, null);
 
     assertThat(result).hasSize(1);
     assertThat(result.get(0).content()).isEqualTo("피드1");
@@ -177,9 +177,9 @@ public class FeedRepositoryTest extends RepositoryTestSupport {
     em.clear();
 
     // 3 > 2 > 1 내림차순, likeCount=2인 feed2가 커서이므로 피드1만 해당
-    FeedPageRequest request = new FeedPageRequest(null, null, 10, "likeCount", "DESCENDING", null, null, null, null);
+    FeedPageRequest request = new FeedPageRequest(null, null, 10, "likeCount", "DESCENDING", null, null, null, null, null);
     FeedCursorCondition cursor = new FeedCursorCondition(null, 2L, feed2.getId());
-    List<FeedDto> result = feedRepository.findAllByCursor(request, cursor, null);
+    List<FeedDto> result = feedRepository.findAllByCursor(request, cursor, null, null);
 
     assertThat(result).hasSize(1);
     assertThat(result.get(0).content()).isEqualTo("피드1");
@@ -193,8 +193,8 @@ public class FeedRepositoryTest extends RepositoryTestSupport {
     em.clear();
 
     FeedPageRequest request = new FeedPageRequest(
-        null, null, 10, "createdAt", "DESCENDING", null, null, null, null);
-    List<FeedDto> result = feedRepository.findAllByCursor(request, new FeedCursorCondition(null, null, null), List.of(feed1.getId()));
+        null, null, 10, "createdAt", "DESCENDING", null, null, null, null, null);
+    List<FeedDto> result = feedRepository.findAllByCursor(request, new FeedCursorCondition(null, null, null), List.of(feed1.getId()), null);
 
     assertThat(result).hasSize(1);
     assertThat(result.get(0).content()).isEqualTo("오늘 날씨가 맑아서 좋다");
@@ -212,11 +212,45 @@ public class FeedRepositoryTest extends RepositoryTestSupport {
     em.clear();
 
     FeedPageRequest request = new FeedPageRequest(
-        null, null, 10, "createdAt", "DESCENDING", null, null, null, userId);
-    List<FeedDto> result = feedRepository.findAllByCursor(request, new FeedCursorCondition(null, null, null), null);
+        null, null, 10, "createdAt", "DESCENDING", null, null, null, userId, null);
+    List<FeedDto> result = feedRepository.findAllByCursor(request, new FeedCursorCondition(null, null, null), null, null);
 
     assertThat(result).hasSize(1);
     assertThat(result.get(0).content()).isEqualTo("작성자 피드");
+  }
+
+  @Test
+  @DisplayName("followingIds로 해당 작성자의 피드만 반환한다")
+  void findAllByCursor_followingIds_returnsOnlyFollowingFeeds() {
+    saveFeed("작성자 피드");
+
+    User otherUser = em.persistAndFlush(new User("다른유저", "other@test.com", "password"));
+    em.persistAndFlush(Profile.builder().user(otherUser).imageUrl("http://other.url").build());
+    Weather managedWeather = em.find(Weather.class, weatherId);
+    em.persistAndFlush(new Feed(managedWeather, otherUser, List.of(), "다른유저 피드"));
+    em.clear();
+
+    FeedPageRequest request = new FeedPageRequest(
+        null, null, 10, "createdAt", "DESCENDING", null, null, null, null, null);
+    List<FeedDto> result = feedRepository.findAllByCursor(
+        request, new FeedCursorCondition(null, null, null), null, List.of(userId));
+
+    assertThat(result).hasSize(1);
+    assertThat(result.get(0).content()).isEqualTo("작성자 피드");
+  }
+
+  @Test
+  @DisplayName("followingIds가 빈 리스트면 피드를 반환하지 않는다")
+  void findAllByCursor_emptyFollowingIds_returnsEmpty() {
+    saveFeed("피드1");
+    em.clear();
+
+    FeedPageRequest request = new FeedPageRequest(
+        null, null, 10, "createdAt", "DESCENDING", null, null, null, null, null);
+    List<FeedDto> result = feedRepository.findAllByCursor(
+        request, new FeedCursorCondition(null, null, null), null, List.of());
+
+    assertThat(result).isEmpty();
   }
 
   // ===== countByCondition =====
@@ -229,7 +263,7 @@ public class FeedRepositoryTest extends RepositoryTestSupport {
     saveFeed("피드3");
     em.clear();
 
-    long count = feedRepository.countByCondition(defaultRequest(10), null);
+    long count = feedRepository.countByCondition(defaultRequest(10), null, null);
 
     assertThat(count).isEqualTo(3);
   }
@@ -243,8 +277,8 @@ public class FeedRepositoryTest extends RepositoryTestSupport {
     em.clear();
 
     FeedPageRequest request = new FeedPageRequest(
-        null, null, 10, "createdAt", "DESCENDING", null, null, null, null);
-    long count = feedRepository.countByCondition(request, List.of(feed1.getId(), feed2.getId()));
+        null, null, 10, "createdAt", "DESCENDING", null, null, null, null, null);
+    long count = feedRepository.countByCondition(request, List.of(feed1.getId(), feed2.getId()), null);
 
     assertThat(count).isEqualTo(2);
   }

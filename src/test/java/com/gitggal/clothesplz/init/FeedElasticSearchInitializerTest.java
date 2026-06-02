@@ -15,6 +15,7 @@ import com.gitggal.clothesplz.entity.weather.SkyStatus;
 import com.gitggal.clothesplz.entity.weather.Weather;
 import com.gitggal.clothesplz.repository.feed.FeedRepository;
 import com.gitggal.clothesplz.repository.feed.FeedSearchRepository;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -28,6 +29,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("FeedElasticSearchInitializer 테스트")
@@ -39,8 +42,20 @@ class FeedElasticSearchInitializerTest {
   @Mock
   private FeedSearchRepository feedSearchRepository;
 
+  @Mock
+  private RedisTemplate<String, Object> redisTemplate;
+
+  @Mock
+  private ValueOperations<String, Object> valueOperations;
+
   @InjectMocks
   private FeedElasticSearchInitializer initializer;
+
+  private void givenLockAcquired() {
+    given(redisTemplate.opsForValue()).willReturn(valueOperations);
+    given(valueOperations.setIfAbsent(any(), any(), any(Duration.class))).willReturn(true);
+    given(redisTemplate.execute(any(), anyList(), any())).willReturn(1L);
+  }
 
   private Feed mockFeed() {
     Feed feed = mock(Feed.class);
@@ -65,9 +80,25 @@ class FeedElasticSearchInitializerTest {
   class SkipTests {
 
     @Test
+    @DisplayName("다른 서버가 락을 보유 중이면 인덱싱 스킵")
+    void run_SkipsIndexing_WhenLockNotAcquired() throws Exception {
+      // given
+      given(redisTemplate.opsForValue()).willReturn(valueOperations);
+      given(valueOperations.setIfAbsent(any(), any(), any(Duration.class))).willReturn(false);
+
+      // when
+      initializer.run();
+
+      // then
+      then(feedRepository).should(never()).count();
+      then(feedSearchRepository).should(never()).deleteAll();
+    }
+
+    @Test
     @DisplayName("DB와 ES 건수가 일치하면 인덱싱 스킵하는 경우")
     void run_SkipsIndexing_WhenCountsMatch() throws Exception {
       // given
+      givenLockAcquired();
       given(feedRepository.count()).willReturn(7L);
       given(feedSearchRepository.count()).willReturn(7L);
 
@@ -83,6 +114,7 @@ class FeedElasticSearchInitializerTest {
     @DisplayName("DB와 ES 모두 비어있어 인덱싱 스킵하는 경우")
     void run_SkipsIndexing_WhenBothEmpty() throws Exception {
       // given
+      givenLockAcquired();
       given(feedRepository.count()).willReturn(0L);
       given(feedSearchRepository.count()).willReturn(0L);
 
@@ -103,6 +135,7 @@ class FeedElasticSearchInitializerTest {
     @DisplayName("ES가 비어있고 DB에 데이터가 있으면 전체 인덱싱")
     void run_IndexesAll_WhenEsIsEmpty() throws Exception {
       // given
+      givenLockAcquired();
       Feed feed = mockFeed();
       given(feedRepository.count()).willReturn(1L);
       given(feedSearchRepository.count()).willReturn(0L);
@@ -121,6 +154,7 @@ class FeedElasticSearchInitializerTest {
     @DisplayName("부분 인덱싱 상태이면 전체 삭제 후 재인덱싱")
     void run_ReindexesAll_WhenPartiallyIndexed() throws Exception {
       // given
+      givenLockAcquired();
       Feed feed = mockFeed();
       given(feedRepository.count()).willReturn(7L);
       given(feedSearchRepository.count()).willReturn(3L);
@@ -139,6 +173,7 @@ class FeedElasticSearchInitializerTest {
     @DisplayName("피드가 배치 크기를 초과하면 페이지 단위로 나누어 인덱싱")
     void run_IndexesInBatches_WhenFeedsExceedBatchSize() throws Exception {
       // given
+      givenLockAcquired();
       Feed feed1 = mockFeed();
       Feed feed2 = mockFeed();
 
