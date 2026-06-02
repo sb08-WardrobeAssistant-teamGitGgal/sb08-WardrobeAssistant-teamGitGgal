@@ -168,7 +168,6 @@ public class RecommendationServiceImpl implements RecommendationService {
         .distinct()
         .map(clothesMap::get)
         .filter(Objects::nonNull)
-        .limit(5)
         .toList();
   }
 

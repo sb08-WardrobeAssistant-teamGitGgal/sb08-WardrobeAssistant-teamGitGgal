@@ -81,6 +81,7 @@ public class OpenAiClothesAi implements ClothesAi {
         - 타입이 한쪽으로 치우치지 않게 분산
         - 동일 타입은 최대 2개
         - 적절한 항목이 부족하면 가능한 만큼만 추천
+        - 추천 목록을 입고 밖에 나갈 수 있도록 한 쪽으로 치우치치 않게 선택
         출력:
         {"recommendedIds":["uuid1","uuid2", ...]}
         JSON 외 텍스트/코드블록 금지
