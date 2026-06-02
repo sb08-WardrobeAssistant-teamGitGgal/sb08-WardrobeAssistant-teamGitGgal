@@ -158,7 +158,7 @@ public class FeedServiceTest {
         UUID.randomUUID(), Instant.now(), feedId, authorDto, "댓글2"
     );
 
-    feedPageRequest = new FeedPageRequest(null, null, 2, "createdAt", "DESCENDING", null, null, null, null);
+    feedPageRequest = new FeedPageRequest(null, null, 2, "createdAt", "DESCENDING", null, null, null, null, null);
 
     feedDto1 = new FeedDto(
         UUID.randomUUID(), Instant.now(), Instant.now(),
@@ -584,9 +584,9 @@ public class FeedServiceTest {
     @DisplayName("피드 목록 조회 성공 - 다음 페이지 없는 경우")
     void getFeeds_Success_NoNextPage() {
       // given
-      given(feedRepository.findAllByCursor(eq(feedPageRequest), any(FeedCursorCondition.class), isNull())).willReturn(List.of(feedDto1));
+      given(feedRepository.findAllByCursor(eq(feedPageRequest), any(FeedCursorCondition.class), isNull(), isNull())).willReturn(List.of(feedDto1));
       given(feedLikeRepository.findFeedIdsByUserId(eq(userId), any())).willReturn(Set.of());
-      given(feedRepository.countByCondition(eq(feedPageRequest), isNull())).willReturn(1L);
+      given(feedRepository.countByCondition(eq(feedPageRequest), isNull(), isNull())).willReturn(1L);
 
       // when
       FeedDtoCursorResponse result = feedService.getFeeds(userId, feedPageRequest);
@@ -603,10 +603,10 @@ public class FeedServiceTest {
     @DisplayName("피드 목록 조회 성공 - 다음 페이지 있는 경우 (sortBy=createdAt)")
     void getFeeds_Success_HasNextPage_SortByCreatedAt() {
       // given
-      given(feedRepository.findAllByCursor(eq(feedPageRequest), any(FeedCursorCondition.class), isNull()))
+      given(feedRepository.findAllByCursor(eq(feedPageRequest), any(FeedCursorCondition.class), isNull(), isNull()))
           .willReturn(List.of(feedDto1, feedDto2, feedDto3));
       given(feedLikeRepository.findFeedIdsByUserId(eq(userId), any())).willReturn(Set.of());
-      given(feedRepository.countByCondition(eq(feedPageRequest), isNull())).willReturn(3L);
+      given(feedRepository.countByCondition(eq(feedPageRequest), isNull(), isNull())).willReturn(3L);
 
       // when
       FeedDtoCursorResponse result = feedService.getFeeds(userId, feedPageRequest);
@@ -623,12 +623,12 @@ public class FeedServiceTest {
     void getFeeds_Success_HasNextPage_SortByLikeCount() {
       // given
       FeedPageRequest likeCountRequest = new FeedPageRequest(
-          null, null, 2, "likeCount", "DESCENDING", null, null, null, null
+          null, null, 2, "likeCount", "DESCENDING", null, null, null, null, null
       );
-      given(feedRepository.findAllByCursor(eq(likeCountRequest), any(FeedCursorCondition.class), isNull()))
+      given(feedRepository.findAllByCursor(eq(likeCountRequest), any(FeedCursorCondition.class), isNull(), isNull()))
           .willReturn(List.of(feedDto1, feedDto2, feedDto3));
       given(feedLikeRepository.findFeedIdsByUserId(eq(userId), any())).willReturn(Set.of());
-      given(feedRepository.countByCondition(eq(likeCountRequest), isNull())).willReturn(3L);
+      given(feedRepository.countByCondition(eq(likeCountRequest), isNull(), isNull())).willReturn(3L);
 
       // when
       FeedDtoCursorResponse result = feedService.getFeeds(userId, likeCountRequest);
@@ -643,9 +643,9 @@ public class FeedServiceTest {
     @DisplayName("피드 목록이 비어있는 경우")
     void getFeeds_EmptyList() {
       // given
-      given(feedRepository.findAllByCursor(eq(feedPageRequest), any(FeedCursorCondition.class), isNull())).willReturn(List.of());
+      given(feedRepository.findAllByCursor(eq(feedPageRequest), any(FeedCursorCondition.class), isNull(), isNull())).willReturn(List.of());
       given(feedLikeRepository.findFeedIdsByUserId(eq(userId), any())).willReturn(Set.of());
-      given(feedRepository.countByCondition(eq(feedPageRequest), isNull())).willReturn(0L);
+      given(feedRepository.countByCondition(eq(feedPageRequest), isNull(), isNull())).willReturn(0L);
 
       // when
       FeedDtoCursorResponse result = feedService.getFeeds(userId, feedPageRequest);
@@ -663,14 +663,14 @@ public class FeedServiceTest {
       // given
       UUID matchedId = feedDto1.id();
       FeedPageRequest keywordRequest = new FeedPageRequest(
-          null, null, 2, "createdAt", "DESCENDING", "봄코디", null, null, null);
+          null, null, 2, "createdAt", "DESCENDING", "봄코디", null, null, null, null);
       FeedDocument mockDoc = mock(FeedDocument.class);
       given(mockDoc.getId()).willReturn(matchedId.toString());
       given(feedSearchRepository.searchByContent(eq("봄코디"))).willReturn(List.of(mockDoc));
-      given(feedRepository.findAllByCursor(eq(keywordRequest), any(FeedCursorCondition.class), eq(List.of(matchedId))))
+      given(feedRepository.findAllByCursor(eq(keywordRequest), any(FeedCursorCondition.class), eq(List.of(matchedId)), isNull()))
           .willReturn(List.of(feedDto1));
       given(feedLikeRepository.findFeedIdsByUserId(eq(userId), any())).willReturn(Set.of());
-      given(feedRepository.countByCondition(eq(keywordRequest), eq(List.of(matchedId)))).willReturn(1L);
+      given(feedRepository.countByCondition(eq(keywordRequest), eq(List.of(matchedId)), isNull())).willReturn(1L);
 
       // when
       FeedDtoCursorResponse result = feedService.getFeeds(userId, keywordRequest);
@@ -686,7 +686,7 @@ public class FeedServiceTest {
     void getFeeds_WithKeyword_NoResults_ReturnsEmpty() {
       // given
       FeedPageRequest keywordRequest = new FeedPageRequest(
-          null, null, 2, "createdAt", "DESCENDING", "없는키워드", null, null, null);
+          null, null, 2, "createdAt", "DESCENDING", "없는키워드", null, null, null, null);
       given(feedSearchRepository.searchByContent(eq("없는키워드"))).willReturn(List.of());
 
       // when
@@ -703,7 +703,7 @@ public class FeedServiceTest {
     void getFeeds_InvalidCreatedAtCursor_ThrowsException() {
       // given
       FeedPageRequest invalidRequest = new FeedPageRequest(
-          "not-a-timestamp", UUID.randomUUID(), 2, "createdAt", "DESCENDING", null, null, null, null);
+          "not-a-timestamp", UUID.randomUUID(), 2, "createdAt", "DESCENDING", null, null, null, null, null);
 
       // when & then
       assertThatThrownBy(() -> feedService.getFeeds(userId, invalidRequest))
@@ -715,7 +715,7 @@ public class FeedServiceTest {
     void getFeeds_InvalidLikeCountCursor_ThrowsException() {
       // given
       FeedPageRequest invalidRequest = new FeedPageRequest(
-          "not-a-number", UUID.randomUUID(), 2, "likeCount", "DESCENDING", null, null, null, null);
+          "not-a-number", UUID.randomUUID(), 2, "likeCount", "DESCENDING", null, null, null, null, null);
 
       // when & then
       assertThatThrownBy(() -> feedService.getFeeds(userId, invalidRequest))
@@ -723,14 +723,70 @@ public class FeedServiceTest {
     }
 
     @Test
+    @DisplayName("followingOnly=true이고 팔로잉이 있는 경우")
+    void getFeeds_FollowingOnly_WithFollowings_PassesFollowingIds() {
+      // given
+      UUID followingId = UUID.randomUUID();
+      FeedPageRequest followingRequest = new FeedPageRequest(
+          null, null, 2, "createdAt", "DESCENDING", null, null, null, null, true
+      );
+      given(followRepository.findFolloweeIdsByFollowerId(userId)).willReturn(List.of(followingId));
+      given(feedRepository.findAllByCursor(eq(followingRequest), any(FeedCursorCondition.class), isNull(), eq(List.of(followingId))))
+          .willReturn(List.of(feedDto1));
+      given(feedLikeRepository.findFeedIdsByUserId(eq(userId), any())).willReturn(Set.of());
+      given(feedRepository.countByCondition(eq(followingRequest), isNull(), eq(List.of(followingId)))).willReturn(1L);
+
+      // when
+      FeedDtoCursorResponse result = feedService.getFeeds(userId, followingRequest);
+
+      // then
+      then(followRepository).should().findFolloweeIdsByFollowerId(userId);
+      assertThat(result.data().size()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("followingOnly=true이고 팔로잉이 없는 경우")
+    void getFeeds_FollowingOnly_NoFollowings_ReturnsEmptyWithoutDbCall() {
+      // given
+      FeedPageRequest followingRequest = new FeedPageRequest(
+          null, null, 2, "createdAt", "DESCENDING", null, null, null, null, true
+      );
+      given(followRepository.findFolloweeIdsByFollowerId(userId)).willReturn(List.of());
+
+      // when
+      FeedDtoCursorResponse result = feedService.getFeeds(userId, followingRequest);
+
+      // then
+      assertThat(result.data().size()).isEqualTo(0);
+      assertThat(result.hasNext()).isFalse();
+      then(feedRepository).shouldHaveNoInteractions();
+    }
+
+    @Test
+    @DisplayName("followingOnly=false인 경우")
+    void getFeeds_NotFollowingOnly_DoesNotCallFollowRepository() {
+      // given
+      given(feedRepository.findAllByCursor(eq(feedPageRequest), any(FeedCursorCondition.class), isNull(), isNull()))
+          .willReturn(List.of(feedDto1));
+      given(feedLikeRepository.findFeedIdsByUserId(eq(userId), any())).willReturn(Set.of());
+      given(feedRepository.countByCondition(eq(feedPageRequest), isNull(), isNull())).willReturn(1L);
+
+      // when
+      feedService.getFeeds(userId, feedPageRequest);
+
+      // then
+      then(followRepository).should(org.mockito.Mockito.never()).findFolloweeIdsByFollowerId(any());
+    }
+
+    @Test
     @DisplayName("사용자가 좋아요한 피드에만 likedByMe가 true로 매핑되는 경우")
     void getFeeds_LikedByMe_MappedCorrectly() {
       // given
-      given(feedRepository.findAllByCursor(eq(feedPageRequest), any(FeedCursorCondition.class), isNull()))
+      given(feedRepository.findAllByCursor(eq(feedPageRequest), any(FeedCursorCondition.class), isNull(), isNull()))
           .willReturn(List.of(feedDto1, feedDto2));
       given(feedLikeRepository.findFeedIdsByUserId(eq(userId), any()))
           .willReturn(Set.of(feedDto1.id()));
-      given(feedRepository.countByCondition(eq(feedPageRequest), isNull())).willReturn(2L);
+      given(feedRepository.countByCondition(eq(feedPageRequest), isNull(), isNull())).willReturn(2L);
 
       // when
       FeedDtoCursorResponse result = feedService.getFeeds(userId, feedPageRequest);
