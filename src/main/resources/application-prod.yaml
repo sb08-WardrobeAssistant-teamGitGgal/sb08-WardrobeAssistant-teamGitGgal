@@ -6,7 +6,7 @@ spring:
   cloud:
     aws:
       cloudwatch:
-        enabled: true
+        enabled: false
         region: ${AWS_REGION:ap-northeast-2}
 
   datasource:
@@ -81,6 +81,7 @@ management:
   cloudwatch:
     metrics:
       export:
+        enabled: false
         namespace: clothesplz
         step: 1m
 

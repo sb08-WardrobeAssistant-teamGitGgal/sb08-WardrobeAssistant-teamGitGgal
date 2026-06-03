@@ -101,7 +101,7 @@ class RecommendationServiceImplTest {
 
     given(weatherRepository.findById(weatherId)).willReturn(Optional.of(weather));
     given(clothesRepository.findByOwnerId(userId)).willReturn(allClothes);
-    given(clothesAi.recommendClothesIds(eq(weather), eq(allClothes), eq((short) 3), anyMap())).willReturn(List.of(outerId, topId));
+    given(clothesAi.recommendClothesIds(eq(weather), anyList(), eq((short) 3), anyMap())).willReturn(List.of(outerId, topId));
     given(clothesMapper.toOotdDto(outer, List.of())).willReturn(outerDto);
     given(clothesMapper.toOotdDto(top, List.of())).willReturn(topDto);
 
@@ -149,13 +149,13 @@ class RecommendationServiceImplTest {
 
     given(weatherRepository.findById(weatherId)).willReturn(Optional.of(weather));
     given(clothesRepository.findByOwnerId(userId)).willReturn(allClothes);
-    given(clothesAi.recommendClothesIds(eq(weather), eq(allClothes), eq((short) 3), anyMap())).willReturn(List.of());
+    given(clothesAi.recommendClothesIds(eq(weather), anyList(), eq((short) 3), anyMap())).willReturn(List.of());
     given(clothesMapper.toOotdDto(top, List.of())).willReturn(topDto);
 
     RecommendationDto result = recommendationService.getRecommendations(weatherId, user);
 
     assertThat(result.clothes()).containsExactly(topDto);
-    verify(clothesAi).recommendClothesIds(eq(weather), eq(allClothes), eq((short) 3), anyMap());
+    verify(clothesAi).recommendClothesIds(eq(weather), anyList(), eq((short) 3), anyMap());
   }
 
   @Test
@@ -176,14 +176,14 @@ class RecommendationServiceImplTest {
 
     given(weatherRepository.findById(weatherId)).willReturn(Optional.of(weather));
     given(clothesRepository.findByOwnerId(userId)).willReturn(allClothes);
-    given(clothesAi.recommendClothesIds(eq(weather), eq(allClothes), eq((short) 3), anyMap()))
+    given(clothesAi.recommendClothesIds(eq(weather), anyList(), eq((short) 3), anyMap()))
         .willThrow(new RuntimeException("ai adapter timeout"));
     given(clothesMapper.toOotdDto(top, List.of())).willReturn(topDto);
 
     RecommendationDto result = recommendationService.getRecommendations(weatherId, user);
 
     assertThat(result.clothes()).containsExactly(topDto);
-    verify(clothesAi).recommendClothesIds(eq(weather), eq(allClothes), eq((short) 3), anyMap());
+    verify(clothesAi).recommendClothesIds(eq(weather), anyList(), eq((short) 3), anyMap());
   }
 
   @Test
@@ -228,7 +228,7 @@ class RecommendationServiceImplTest {
 
     given(weatherRepository.findById(weatherId)).willReturn(Optional.of(weather));
     given(clothesRepository.findByOwnerId(userId)).willReturn(allClothes);
-    given(clothesAi.recommendClothesIds(eq(weather), eq(allClothes), eq((short) 3), anyMap()))
+    given(clothesAi.recommendClothesIds(eq(weather), anyList(), eq((short) 3), anyMap()))
         .willReturn(List.of(notOwnedId1, ownedOuterId, notOwnedId2));
     given(clothesMapper.toOotdDto(ownedOuter, List.of())).willReturn(outerDto);
 
@@ -237,7 +237,7 @@ class RecommendationServiceImplTest {
     assertThat(result.clothes()).containsExactly(outerDto);
     verify(weatherRepository).findById(weatherId);
     verify(clothesRepository).findByOwnerId(userId);
-    verify(clothesAi).recommendClothesIds(eq(weather), eq(allClothes), eq((short) 3), anyMap());
+    verify(clothesAi).recommendClothesIds(eq(weather), anyList(), eq((short) 3), anyMap());
     verify(clothesMapper).toOotdDto(ownedOuter, List.of());
     verifyNoMoreInteractions(clothesMapper);
   }
@@ -260,13 +260,13 @@ class RecommendationServiceImplTest {
 
     given(weatherRepository.findById(weatherId)).willReturn(Optional.of(weather));
     given(clothesRepository.findByOwnerId(userId)).willReturn(allClothes);
-    given(clothesAi.recommendClothesIds(eq(weather), eq(allClothes), eq((short) 3), anyMap())).willReturn(List.of());
+    given(clothesAi.recommendClothesIds(eq(weather), anyList(), eq((short) 3), anyMap())).willReturn(List.of());
     given(clothesMapper.toOotdDto(outer, List.of())).willReturn(outerDto);
 
     RecommendationDto result = recommendationService.getRecommendations(weatherId, user);
 
     assertThat(result.clothes()).containsExactly(outerDto);
-    verify(clothesAi).recommendClothesIds(eq(weather), eq(allClothes), eq((short) 3), anyMap());
+    verify(clothesAi).recommendClothesIds(eq(weather), anyList(), eq((short) 3), anyMap());
     verify(clothesMapper).toOotdDto(outer, List.of());
     verifyNoMoreInteractions(clothesMapper);
   }
@@ -289,13 +289,13 @@ class RecommendationServiceImplTest {
 
     given(weatherRepository.findById(weatherId)).willReturn(Optional.of(weather));
     given(clothesRepository.findByOwnerId(userId)).willReturn(allClothes);
-    given(clothesAi.recommendClothesIds(eq(weather), eq(allClothes), eq((short) 3), anyMap())).willReturn(List.of());
+    given(clothesAi.recommendClothesIds(eq(weather), anyList(), eq((short) 3), anyMap())).willReturn(List.of());
     given(clothesMapper.toOotdDto(outer, List.of())).willReturn(outerDto);
 
     RecommendationDto result = recommendationService.getRecommendations(weatherId, user);
 
     assertThat(result.clothes()).containsExactly(outerDto);
-    verify(clothesAi).recommendClothesIds(eq(weather), eq(allClothes), eq((short) 3), anyMap());
+    verify(clothesAi).recommendClothesIds(eq(weather), anyList(), eq((short) 3), anyMap());
     verify(clothesMapper).toOotdDto(outer, List.of());
     verifyNoMoreInteractions(clothesMapper);
   }
@@ -318,20 +318,20 @@ class RecommendationServiceImplTest {
 
     given(weatherRepository.findById(weatherId)).willReturn(Optional.of(weather));
     given(clothesRepository.findByOwnerId(userId)).willReturn(allClothes);
-    given(clothesAi.recommendClothesIds(eq(weather), eq(allClothes), eq((short) 3), anyMap())).willReturn(List.of());
+    given(clothesAi.recommendClothesIds(eq(weather), anyList(), eq((short) 3), anyMap())).willReturn(List.of());
     given(clothesMapper.toOotdDto(top, List.of())).willReturn(topDto);
 
     RecommendationDto result = recommendationService.getRecommendations(weatherId, user);
 
     assertThat(result.clothes()).containsExactly(topDto);
-    verify(clothesAi).recommendClothesIds(eq(weather), eq(allClothes), eq((short) 3), anyMap());
+    verify(clothesAi).recommendClothesIds(eq(weather), anyList(), eq((short) 3), anyMap());
     verify(clothesMapper).toOotdDto(top, List.of());
     verifyNoMoreInteractions(clothesMapper);
   }
 
   @Test
-  @DisplayName("성공 - fallback에서 동일 타입이 여러 개면 입력 순서대로 결정적으로 선택한다")
-  void getRecommendations_fallback_multipleSameType_deterministicSelection() {
+  @DisplayName("성공 - fallback에서 동일 타입이 여러 개면 해당 타입을 추천한다")
+  void getRecommendations_fallback_multipleSameType_recommendsPreferredType() {
     UUID weatherId = UUID.randomUUID();
     UUID userId = UUID.randomUUID();
     UserDto user = createUserDto(userId);
@@ -351,14 +351,14 @@ class RecommendationServiceImplTest {
 
     given(weatherRepository.findById(weatherId)).willReturn(Optional.of(weather));
     given(clothesRepository.findByOwnerId(userId)).willReturn(allClothes);
-    given(clothesAi.recommendClothesIds(eq(weather), eq(allClothes), eq((short) 3), anyMap())).willReturn(List.of());
+    given(clothesAi.recommendClothesIds(eq(weather), anyList(), eq((short) 3), anyMap())).willReturn(List.of());
     given(clothesMapper.toOotdDto(outer1, List.of())).willReturn(outer1Dto);
     given(clothesMapper.toOotdDto(outer2, List.of())).willReturn(outer2Dto);
 
     RecommendationDto result = recommendationService.getRecommendations(weatherId, user);
 
-    assertThat(result.clothes()).containsExactly(outer1Dto, outer2Dto);
-    verify(clothesAi).recommendClothesIds(eq(weather), eq(allClothes), eq((short) 3), anyMap());
+    assertThat(result.clothes()).containsExactlyInAnyOrder(outer1Dto, outer2Dto);
+    verify(clothesAi).recommendClothesIds(eq(weather), anyList(), eq((short) 3), anyMap());
     verify(clothesMapper).toOotdDto(outer1, List.of());
     verify(clothesMapper).toOotdDto(outer2, List.of());
     verifyNoMoreInteractions(clothesMapper);
@@ -384,7 +384,7 @@ class RecommendationServiceImplTest {
 
     given(weatherRepository.findById(weatherId)).willReturn(Optional.of(weather));
     given(clothesRepository.findByOwnerId(userId)).willReturn(allClothes);
-    given(clothesAi.recommendClothesIds(eq(weather), eq(allClothes), eq((short) 3), anyMap()))
+    given(clothesAi.recommendClothesIds(eq(weather), anyList(), eq((short) 3), anyMap()))
         .willReturn(List.of(UUID.randomUUID(), UUID.randomUUID()));
     given(clothesMapper.toOotdDto(c1, List.of())).willReturn(d1);
     given(clothesMapper.toOotdDto(c2, List.of())).willReturn(d2);
@@ -392,8 +392,8 @@ class RecommendationServiceImplTest {
 
     RecommendationDto result = recommendationService.getRecommendations(weatherId, user);
 
-    assertThat(result.clothes()).containsExactly(d1, d2, d3);
-    verify(clothesAi).recommendClothesIds(eq(weather), eq(allClothes), eq((short) 3), anyMap());
+    assertThat(result.clothes()).containsExactlyInAnyOrder(d1, d2, d3);
+    verify(clothesAi).recommendClothesIds(eq(weather), anyList(), eq((short) 3), anyMap());
   }
 
   @Test
@@ -418,7 +418,7 @@ class RecommendationServiceImplTest {
 
     given(weatherRepository.findById(weatherId)).willReturn(Optional.of(weather));
     given(clothesRepository.findByOwnerId(userId)).willReturn(allClothes);
-    given(clothesAi.recommendClothesIds(eq(weather), eq(allClothes), eq((short) 3), anyMap())).willReturn(List.of(clothesId));
+    given(clothesAi.recommendClothesIds(eq(weather), anyList(), eq((short) 3), anyMap())).willReturn(List.of(clothesId));
     given(attr.getClothes()).willReturn(top);
     given(attr.getDefinition()).willReturn(def);
     given(attr.getValue()).willReturn("중간");

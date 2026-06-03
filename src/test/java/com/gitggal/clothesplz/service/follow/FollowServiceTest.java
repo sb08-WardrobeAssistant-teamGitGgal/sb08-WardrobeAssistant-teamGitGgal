@@ -3,6 +3,7 @@ package com.gitggal.clothesplz.service.follow;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.mock;
@@ -19,6 +20,7 @@ import com.gitggal.clothesplz.exception.BusinessException;
 import com.gitggal.clothesplz.exception.code.FollowErrorCode;
 import com.gitggal.clothesplz.mapper.follow.FollowMapper;
 import com.gitggal.clothesplz.repository.follow.FollowRepository;
+import com.gitggal.clothesplz.repository.profile.ProfileRepository;
 import com.gitggal.clothesplz.repository.user.UserRepository;
 import com.gitggal.clothesplz.service.follow.impl.FollowServiceImpl;
 import org.springframework.context.ApplicationEventPublisher;
@@ -42,6 +44,9 @@ public class FollowServiceTest {
 
   @Mock
   private UserRepository userRepository;
+
+  @Mock
+  private ProfileRepository profileRepository;
 
   @Mock
   private FollowMapper followMapper;
@@ -80,7 +85,7 @@ public class FollowServiceTest {
     given(followRepository.save(any(Follow.class))).willReturn(savedFollow);
 
     FollowDto followDto = mock(FollowDto.class);
-    given(followMapper.toDto(savedFollow)).willReturn(followDto);
+    given(followMapper.toDto(eq(savedFollow), any())).willReturn(followDto);
 
     // when
     FollowDto result = followService.createFollow(request);
@@ -207,7 +212,7 @@ public class FollowServiceTest {
     given(followRepository.countFollowings(followerId, null))
         .willReturn(10L);
 
-    given(followMapper.toDto(any(Follow.class)))
+    given(followMapper.toDto(any(Follow.class), any()))
         .willReturn(mock(FollowDto.class));
 
     FollowListResponse response = followService
@@ -237,7 +242,7 @@ public class FollowServiceTest {
     given(followRepository.countFollowings(followerId, null))
         .willReturn(1L);
 
-    given(followMapper.toDto(any(Follow.class)))
+    given(followMapper.toDto(any(Follow.class), any()))
         .willReturn(mock(FollowDto.class));
 
     // when
@@ -285,7 +290,7 @@ public class FollowServiceTest {
     given(followRepository.countFollowers(followeeId, null))
         .willReturn(2L);
 
-    given(followMapper.toDto(any(Follow.class)))
+    given(followMapper.toDto(any(Follow.class), any()))
         .willReturn(mock(FollowDto.class));
 
     // when

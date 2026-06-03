@@ -1,6 +1,7 @@
 package com.gitggal.clothesplz.repository.profile;
 
 import com.gitggal.clothesplz.entity.profile.Profile;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -15,4 +16,6 @@ public interface ProfileRepository extends JpaRepository<Profile, UUID>, Profile
     List<Profile> findByGridXAndGridY(Integer gridX, Integer gridY);
 
     Optional<Profile> findByUserId(UUID userId);
+
+    List<Profile> findByUserIdIn(Collection<UUID> userIds);
 }

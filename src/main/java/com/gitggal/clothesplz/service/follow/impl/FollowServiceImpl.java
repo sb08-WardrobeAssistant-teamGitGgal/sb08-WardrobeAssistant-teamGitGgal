@@ -13,13 +13,20 @@ import com.gitggal.clothesplz.exception.code.FollowErrorCode;
 import com.gitggal.clothesplz.exception.code.UserErrorCode;
 import com.gitggal.clothesplz.mapper.follow.FollowMapper;
 import com.gitggal.clothesplz.repository.follow.FollowRepository;
+import com.gitggal.clothesplz.repository.profile.ProfileRepository;
 import com.gitggal.clothesplz.repository.user.UserRepository;
 import com.gitggal.clothesplz.service.follow.FollowService;
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -38,6 +45,7 @@ public class FollowServiceImpl implements FollowService {
   private final FollowMapper followMapper;
   private final FollowRepository followRepository;
   private final UserRepository userRepository;
+  private final ProfileRepository profileRepository;
   private final ApplicationEventPublisher eventPublisher;
 
   enum FollowListType {FOLLOWINGS, FOLLOWERS}
@@ -87,7 +95,14 @@ public class FollowServiceImpl implements FollowService {
 
     log.info("[Service] 팔로우 생성 요청 완료: followerId={}, followeeId={}", followerId, followeeId);
 
-    return followMapper.toDto(savedFollow);
+    Set<UUID> userIds = Set.of(followerId, followeeId);
+
+    Map<UUID, String> imageByUserId = new HashMap<>();
+
+    profileRepository.findByUserIdIn(userIds)
+        .forEach(p -> imageByUserId.put(p.getUser().getId(), p.getImageUrl()));
+
+    return followMapper.toDto(savedFollow, imageByUserId);
   }
 
   /**
@@ -235,8 +250,19 @@ public class FollowServiceImpl implements FollowService {
         ? followRepository.countFollowers(targetId, nameLike)
         : followRepository.countFollowings(targetId, nameLike);
 
+    Set<UUID> userIds = pageData.stream()
+        .flatMap(f -> Stream.of(
+            f.getFollower() != null ? f.getFollower().getId() : null,
+            f.getFollowee() != null ? f.getFollowee().getId() : null))
+        .filter(Objects::nonNull)
+        .collect(Collectors.toSet());
+
+    Map<UUID, String> imageByUserId = new HashMap<>();
+    profileRepository.findByUserIdIn(userIds)
+        .forEach(p -> imageByUserId.put(p.getUser().getId(), p.getImageUrl()));
+
     List<FollowDto> dtoList = pageData.stream()
-        .map(followMapper::toDto)
+        .map(f -> followMapper.toDto(f, imageByUserId))
         .toList();
 
     if (type == FollowListType.FOLLOWERS) {
