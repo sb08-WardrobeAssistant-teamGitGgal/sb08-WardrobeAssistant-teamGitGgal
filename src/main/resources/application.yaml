@@ -121,6 +121,7 @@ management:
   cloudwatch:
     metrics:
       export:
+        enabled: false
         namespace: clothesplz
         step: 1m
 
