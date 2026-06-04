@@ -94,7 +94,7 @@ class RedisOAuthAuthorizationRequestRepositoryTest {
       verify(valueOperations).set(
           eq(PREFIX + STATE),
           serializedCaptor.capture(),
-          eq(Duration.ofMinutes(3))
+          eq(Duration.ofMinutes(10))
       );
 
       String capturedJson = serializedCaptor.getValue();
@@ -158,7 +158,7 @@ class RedisOAuthAuthorizationRequestRepositoryTest {
       verify(valueOperations).set(
           eq(PREFIX + STATE),
           jsonCaptor.capture(),
-          eq(Duration.ofMinutes(3))
+          eq(Duration.ofMinutes(10))
       );
 
       String savedValue = jsonCaptor.getValue();
@@ -197,7 +197,7 @@ class RedisOAuthAuthorizationRequestRepositoryTest {
       verify(valueOperations).set(
           eq(PREFIX + STATE),
           serializedCaptor.capture(),
-          eq(Duration.ofMinutes(3))
+          eq(Duration.ofMinutes(10))
       );
 
       request.setParameter("state", STATE);
