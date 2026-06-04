@@ -60,6 +60,6 @@ public class FeedElasticSearchKafkaListener {
 
   @DltHandler
   public void handleDlt(String payload, Exception e, @Header(KafkaHeaders.RECEIVED_TOPIC) String topic) {
-    log.error("[ES DLT] topic={}, payload={}, error={}", topic, payload, e.getMessage());
+    log.error("[ES DLT] topic={}, payload={}", topic, payload, e);
   }
 }
