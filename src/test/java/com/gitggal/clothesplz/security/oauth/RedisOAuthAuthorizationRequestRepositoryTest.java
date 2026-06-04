@@ -7,6 +7,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Duration;
 import java.util.HashSet;
 import java.util.Map;
@@ -43,10 +44,16 @@ class RedisOAuthAuthorizationRequestRepositoryTest {
   private MockHttpServletRequest request;
   private MockHttpServletResponse response;
   private OAuth2AuthorizationRequest authorizationRequest;
+  private ObjectMapper objectMapper;
 
   @BeforeEach
   void setUp() {
-    repository = new RedisOAuthAuthorizationRequestRepository(redisTemplate);
+    objectMapper = new ObjectMapper();
+
+    repository = new RedisOAuthAuthorizationRequestRepository(
+        redisTemplate,
+        objectMapper
+    );
 
     request = new MockHttpServletRequest();
     response = new MockHttpServletResponse();

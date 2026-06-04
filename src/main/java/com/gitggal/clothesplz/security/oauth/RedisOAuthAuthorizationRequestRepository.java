@@ -6,7 +6,6 @@ import com.gitggal.clothesplz.exception.code.UserErrorCode;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.time.Duration;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.jackson2.SecurityJackson2Modules;
@@ -19,7 +18,6 @@ import org.springframework.util.StringUtils;
 
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class RedisOAuthAuthorizationRequestRepository implements
     AuthorizationRequestRepository<OAuth2AuthorizationRequest> {
 
@@ -27,11 +25,17 @@ public class RedisOAuthAuthorizationRequestRepository implements
   private static final Duration TTL = Duration.ofMinutes(10);
 
   private final RedisTemplate<String, Object> redisTemplate;
+  private final ObjectMapper objectMapper;
 
-  private final ObjectMapper objectMapper = new ObjectMapper()
-      .registerModules(SecurityJackson2Modules.getModules(
-          RedisOAuthAuthorizationRequestRepository.class.getClassLoader()))
-      .registerModule(new OAuth2ClientJackson2Module());
+  public RedisOAuthAuthorizationRequestRepository(
+      RedisTemplate<String, Object> redisTemplate,
+      ObjectMapper globalObjectMapper
+  ) {
+    this.redisTemplate = redisTemplate;
+    this.objectMapper = globalObjectMapper.copy()
+        .registerModules(SecurityJackson2Modules.getModules(getClass().getClassLoader()))
+        .registerModule(new OAuth2ClientJackson2Module());
+  }
 
   @Override
   public OAuth2AuthorizationRequest loadAuthorizationRequest(HttpServletRequest request) {
@@ -93,7 +97,7 @@ public class RedisOAuthAuthorizationRequestRepository implements
       return objectMapper.readValue(json, OAuth2AuthorizationRequest.class);
     } catch (Exception e) {
       log.warn("[OAuth] Authorization request 역직렬화 실패: message = {}", e.getMessage(), e);
-      throw new BusinessException(UserErrorCode.OAUTH_AUTHORIZATION_REQUEST_SERIALIZATION_FAILED);
+      throw new BusinessException(UserErrorCode.OAUTH_AUTHORIZATION_REQUEST_DESERIALIZATION_FAILED);
     }
   }
 }
