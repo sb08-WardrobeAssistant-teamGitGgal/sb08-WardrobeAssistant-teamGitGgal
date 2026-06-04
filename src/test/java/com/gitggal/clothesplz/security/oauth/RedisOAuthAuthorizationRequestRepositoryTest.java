@@ -8,6 +8,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import java.time.Duration;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
@@ -16,7 +17,6 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -38,7 +38,6 @@ class RedisOAuthAuthorizationRequestRepositoryTest {
   @Mock
   private ValueOperations<String, Object> valueOperations;
 
-  @InjectMocks
   private RedisOAuthAuthorizationRequestRepository repository;
 
   private MockHttpServletRequest request;
@@ -47,13 +46,15 @@ class RedisOAuthAuthorizationRequestRepositoryTest {
 
   @BeforeEach
   void setUp() {
+    repository = new RedisOAuthAuthorizationRequestRepository(redisTemplate);
+
     request = new MockHttpServletRequest();
     response = new MockHttpServletResponse();
     authorizationRequest = OAuth2AuthorizationRequest.authorizationCode()
         .clientId("test-client")
         .authorizationUri("https://accounts.google.com/o/oauth2/auth")
         .redirectUri("https://example.com/login/oauth2/code/google")
-        .scopes(Set.of("openid", "email", "profile"))
+        .scopes(new HashSet<>(Set.of("openid", "email", "profile")))
         .state(STATE)
         .additionalParameters(Map.of("nonce", "test-nonce"))
         .build();
@@ -84,22 +85,43 @@ class RedisOAuthAuthorizationRequestRepositoryTest {
     }
 
     @Test
-    @DisplayName("Redis에 저장된 값이 있으면 OAuth2AuthorizationRequest를 반환")
+    @DisplayName("Redis에 저장된 JSON 문자열을 역직렬화하여 반환")
     void returnsAuthorizationRequestWhenFoundInRedis() {
       given(redisTemplate.opsForValue()).willReturn(valueOperations);
+
       repository.saveAuthorizationRequest(authorizationRequest, request, response);
       ArgumentCaptor<String> serializedCaptor = ArgumentCaptor.forClass(String.class);
-      verify(valueOperations).set(eq(PREFIX + STATE), serializedCaptor.capture(),
-          eq(Duration.ofMinutes(3)));
+      verify(valueOperations).set(
+          eq(PREFIX + STATE),
+          serializedCaptor.capture(),
+          eq(Duration.ofMinutes(3))
+      );
+
+      String capturedJson = serializedCaptor.getValue();
+      assertThat(capturedJson).startsWith("{");
+      assertThat(capturedJson).contains("\"state\"");
+      assertThat(capturedJson).contains(STATE);
 
       request.setParameter("state", STATE);
-      given(valueOperations.get(PREFIX + STATE)).willReturn(serializedCaptor.getValue());
+      given(valueOperations.get(PREFIX + STATE)).willReturn(capturedJson);
       OAuth2AuthorizationRequest result = repository.loadAuthorizationRequest(request);
 
       assertThat(result).isNotNull();
       assertThat(result.getState()).isEqualTo(STATE);
       assertThat(result.getClientId()).isEqualTo("test-client");
       assertThat(result.getGrantType()).isEqualTo(AuthorizationGrantType.AUTHORIZATION_CODE);
+    }
+
+    @Test
+    @DisplayName("Redis 값이 String 타입이 아니면 null을 반환")
+    void returnsNullWhenRedisValueIsNotString() {
+      request.setParameter("state", STATE);
+      given(redisTemplate.opsForValue()).willReturn(valueOperations);
+      given(valueOperations.get(PREFIX + STATE)).willReturn(12345);
+
+      OAuth2AuthorizationRequest result = repository.loadAuthorizationRequest(request);
+
+      assertThat(result).isNull();
     }
   }
 
@@ -126,17 +148,39 @@ class RedisOAuthAuthorizationRequestRepositoryTest {
     }
 
     @Test
-    @DisplayName("authorizationRequest를 Redis에 TTL과 함께 저장")
-    void savesAuthorizationRequestToRedisWithTtl() {
+    @DisplayName("authorizationRequest를 JSON 직렬화하여 Redis에 TTL과 함께 저장")
+    void savesSerializedJsonToRedisWithTtl() {
       given(redisTemplate.opsForValue()).willReturn(valueOperations);
 
       repository.saveAuthorizationRequest(authorizationRequest, request, response);
 
+      ArgumentCaptor<String> jsonCaptor = ArgumentCaptor.forClass(String.class);
       verify(valueOperations).set(
           eq(PREFIX + STATE),
-          any(String.class),
+          jsonCaptor.capture(),
           eq(Duration.ofMinutes(3))
       );
+
+      String savedValue = jsonCaptor.getValue();
+      assertThat(savedValue).startsWith("{");
+      assertThat(savedValue).contains("\"state\"");
+      assertThat(savedValue).contains(STATE);
+    }
+
+    @Test
+    @DisplayName("state가 비어있는 authorizationRequest는 저장하지 않음")
+    void doesNotSaveWhenStateIsEmpty() {
+      OAuth2AuthorizationRequest noStateRequest = OAuth2AuthorizationRequest.authorizationCode()
+          .clientId("test-client")
+          .authorizationUri("https://accounts.google.com/o/oauth2/auth")
+          .redirectUri("https://example.com/login/oauth2/code/google")
+          .scopes(new HashSet<>(Set.of("openid")))
+          .state("")
+          .build();
+
+      repository.saveAuthorizationRequest(noStateRequest, request, response);
+
+      verify(redisTemplate, never()).opsForValue();
     }
   }
 
@@ -150,8 +194,11 @@ class RedisOAuthAuthorizationRequestRepositoryTest {
       given(redisTemplate.opsForValue()).willReturn(valueOperations);
       repository.saveAuthorizationRequest(authorizationRequest, request, response);
       ArgumentCaptor<String> serializedCaptor = ArgumentCaptor.forClass(String.class);
-      verify(valueOperations).set(eq(PREFIX + STATE), serializedCaptor.capture(),
-          eq(Duration.ofMinutes(3)));
+      verify(valueOperations).set(
+          eq(PREFIX + STATE),
+          serializedCaptor.capture(),
+          eq(Duration.ofMinutes(3))
+      );
 
       request.setParameter("state", STATE);
       given(valueOperations.get(PREFIX + STATE)).willReturn(serializedCaptor.getValue());
@@ -173,7 +220,7 @@ class RedisOAuthAuthorizationRequestRepositoryTest {
     }
 
     @Test
-    @DisplayName("Redis에 값이 없어도 삭제를 시도하고 null을 반환")
+    @DisplayName("Redis에 값이 없어도 state가 있으면 삭제를 시도하고 null을 반환")
     void deletesEvenWhenNotFoundInRedis() {
       request.setParameter("state", STATE);
       given(redisTemplate.opsForValue()).willReturn(valueOperations);

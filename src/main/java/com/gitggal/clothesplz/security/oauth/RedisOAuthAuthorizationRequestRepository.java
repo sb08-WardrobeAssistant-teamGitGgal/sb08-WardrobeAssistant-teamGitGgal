@@ -1,18 +1,16 @@
 package com.gitggal.clothesplz.security.oauth;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gitggal.clothesplz.exception.BusinessException;
 import com.gitggal.clothesplz.exception.code.UserErrorCode;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.time.Duration;
-import java.util.Base64;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.security.jackson2.SecurityJackson2Modules;
+import org.springframework.security.oauth2.client.jackson2.OAuth2ClientJackson2Module;
 import org.springframework.security.oauth2.client.web.AuthorizationRequestRepository;
 import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest;
 import org.springframework.security.oauth2.core.endpoint.OAuth2ParameterNames;
@@ -22,12 +20,18 @@ import org.springframework.util.StringUtils;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class RedisOAuthAuthorizationRequestRepository implements AuthorizationRequestRepository<OAuth2AuthorizationRequest> {
+public class RedisOAuthAuthorizationRequestRepository implements
+    AuthorizationRequestRepository<OAuth2AuthorizationRequest> {
 
   private static final String PREFIX = "auth:oauth2:request:";
   private static final Duration TTL = Duration.ofMinutes(3);
 
   private final RedisTemplate<String, Object> redisTemplate;
+
+  private final ObjectMapper objectMapper = new ObjectMapper()
+      .registerModules(SecurityJackson2Modules.getModules(
+          RedisOAuthAuthorizationRequestRepository.class.getClassLoader()))
+      .registerModule(new OAuth2ClientJackson2Module());
 
   @Override
   public OAuth2AuthorizationRequest loadAuthorizationRequest(HttpServletRequest request) {
@@ -37,8 +41,8 @@ public class RedisOAuthAuthorizationRequestRepository implements AuthorizationRe
     }
 
     Object raw = redisTemplate.opsForValue().get(PREFIX + state);
-    if (raw instanceof String serialized) {
-      return deserialize(serialized);
+    if (raw instanceof String json) {
+      return deserialize(json);
     }
     return null;
   }
@@ -53,14 +57,15 @@ public class RedisOAuthAuthorizationRequestRepository implements AuthorizationRe
       }
       return;
     }
-
     if (!StringUtils.hasText(authorizationRequest.getState())) {
       log.warn("[OAuth] Authorization request 저장 실패: state가 비어있습니다.");
       return;
     }
-
-    redisTemplate.opsForValue().set(PREFIX + authorizationRequest.getState(),
-        serialize(authorizationRequest), TTL);
+    redisTemplate.opsForValue().set(
+        PREFIX + authorizationRequest.getState(),
+        serialize(authorizationRequest),
+        TTL
+    );
   }
 
   @Override
@@ -75,31 +80,20 @@ public class RedisOAuthAuthorizationRequestRepository implements AuthorizationRe
   }
 
   private String serialize(OAuth2AuthorizationRequest authorizationRequest) {
-    try (
-        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-        ObjectOutputStream objectOutputStream = new ObjectOutputStream(byteArrayOutputStream)
-    ) {
-      objectOutputStream.writeObject(authorizationRequest);
-      objectOutputStream.flush();
-      return Base64.getEncoder().encodeToString(byteArrayOutputStream.toByteArray());
+    try {
+      return objectMapper.writeValueAsString(authorizationRequest);
     } catch (Exception e) {
-      log.warn("[OAuth] Authorization request 직렬화 실패: message = {}", e.getMessage());
+      log.warn("[OAuth] Authorization request 직렬화 실패: message = {}", e.getMessage(), e);
       throw new BusinessException(UserErrorCode.OAUTH_AUTHORIZATION_REQUEST_SERIALIZATION_FAILED);
     }
   }
 
-  private OAuth2AuthorizationRequest deserialize(String serialized) {
-    try (
-        ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(Base64.getDecoder().decode(serialized));
-        ObjectInputStream objectInputStream = new ObjectInputStream(byteArrayInputStream)
-    ) {
-      Object object = objectInputStream.readObject();
-      if (object instanceof OAuth2AuthorizationRequest authorizationRequest) {
-        return authorizationRequest;
-      }
+  private OAuth2AuthorizationRequest deserialize(String json) {
+    try {
+      return objectMapper.readValue(json, OAuth2AuthorizationRequest.class);
     } catch (Exception e) {
-      log.warn("[OAuth] Authorization request 역직렬화 실패: message = {}", e.getMessage());
+      log.warn("[OAuth] Authorization request 역직렬화 실패: message = {}", e.getMessage(), e);
+      throw new BusinessException(UserErrorCode.OAUTH_AUTHORIZATION_REQUEST_SERIALIZATION_FAILED);
     }
-    return null;
   }
 }
