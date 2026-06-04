@@ -24,7 +24,7 @@ public class RedisOAuthAuthorizationRequestRepository implements
     AuthorizationRequestRepository<OAuth2AuthorizationRequest> {
 
   private static final String PREFIX = "auth:oauth2:request:";
-  private static final Duration TTL = Duration.ofMinutes(3);
+  private static final Duration TTL = Duration.ofMinutes(10);
 
   private final RedisTemplate<String, Object> redisTemplate;
 
