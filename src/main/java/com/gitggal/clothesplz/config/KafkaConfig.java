@@ -33,4 +33,68 @@ public class KafkaConfig {
         .replicas(replicas)
         .build();
   }
+
+  @Bean
+  public NewTopic followNotificationTopic() {
+    return TopicBuilder.name("follow-notification")
+        .partitions(partitions)
+        .replicas(replicas)
+        .build();
+  }
+
+  @Bean
+  public NewTopic dmNotificationTopic() {
+    return TopicBuilder.name("dm-notification")
+        .partitions(partitions)
+        .replicas(replicas)
+        .build();
+  }
+
+  @Bean
+  public NewTopic permissionNotificationTopic() {
+    return TopicBuilder.name("permission-notification")
+        .partitions(partitions)
+        .replicas(replicas)
+        .build();
+  }
+
+  @Bean
+  public NewTopic clothingAttributeNotificationTopic() {
+    return TopicBuilder.name("clothing-attribute-notification")
+        .partitions(partitions)
+        .replicas(replicas)
+        .build();
+  }
+
+  @Bean
+  public NewTopic feedCommentNotificationTopic() {
+    return TopicBuilder.name("feed-comment-notification")
+        .partitions(partitions)
+        .replicas(replicas)
+        .build();
+  }
+
+  @Bean
+  public NewTopic feedLikedNotificationTopic() {
+    return TopicBuilder.name("feed-liked-notification")
+        .partitions(partitions)
+        .replicas(replicas)
+        .build();
+  }
+
+  @Bean
+  public NewTopic feedCreatedNotificationTopic() {
+    return TopicBuilder.name("feed-created-notification")
+        .partitions(partitions)
+        .replicas(replicas)
+        .build();
+  }
+
+  @Bean
+  public NewTopic clothesNotificationTopic() {
+    return TopicBuilder.name("clothes-notification")
+        .partitions(partitions)
+        .replicas(replicas)
+        .build();
+  }
 }

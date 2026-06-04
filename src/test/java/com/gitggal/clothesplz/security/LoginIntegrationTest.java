@@ -7,11 +7,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gitggal.clothesplz.entity.user.User;
 import com.gitggal.clothesplz.repository.feed.FeedSearchRepository;
 import com.gitggal.clothesplz.repository.user.UserRepository;
 import com.gitggal.clothesplz.service.image.ImageUploader;
 import com.gitggal.clothesplz.service.weather.WeatherApiService;
+import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -23,6 +25,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
 
 @SpringBootTest
@@ -48,6 +51,9 @@ class LoginIntegrationTest {
 
   @Autowired
   private PasswordEncoder passwordEncoder;
+
+  @Autowired
+  private ObjectMapper objectMapper;
 
   private static final String TEST_EMAIL = "test@test.com";
   private static final String TEST_PASSWORD = "password123!";
@@ -171,5 +177,38 @@ class LoginIntegrationTest {
         .andExpect(cookie().httpOnly("REFRESH_TOKEN", true))
         .andExpect(cookie().secure("REFRESH_TOKEN", true))
         .andExpect(cookie().path("REFRESH_TOKEN", "/"));
+  }
+
+  @Test
+  @DisplayName("로그아웃 성공 - 인증된 사용자")
+  void logout_success_authenticatedUser() throws Exception {
+    MvcResult loginResult = mockMvc.perform(post("/api/auth/sign-in")
+            .with(csrf())
+            .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+            .param("username", TEST_EMAIL)
+            .param("password", TEST_PASSWORD))
+        .andExpect(status().isOk())
+        .andReturn();
+
+    String accessToken = objectMapper.readTree(loginResult.getResponse().getContentAsString())
+        .get("accessToken")
+        .asText();
+    Cookie refreshTokenCookie = loginResult.getResponse().getCookie("REFRESH_TOKEN");
+
+    mockMvc.perform(post("/api/auth/sign-out")
+            .with(csrf())
+            .header("Authorization", "Bearer " + accessToken)
+            .cookie(refreshTokenCookie))
+        .andExpect(status().isNoContent())
+        .andExpect(cookie().maxAge("REFRESH_TOKEN", 0));
+  }
+
+  @Test
+  @DisplayName("로그아웃 실패 - 인증되지 않은 사용자")
+  void logout_fail_unauthenticatedUser() throws Exception {
+    mockMvc.perform(post("/api/auth/sign-out")
+            .with(csrf()))
+        .andExpect(status().isUnauthorized())
+        .andExpect(cookie().doesNotExist("REFRESH_TOKEN"));
   }
 }

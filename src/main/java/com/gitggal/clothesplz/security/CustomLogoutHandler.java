@@ -2,14 +2,13 @@ package com.gitggal.clothesplz.security;
 
 import com.gitggal.clothesplz.security.jwt.JwtRegistry;
 import com.gitggal.clothesplz.security.jwt.JwtTokenProvider;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import java.util.Arrays;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseCookie;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.logout.LogoutHandler;
 import org.springframework.stereotype.Component;
@@ -25,29 +24,29 @@ public class CustomLogoutHandler implements LogoutHandler {
   @Override
   public void logout(HttpServletRequest request, HttpServletResponse response,
       Authentication authentication) {
-    ResponseCookie responseCookie = tokenProvider.generateRefreshTokenExpirationCookie();
-    response.addHeader("Set-Cookie", responseCookie.toString());
-
-    Cookie[] cookies = request.getCookies();
-    if(cookies == null) {
-      log.warn("[Security] 로그아웃: 쿠키가 없습니다.");
+    if (!isAuthenticated(authentication)) {
+      log.warn("[Security] 로그아웃: 인증되지 않은 사용자입니다.");
       return;
     }
 
-    Arrays.stream(cookies)
-        .filter(cookie -> cookie.getName().equals(JwtTokenProvider.REFRESH_TOKEN_COOKIE_NAME))
-        .findFirst()
-        .ifPresent(cookie -> {
-          String refreshToken = cookie.getValue();
+    ResponseCookie responseCookie = tokenProvider.generateRefreshTokenExpirationCookie();
+    response.addHeader("Set-Cookie", responseCookie.toString());
 
-          if(!tokenProvider.validateRefreshToken(refreshToken)) {
-            log.warn("[Security] 로그아웃: 유효하지 않은 refreshToken 입니다.");
-            return;
-          }
+    Object principal = authentication.getPrincipal();
+    if (!(principal instanceof ClothesUserDetails userDetails)) {
+      log.warn("[Security] 로그아웃: 지원하지 않는 principal 타입입니다. type={}",
+          principal == null ? "null" : principal.getClass().getName());
+      return;
+    }
 
-          UUID userId = tokenProvider.getUserId(refreshToken);
-          jwtRegistry.invalidateJwtInformationByUserId(userId);
-        });
+    UUID userId = userDetails.getUserDto().id();
+    jwtRegistry.invalidateJwtInformationByUserId(userId);
 
+  }
+
+  private boolean isAuthenticated(Authentication authentication) {
+    return authentication != null
+        && authentication.isAuthenticated()
+        && !(authentication instanceof AnonymousAuthenticationToken);
   }
 }

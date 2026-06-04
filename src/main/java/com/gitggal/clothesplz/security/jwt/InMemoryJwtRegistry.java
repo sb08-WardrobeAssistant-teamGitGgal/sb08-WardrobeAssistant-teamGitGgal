@@ -5,10 +5,12 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Profile;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 @Component
+@Profile("test")
 @RequiredArgsConstructor
 public class InMemoryJwtRegistry implements JwtRegistry {
 
@@ -69,6 +71,12 @@ public class InMemoryJwtRegistry implements JwtRegistry {
       return false;
     }
 
+    JwtInformation info = origin.get(userId);
+    if (info == null || !accessToken.equals(info.accessToken())) {
+      invalidateJwtInformationByUserId(userId);
+      return false;
+    }
+
     return tokenProvider.validateAccessToken(accessToken);
   }
 
@@ -77,6 +85,12 @@ public class InMemoryJwtRegistry implements JwtRegistry {
   public boolean hasActiveJwtInformationByRefreshToken(String refreshToken) {
     UUID userId = refreshTokenIndex.get(refreshToken);
     if (userId == null) {
+      return false;
+    }
+
+    JwtInformation info = origin.get(userId);
+    if (info == null || !refreshToken.equals(info.refreshToken())) {
+      invalidateJwtInformationByUserId(userId);
       return false;
     }
 

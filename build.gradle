@@ -77,6 +77,7 @@ dependencies {
 
     // AWS
     implementation platform('software.amazon.awssdk:bom:2.31.62')
+    implementation 'io.awspring.cloud:spring-cloud-aws-starter:3.4.0'
     implementation 'software.amazon.awssdk:s3'
 
     // Image processing
@@ -127,7 +128,8 @@ def jacocoExcludePatterns = [
         "**/*Mapper*",
         "**/entity/**",
         "**/publisher/**",
-        "**/elasticsearch/**"
+        "**/elasticsearch/**",
+        "**/*KafkaListener*"
 ]
 
 jacocoTestReport {

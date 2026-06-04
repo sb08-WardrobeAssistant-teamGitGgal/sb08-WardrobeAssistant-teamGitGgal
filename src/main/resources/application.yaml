@@ -1,4 +1,9 @@
 spring:
+  cloud:
+    aws:
+      cloudwatch:
+        enabled: false
+
   batch:
     job:
       enabled: false       # 앱 시작 시 배치 자동 실행 방지 (스케줄러로만 실행)
@@ -103,7 +108,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health, info, metrics, loggers, caches, circuitbreakers, prometheus
+        include: health
   endpoint:
     health:
       show-details: always
@@ -113,6 +118,12 @@ management:
   info:
     env:
       enabled: true
+  cloudwatch:
+    metrics:
+      export:
+        enabled: false
+        namespace: clothesplz
+        step: 1m
 
 # s3
 storage:
