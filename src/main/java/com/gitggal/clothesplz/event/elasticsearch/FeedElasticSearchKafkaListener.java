@@ -9,6 +9,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.DltHandler;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.annotation.RetryableTopic;
+import org.springframework.kafka.support.KafkaHeaders;
+import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.stereotype.Component;
 
@@ -57,7 +59,7 @@ public class FeedElasticSearchKafkaListener {
   }
 
   @DltHandler
-  public void handleDlt(String payload, Exception e) {
-    log.error("[ES DLT] payload={}, error={}", payload, e.getMessage());
+  public void handleDlt(String payload, Exception e, @Header(KafkaHeaders.RECEIVED_TOPIC) String topic) {
+    log.error("[ES DLT] topic={}, payload={}", topic, payload, e);
   }
 }
