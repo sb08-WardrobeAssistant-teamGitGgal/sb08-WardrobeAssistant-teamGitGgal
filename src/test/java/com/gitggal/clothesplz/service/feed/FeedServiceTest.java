@@ -308,12 +308,14 @@ public class FeedServiceTest {
     @DisplayName("피드 삭제 성공인 경우")
     void deleteFeed_Success() {
       // given
-      given(feedRepository.findWithDetailsById(eq(feedId))).willReturn(Optional.of(mockFeed));
+      given(feedRepository.findById(eq(feedId))).willReturn(Optional.of(mockFeed));
 
       // when
       feedService.deleteFeed(feedId);
 
       // then
+      then(feedCommentRepository).should().deleteAllByFeedId(feedId);
+      then(feedLikeRepository).should().deleteAllByFeedId(feedId);
       then(feedRepository).should().delete(any(Feed.class));
       then(eventPublisher).should().publishEvent(any(FeedElasticSearchDeleteEvent.class));
     }
@@ -322,7 +324,7 @@ public class FeedServiceTest {
     @DisplayName("피드 정보를 찾을 수 없는 경우 예외 발생")
     void deleteFeed_FeedNotFound_ThrowsException() {
       // given
-      given(feedRepository.findWithDetailsById(eq(feedId))).willReturn(Optional.empty());
+      given(feedRepository.findById(eq(feedId))).willReturn(Optional.empty());
 
       // when & then
       assertThatThrownBy(() -> feedService.deleteFeed(feedId))
