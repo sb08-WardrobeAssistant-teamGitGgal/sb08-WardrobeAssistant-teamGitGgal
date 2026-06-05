@@ -2,6 +2,7 @@ package com.gitggal.clothesplz.repository.weather;
 
 import com.gitggal.clothesplz.entity.weather.Location;
 import com.gitggal.clothesplz.entity.weather.Weather;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.time.OffsetDateTime;
@@ -14,7 +15,8 @@ public interface WeatherRepository extends JpaRepository<Weather, UUID> {
     // findFirst: DB에 중복 rows 존재해도 NonUniqueResultException 방지
     Optional<Weather> findFirstByLocationAndForecastAt(Location location, OffsetDateTime forecastAt);
 
-    // 배치가 저장할 날짜 범위만 조회.
+    // 배치가 저장할 날짜 범위만 조회. location EAGER fetch로 N+1 방지
+    @EntityGraph(attributePaths = "location")
     List<Weather> findByLocationInAndForecastAtBetween(List<Location> locations, OffsetDateTime start, OffsetDateTime end);
 
     Optional<Weather> findFirstByLocationOrderByForecastAtDesc(Location location);
