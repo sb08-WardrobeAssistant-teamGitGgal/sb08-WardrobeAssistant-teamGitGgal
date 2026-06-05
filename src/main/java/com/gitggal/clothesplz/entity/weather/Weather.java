@@ -85,4 +85,20 @@ public class Weather extends BaseUpdatableEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "wind_phrase", nullable = false, length = 20)
     private WindPhrase windPhrase;
+
+    public void update(Weather newData) {
+        this.forecastedAt = newData.forecastedAt;
+        this.skyStatus = newData.skyStatus;
+        this.precipitationType = newData.precipitationType;
+        this.precipitationAmount = newData.precipitationAmount;
+        this.precipitationProbability = newData.precipitationProbability;
+        this.humidity = newData.humidity;
+        this.humidityDiff = newData.humidityDiff;
+        this.temperatureCurrent = newData.temperatureCurrent;
+        this.temperatureDiff = newData.temperatureDiff;
+        this.temperatureMin = newData.temperatureMin;
+        this.temperatureMax = newData.temperatureMax;
+        this.windSpeed = newData.windSpeed;
+        this.windPhrase = newData.windPhrase;
+    }
 }

@@ -9,11 +9,16 @@ import com.gitggal.clothesplz.entity.weather.WindPhrase;
 import com.gitggal.clothesplz.repository.profile.ProfileRepository;
 import com.gitggal.clothesplz.service.notification.NotificationService;
 import com.gitggal.clothesplz.service.weather.WeatherAlertService;
+import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -21,6 +26,7 @@ public class WeatherAlertServiceImpl implements WeatherAlertService {
 
     private final ProfileRepository profileRepository;
     private final NotificationService notificationService;
+    private final EntityManager entityManager;
 
     @Override
     public void sendAlertsIfNeeded(Weather weather) {
@@ -34,14 +40,15 @@ public class WeatherAlertServiceImpl implements WeatherAlertService {
         List<AlertMessage> alerts = buildAlerts(weather);
         if (alerts.isEmpty()) return;
 
+        Instant todayStart = LocalDate.now(ZoneId.of("Asia/Seoul"))
+                .atStartOfDay(ZoneId.of("Asia/Seoul")).toInstant();
+
         for (Profile profile : profiles) {
+            UUID userId = profile.getUser().getId();
             for (AlertMessage alert : alerts) {
-                notificationService.send(new NotificationRequest(
-                        profile.getUser().getId(),
-                        alert.title(),
-                        alert.content(),
-                        alert.level()
-                ));
+                if (!alreadySentToday(userId, alert.title(), todayStart)) {
+                    notificationService.send(new NotificationRequest(userId, alert.title(), alert.content(), alert.level()));
+                }
             }
         }
     }
@@ -70,7 +77,7 @@ public class WeatherAlertServiceImpl implements WeatherAlertService {
             ));
         }
 
-        if (weather.getTemperatureMin() <= 0) {
+        if (weather.getTemperatureMin() <= 3) {
             result.add(new AlertMessage(
                     "오늘 한파 예보가 있어요",
                     String.format("최저기온 %.0f°C 예상이에요. 따뜻하게 입으세요.", weather.getTemperatureMin()),
@@ -79,7 +86,7 @@ public class WeatherAlertServiceImpl implements WeatherAlertService {
         }
 
         double swing = weather.getTemperatureMax() - weather.getTemperatureMin();
-        if (swing >= 12) {
+        if (swing >= 10) {
             result.add(new AlertMessage(
                     "오늘 일교차가 크게 납니다",
                     String.format("기온 차이가 %.0f°C예요. 겉옷을 꼭 챙기세요.", swing),
@@ -114,6 +121,17 @@ public class WeatherAlertServiceImpl implements WeatherAlertService {
             );
             default -> throw new IllegalStateException("Unhandled precipitation type: " + weather.getPrecipitationType());
         };
+    }
+
+    private boolean alreadySentToday(UUID userId, String title, Instant after) {
+        Long count = entityManager.createQuery(
+                        "SELECT COUNT(n) FROM Notification n WHERE n.receiver.id = :userId AND n.title = :title AND n.createdAt > :after",
+                        Long.class)
+                .setParameter("userId", userId)
+                .setParameter("title", title)
+                .setParameter("after", after)
+                .getSingleResult();
+        return count > 0;
     }
 
     private record AlertMessage(String title, String content, NotificationLevel level) {}

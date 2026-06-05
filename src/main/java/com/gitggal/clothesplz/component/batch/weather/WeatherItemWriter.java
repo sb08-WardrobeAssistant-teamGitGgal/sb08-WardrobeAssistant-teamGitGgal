@@ -16,9 +16,10 @@ import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 // 청크 단위 bulk 중복 체크 후 Weather 엔티티 일괄 저장
 @Slf4j
@@ -52,25 +53,29 @@ public class WeatherItemWriter implements ItemWriter<List<Weather>> {
                 .map(Weather::getForecastAt)
                 .max(Comparator.naturalOrder()).orElseThrow();
 
-        Set<String> existingKeys = weatherRepository
+        Map<String, Weather> existingMap = weatherRepository
                 .findByLocationInAndForecastAtBetween(locations, minForecastAt, maxForecastAt).stream()
-                .map(w -> toKey(w.getLocation().getId(), w.getForecastAt()))
-                .collect(Collectors.toSet());
+                .collect(Collectors.toMap(w -> toKey(w.getLocation().getId(), w.getForecastAt()), w -> w));
 
-        List<Weather> toSave = allWeathers.stream()
-                .filter(w -> !existingKeys.contains(toKey(w.getLocation().getId(), w.getForecastAt())))
+        List<Weather> toInsert = allWeathers.stream()
+                .filter(w -> !existingMap.containsKey(toKey(w.getLocation().getId(), w.getForecastAt())))
                 .toList();
 
-        weatherRepository.saveAll(toSave);
-        log.debug("[Batch] 날씨 저장: {}건 (중복 제외: {}건)", toSave.size(), allWeathers.size() - toSave.size());
+        List<Weather> toUpdate = allWeathers.stream()
+                .filter(w -> existingMap.containsKey(toKey(w.getLocation().getId(), w.getForecastAt())))
+                .toList();
 
-        toSave.stream()
-                .map(Weather::getLocation)
-                .distinct()
-                .forEach(loc -> weatherCacheService.evictForecast(loc.getGridX(), loc.getGridY()));
+        weatherRepository.saveAll(toInsert);
+        toUpdate.forEach(newData -> existingMap.get(toKey(newData.getLocation().getId(), newData.getForecastAt())).update(newData));
+        log.debug("[Batch] 날씨 저장: 신규={}건, 업데이트={}건", toInsert.size(), toUpdate.size());
+
+        locations.forEach(loc -> weatherCacheService.evictForecast(loc.getGridX(), loc.getGridY()));
 
         LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul"));
-        toSave.stream()
+        Stream.concat(
+                toInsert.stream(),
+                toUpdate.stream().map(newData -> existingMap.get(toKey(newData.getLocation().getId(), newData.getForecastAt())))
+        )
                 .filter(w -> w.getForecastAt().toLocalDate().equals(today))
                 .forEach(weatherAlertService::sendAlertsIfNeeded);
     }
