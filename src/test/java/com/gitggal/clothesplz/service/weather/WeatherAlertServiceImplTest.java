@@ -23,6 +23,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -375,7 +376,7 @@ class WeatherAlertServiceImplTest {
         @DisplayName("오늘 이미 같은 제목 알림 발송됨 → 중복 미발송")
         void alreadySentToday_doesNotSendDuplicate() {
             given(profileRepository.findByGridXAndGridY(any(), any())).willReturn(List.of(profile));
-            given(typedQuery.getResultList()).willReturn(List.of(new Object[]{userId, "오늘 비 예보가 있어요"}));
+            given(typedQuery.getResultList()).willReturn(Collections.singletonList(new Object[]{userId, "오늘 비 예보가 있어요"}));
             Weather weather = makeWeather(PrecipitationType.RAIN, 70.0, WindPhrase.WEAK, 20.0, 12.0, 3.0);
 
             alertService.sendAlertsIfNeeded(weather);
@@ -395,7 +396,7 @@ class WeatherAlertServiceImplTest {
 
             given(profileRepository.findByGridXAndGridY(any(), any())).willReturn(List.of(profile, profile2));
             // userId는 이미 발송, userId2는 미발송
-            given(typedQuery.getResultList()).willReturn(List.of(new Object[]{userId, "오늘 비 예보가 있어요"}));
+            given(typedQuery.getResultList()).willReturn(Collections.singletonList(new Object[]{userId, "오늘 비 예보가 있어요"}));
             Weather weather = makeWeather(PrecipitationType.RAIN, 70.0, WindPhrase.WEAK, 20.0, 12.0, 3.0);
 
             alertService.sendAlertsIfNeeded(weather);
