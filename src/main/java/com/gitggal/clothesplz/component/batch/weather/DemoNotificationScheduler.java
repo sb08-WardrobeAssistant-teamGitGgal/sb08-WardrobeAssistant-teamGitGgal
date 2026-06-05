@@ -17,7 +17,7 @@ public class DemoNotificationScheduler {
     private final ProfileRepository profileRepository;
     private final NotificationService notificationService;
 
-    @Scheduled(cron = "0 0 15 * * *", zone = "Asia/Seoul")
+    @Scheduled(cron = "0 10 15 * * *", zone = "Asia/Seoul")
     public void sendDemoNotification() {
         profileRepository.findAll().forEach(profile -> {
             notificationService.send(new NotificationRequest(
