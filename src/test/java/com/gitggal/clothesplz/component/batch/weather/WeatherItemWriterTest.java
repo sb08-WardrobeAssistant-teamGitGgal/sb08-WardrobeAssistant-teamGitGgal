@@ -99,6 +99,23 @@ class WeatherItemWriterTest {
         }
 
         @Test
+        @DisplayName("중복 데이터 → existing.update(newData) 호출")
+        void write_duplicateData_callsUpdateOnExisting() throws Exception {
+            OffsetDateTime forecastAt = OffsetDateTime.now();
+
+            Weather existing = makeWeather(forecastAt);
+            Weather newData = makeWeather(forecastAt);
+            Chunk<List<Weather>> chunk = new Chunk<>(List.of(List.of(newData)));
+
+            given(weatherRepository.findByLocationInAndForecastAtBetween(anyList(), any(), any()))
+                    .willReturn(List.of(existing));
+
+            writer.write(chunk);
+
+            verify(existing).update(newData);
+        }
+
+        @Test
         @DisplayName("신규 + 중복 혼재 → 신규만 saveAll")
         void write_mixed_savesOnlyNew() throws Exception {
             OffsetDateTime existingAt = OffsetDateTime.now();
@@ -171,18 +188,19 @@ class WeatherItemWriterTest {
         }
 
         @Test
-        @DisplayName("오늘 날씨 중복 → alertService 미호출")
-        void write_todayDuplicateWeather_doesNotTriggerAlert() throws Exception {
+        @DisplayName("오늘 날씨 업데이트 → alertService 호출 (UPSERT 후 알림 재발송 가능)")
+        void write_todayUpdatedWeather_triggersAlert() throws Exception {
             OffsetDateTime today = OffsetDateTime.now(ZoneId.of("Asia/Seoul"));
-            Weather w = makeWeather(today);
-            Chunk<List<Weather>> chunk = new Chunk<>(List.of(List.of(w)));
+            Weather existing = makeWeather(today);
+            Weather newData = makeWeather(today);
+            Chunk<List<Weather>> chunk = new Chunk<>(List.of(List.of(newData)));
 
             given(weatherRepository.findByLocationInAndForecastAtBetween(anyList(), any(), any()))
-                    .willReturn(List.of(w));
+                    .willReturn(List.of(existing));
 
             writer.write(chunk);
 
-            verifyNoInteractions(weatherAlertService);
+            verify(weatherAlertService).sendAlertsIfNeeded(existing);
         }
 
         @Test
@@ -238,17 +256,19 @@ class WeatherItemWriterTest {
         }
 
         @Test
-        @DisplayName("전부 중복 → evict 미호출")
-        void write_allDuplicate_doesNotEvictCache() throws Exception {
-            Weather w = makeWeather(OffsetDateTime.now());
-            Chunk<List<Weather>> chunk = new Chunk<>(List.of(List.of(w)));
+        @DisplayName("전부 업데이트 → evict 호출 (신규 없어도 캐시 무효화)")
+        void write_allUpdated_evictsCache() throws Exception {
+            OffsetDateTime forecastAt = OffsetDateTime.now();
+            Weather existing = makeWeather(forecastAt);
+            Weather newData = makeWeather(forecastAt);
+            Chunk<List<Weather>> chunk = new Chunk<>(List.of(List.of(newData)));
 
             given(weatherRepository.findByLocationInAndForecastAtBetween(anyList(), any(), any()))
-                    .willReturn(List.of(w));
+                    .willReturn(List.of(existing));
 
             writer.write(chunk);
 
-            verifyNoInteractions(weatherCacheService);
+            verify(weatherCacheService).evictForecast(60, 127);
         }
     }
 
