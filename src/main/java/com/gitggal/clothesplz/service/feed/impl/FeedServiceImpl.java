@@ -184,9 +184,11 @@ public class FeedServiceImpl implements FeedService {
   public void deleteFeed(UUID feedId) {
     log.info("[Service] 피드 삭제 요청 시작 - feedId: {}", feedId);
 
-    Feed feed = feedRepository.findWithDetailsById(feedId)
+    Feed feed = feedRepository.findById(feedId)
         .orElseThrow(() -> new BusinessException(FeedErrorCode.FEED_NOT_FOUND));
 
+    feedCommentRepository.deleteAllByFeedId(feedId);
+    feedLikeRepository.deleteAllByFeedId(feedId);
     feedRepository.delete(feed);
     eventPublisher.publishEvent(new FeedElasticSearchDeleteEvent(feed.getId()));
 

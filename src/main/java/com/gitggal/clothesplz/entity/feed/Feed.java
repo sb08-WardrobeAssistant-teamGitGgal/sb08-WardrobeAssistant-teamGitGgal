@@ -4,7 +4,6 @@ import com.gitggal.clothesplz.dto.clothes.OotdDto;
 import com.gitggal.clothesplz.entity.base.BaseUpdatableEntity;
 import com.gitggal.clothesplz.entity.user.User;
 import com.gitggal.clothesplz.entity.weather.Weather;
-import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -48,10 +47,10 @@ public class Feed extends BaseUpdatableEntity {
   @Column(name = "comment_count", nullable = false)
   private Long commentCount;
 
-  @OneToMany(mappedBy = "feed", cascade = CascadeType.ALL, orphanRemoval = true)
+  @OneToMany(mappedBy = "feed")
   private List<FeedLike> feedLikes = new ArrayList<>();
 
-  @OneToMany(mappedBy = "feed", cascade = CascadeType.ALL, orphanRemoval = true)
+  @OneToMany(mappedBy = "feed")
   private List<FeedComment> feedComments = new ArrayList<>();
 
   public Feed(Weather weather, User author, List<OotdDto> ootds, String content) {
