@@ -71,9 +71,9 @@ class WeatherAlertServiceImplTest {
         profile = mock(Profile.class);
         lenient().when(profile.getUser()).thenReturn(user);
 
-        lenient().when(entityManager.createQuery(anyString(), eq(Long.class))).thenReturn(typedQuery);
+        lenient().when(entityManager.createQuery(anyString(), eq(Object[].class))).thenReturn(typedQuery);
         lenient().when(typedQuery.setParameter(anyString(), any())).thenReturn(typedQuery);
-        lenient().when(typedQuery.getSingleResult()).thenReturn(0L);
+        lenient().when(typedQuery.getResultList()).thenReturn(List.of());
     }
 
     @Nested
@@ -375,7 +375,7 @@ class WeatherAlertServiceImplTest {
         @DisplayName("오늘 이미 같은 제목 알림 발송됨 → 중복 미발송")
         void alreadySentToday_doesNotSendDuplicate() {
             given(profileRepository.findByGridXAndGridY(any(), any())).willReturn(List.of(profile));
-            given(typedQuery.getSingleResult()).willReturn(1L);
+            given(typedQuery.getResultList()).willReturn(List.of(new Object[]{userId, "오늘 비 예보가 있어요"}));
             Weather weather = makeWeather(PrecipitationType.RAIN, 70.0, WindPhrase.WEAK, 20.0, 12.0, 3.0);
 
             alertService.sendAlertsIfNeeded(weather);
@@ -394,8 +394,8 @@ class WeatherAlertServiceImplTest {
             given(profile2.getUser()).willReturn(user2);
 
             given(profileRepository.findByGridXAndGridY(any(), any())).willReturn(List.of(profile, profile2));
-            // profile(userId) 먼저 처리 → 이미 발송(1L), profile2(userId2) → 미발송(0L)
-            given(typedQuery.getSingleResult()).willReturn(1L, 0L);
+            // userId는 이미 발송, userId2는 미발송
+            given(typedQuery.getResultList()).willReturn(List.of(new Object[]{userId, "오늘 비 예보가 있어요"}));
             Weather weather = makeWeather(PrecipitationType.RAIN, 70.0, WindPhrase.WEAK, 20.0, 12.0, 3.0);
 
             alertService.sendAlertsIfNeeded(weather);

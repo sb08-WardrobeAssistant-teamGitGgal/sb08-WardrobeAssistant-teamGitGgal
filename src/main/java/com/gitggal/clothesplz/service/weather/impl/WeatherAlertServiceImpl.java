@@ -18,7 +18,9 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -43,10 +45,14 @@ public class WeatherAlertServiceImpl implements WeatherAlertService {
         Instant todayStart = LocalDate.now(ZoneId.of("Asia/Seoul"))
                 .atStartOfDay(ZoneId.of("Asia/Seoul")).toInstant();
 
+        List<UUID> userIds = profiles.stream().map(p -> p.getUser().getId()).toList();
+        List<String> titles = alerts.stream().map(AlertMessage::title).toList();
+        Set<String> alreadySent = sentTodayKeys(userIds, titles, todayStart);
+
         for (Profile profile : profiles) {
             UUID userId = profile.getUser().getId();
             for (AlertMessage alert : alerts) {
-                if (!alreadySentToday(userId, alert.title(), todayStart)) {
+                if (!alreadySent.contains(userId + ":" + alert.title())) {
                     notificationService.send(new NotificationRequest(userId, alert.title(), alert.content(), alert.level()));
                 }
             }
@@ -123,15 +129,17 @@ public class WeatherAlertServiceImpl implements WeatherAlertService {
         };
     }
 
-    private boolean alreadySentToday(UUID userId, String title, Instant after) {
-        Long count = entityManager.createQuery(
-                        "SELECT COUNT(n) FROM Notification n WHERE n.receiver.id = :userId AND n.title = :title AND n.createdAt > :after",
-                        Long.class)
-                .setParameter("userId", userId)
-                .setParameter("title", title)
+    private Set<String> sentTodayKeys(List<UUID> userIds, List<String> titles, Instant after) {
+        List<Object[]> rows = entityManager.createQuery(
+                        "SELECT n.receiver.id, n.title FROM Notification n WHERE n.receiver.id IN :userIds AND n.title IN :titles AND n.createdAt > :after",
+                        Object[].class)
+                .setParameter("userIds", userIds)
+                .setParameter("titles", titles)
                 .setParameter("after", after)
-                .getSingleResult();
-        return count > 0;
+                .getResultList();
+        return rows.stream()
+                .map(row -> row[0] + ":" + row[1])
+                .collect(Collectors.toSet());
     }
 
     private record AlertMessage(String title, String content, NotificationLevel level) {}
