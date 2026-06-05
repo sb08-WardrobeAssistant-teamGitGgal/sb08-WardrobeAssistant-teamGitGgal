@@ -84,12 +84,13 @@ public class WeatherItemWriter implements ItemWriter<List<Weather>> {
 
         locations.forEach(loc -> weatherCacheService.evictForecast(loc.getGridX(), loc.getGridY()));
 
-        LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul"));
+        ZoneId seoul = ZoneId.of("Asia/Seoul");
+        LocalDate today = LocalDate.now(seoul);
         Stream.concat(
                 toInsert.stream(),
                 toUpdate.stream().map(newData -> existingMap.get(toKey(newData.getLocation().getId(), newData.getForecastAt())))
         )
-                .filter(w -> w.getForecastAt().toLocalDate().equals(today))
+                .filter(w -> w.getForecastAt().atZoneSameInstant(seoul).toLocalDate().equals(today))
                 .forEach(weatherAlertService::sendAlertsIfNeeded);
     }
 
