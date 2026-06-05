@@ -137,6 +137,26 @@ class WeatherItemWriterTest {
         }
 
         @Test
+        @DisplayName("청크 내 동일 key 중복 → 마지막 항목만 saveAll (unique constraint 위반 방지)")
+        void write_inChunkDuplicate_deduplicatesBeforeSave() throws Exception {
+            OffsetDateTime forecastAt = OffsetDateTime.now();
+
+            Weather first = makeWeather(forecastAt);
+            Weather second = makeWeather(forecastAt);
+            Chunk<List<Weather>> chunk = new Chunk<>(List.of(List.of(first, second)));
+
+            given(weatherRepository.findByLocationInAndForecastAtBetween(anyList(), any(), any()))
+                    .willReturn(List.of());
+
+            writer.write(chunk);
+
+            ArgumentCaptor<List<Weather>> captor = ArgumentCaptor.forClass(List.class);
+            verify(weatherRepository).saveAll(captor.capture());
+            assertThat(captor.getValue()).hasSize(1);
+            assertThat(captor.getValue().get(0)).isSameAs(second);
+        }
+
+        @Test
         @DisplayName("여러 chunk item → flatten 후 bulk 처리")
         void write_multipleChunkItems_flattensAndBulkProcesses() throws Exception {
             OffsetDateTime at1 = OffsetDateTime.now();

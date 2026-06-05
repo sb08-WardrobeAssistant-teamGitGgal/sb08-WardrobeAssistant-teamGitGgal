@@ -15,9 +15,11 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -57,11 +59,22 @@ public class WeatherItemWriter implements ItemWriter<List<Weather>> {
                 .findByLocationInAndForecastAtBetween(locations, minForecastAt, maxForecastAt).stream()
                 .collect(Collectors.toMap(w -> toKey(w.getLocation().getId(), w.getForecastAt()), w -> w));
 
-        List<Weather> toInsert = allWeathers.stream()
+        List<Weather> dedupedWeathers = new java.util.ArrayList<>(
+                allWeathers.stream()
+                        .collect(Collectors.toMap(
+                                w -> toKey(w.getLocation().getId(), w.getForecastAt()),
+                                Function.identity(),
+                                (left, right) -> right,
+                                LinkedHashMap::new
+                        ))
+                        .values()
+        );
+
+        List<Weather> toInsert = dedupedWeathers.stream()
                 .filter(w -> !existingMap.containsKey(toKey(w.getLocation().getId(), w.getForecastAt())))
                 .toList();
 
-        List<Weather> toUpdate = allWeathers.stream()
+        List<Weather> toUpdate = dedupedWeathers.stream()
                 .filter(w -> existingMap.containsKey(toKey(w.getLocation().getId(), w.getForecastAt())))
                 .toList();
 
