@@ -7,6 +7,7 @@ import com.gitggal.clothesplz.security.SpaCsrfTokenRequestHandler;
 import com.gitggal.clothesplz.security.jwt.JwtAuthenticationFilter;
 import com.gitggal.clothesplz.security.oauth.OAuthLoginFailureHandler;
 import com.gitggal.clothesplz.security.oauth.OAuthLoginSuccessHandler;
+import com.gitggal.clothesplz.security.oauth.RedisOAuthAuthorizationRequestRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
@@ -37,6 +38,7 @@ public class SecurityConfig {
       LoginFailureHandler loginFailureHandler,
       CustomLogoutHandler logoutHandler,
       JwtAuthenticationFilter jwtAuthenticationFilter,
+      RedisOAuthAuthorizationRequestRepository authorizationRequestRepository,
       OAuthLoginSuccessHandler oauthLoginSuccessHandler,
       OAuthLoginFailureHandler oAuthLoginFailureHandler
   ) throws Exception {
@@ -53,6 +55,8 @@ public class SecurityConfig {
             .successHandler(loginSuccessHandler)
             .failureHandler(loginFailureHandler))
         .oauth2Login(oauth2 -> oauth2
+            .authorizationEndpoint(authorization -> authorization
+                .authorizationRequestRepository(authorizationRequestRepository))
             .successHandler(oauthLoginSuccessHandler)
             .failureHandler(oAuthLoginFailureHandler))
         .logout(logout -> logout

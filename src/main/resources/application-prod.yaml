@@ -38,6 +38,8 @@ spring:
     topic:
       partitions: ${KAFKA_TOPIC_PARTITIONS:3}
       replicas: ${KAFKA_TOPIC_REPLICAS:3}
+    listener:
+      concurrency: 3
 
   security:
     oauth2:
