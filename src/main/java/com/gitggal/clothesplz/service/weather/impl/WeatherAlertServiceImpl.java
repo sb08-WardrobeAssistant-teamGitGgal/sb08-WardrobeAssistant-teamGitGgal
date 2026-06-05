@@ -131,7 +131,7 @@ public class WeatherAlertServiceImpl implements WeatherAlertService {
 
     private Set<String> sentTodayKeys(List<UUID> userIds, List<String> titles, Instant after) {
         List<Object[]> rows = entityManager.createQuery(
-                        "SELECT n.receiver.id, n.title FROM Notification n WHERE n.receiver.id IN :userIds AND n.title IN :titles AND n.createdAt > :after",
+                        "SELECT n.receiver.id, n.title FROM Notification n WHERE n.receiver.id IN :userIds AND n.title IN :titles AND n.createdAt >= :after",
                         Object[].class)
                 .setParameter("userIds", userIds)
                 .setParameter("titles", titles)
