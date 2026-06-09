@@ -98,13 +98,13 @@
 <details>
 <summary>날씨 데이터 관리</summary>
   
-- [기상청 단기 예보](https://www.data.go.kr/tcs/dss/selectApiDataDetailView.do?publicDataPk=15084084) Open API를 활용해 날씨 데이터를 수집합니다.
-- [**카카오 API**](https://developers.kakao.com/docs/ko/local/dev-guide#coord-to-district)를 활용하여 행정 구역 이름을 나타냅니다.
+- [기상청 단기 예보](https://www.data.go.kr/tcs/dss/selectApiDataDetailView.do?publicDataPk=15084084) Open API를 활용해 날씨 데이터를 수집
+- [**카카오 API**](https://developers.kakao.com/docs/ko/local/dev-guide#coord-to-district)를 활용하여 행정 구역 이름 나타냄
 </details>
 <details>
 <summary>특별한 날씨 알림</summary>
   
-- 비가 오거나, 갑자기 온도가 상승하는 등 **특별한 날씨 변화 발생 시 사용자에게 알림**을 보냅니다.
+- 비가 오거나, 갑자기 온도가 상승하는 등 **특별한 날씨 변화 발생 시 사용자에게 알림** 전송
 </details>
 
 ### 박성조(프로필, 의상)
@@ -113,21 +113,21 @@
 <details>
 <summary>프로필 관리</summary>
   
-- 사용자의 기본정보(이름, 성별, 위치정보, 날씨 민감도)를 수정/삭제 가능할 수 있습니다.
-- 프로필 이미지을 수정할 수 있습니다.
+- 사용자의 기본정보(이름, 성별, 위치정보, 날씨 민감도) 수정/삭제
+- 프로필 이미지을 수정
 </details>
 <details>
 <summary>의상 관리</summary>
   
-- 사용자가 소지한 의상들을 추가/수정/삭제할 수 있습니다.
-- 의상 카테고리에 따라 의상 목록을 조회할 수 있습니다.
+- 사용자가 소지한 의상들을 추가/수정/삭제
+- 의상 카테고리에 따라 의상 목록을 조회
 </details>
 <details>
 <summary>AI를 이용한 의상 추천/추출</summary>
   
-- **OpenAI API +** **현재 날씨 + 사용자가 소유한 의상 + 사용자 날씨 민감도**를 이용해 의상 추천을 받을 수 있습니다.
-- 무신사, 지그재그 같은 **쇼핑몰의 URL을 통해서 의상 정보를 추출**할 수 있습니다.
-- 위 기능들로 인해서 의상을 편하게 등록하고, 적절하게 추천받을 수 있습니다.
+- **OpenAI API +** **현재 날씨 + 사용자가 소유한 의상 + 사용자 날씨 민감도**를 이용해 의상 추천 제공
+- 무신사, 지그재그 같은 **쇼핑몰의 URL을 통해서 의상 정보를 추출**
+- 위 기능들로 인해서 의상을 편하게 등록하고, 적절하게 추천
 </details>
 
 ### 박하민(피드)
