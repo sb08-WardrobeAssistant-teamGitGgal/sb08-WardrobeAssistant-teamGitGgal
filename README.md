@@ -57,8 +57,8 @@
 ### 👀 구현 기능 상세
 
 #### 이예은(사용자)
+<img width="900" height="450" alt="사용자 (1)" src="https://github.com/user-attachments/assets/cd5dc03d-a6b8-4e12-8e4e-2ab5ce2d9287" />
 
-<img width="900" height="450" alt="image" src="https://github.com/user-attachments/assets/94fb511f-4b1b-4565-8d37-158b6e03f814" />
 <details>
 <summary>어드민 기능</summary>
   
@@ -93,7 +93,7 @@
 </details>
 
 ### 현승원(날씨)
-<img width="900" height="450" alt="image" src="https://github.com/user-attachments/assets/cb2dfff4-132d-47d3-b6c3-1fc346036241" />
+<img width="900" height="506" alt="날씨" src="https://github.com/user-attachments/assets/d7a76f09-83ee-4967-94f9-4e8b1ab00a3f" />
 
 <details>
 <summary>날씨 데이터 관리</summary>
@@ -157,7 +157,7 @@
 </details>
 
 ### 최준영(알림/팔로우/DM)
-<img width="900" height="450" alt="image" src="https://github.com/user-attachments/assets/66e3a7f3-adab-41b8-95d8-c140ceebb382" />
+<img width="900" height="450" alt="DM팔로우알림 (1) (1)" src="https://github.com/user-attachments/assets/b05773e0-4160-4ca1-af29-89b62c2ad1ff" />
 
 <details>
 <summary>팔로우</summary>
