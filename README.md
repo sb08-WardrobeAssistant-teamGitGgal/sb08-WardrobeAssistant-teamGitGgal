@@ -251,5 +251,4 @@
 
 ---
 
-### 📺 [프로젝트 회고록]()
-- 발표 자료 완성 후 pdf 첨부 예정
+### 📺 [발표 자료](https://app.notion.com/p/ohgiraffers/37c649136c118007b7acdd1ba7dfcccf)
