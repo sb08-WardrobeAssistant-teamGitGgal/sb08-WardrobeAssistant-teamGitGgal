@@ -37,10 +37,10 @@ import com.gitggal.clothesplz.repository.clothes.ClothesRepository;
 import com.gitggal.clothesplz.repository.feed.FeedCommentRepository;
 import com.gitggal.clothesplz.repository.feed.FeedLikeRepository;
 import com.gitggal.clothesplz.repository.feed.FeedRepository;
+import com.gitggal.clothesplz.repository.feed.FeedSearchRepository;
 import com.gitggal.clothesplz.repository.follow.FollowRepository;
 import com.gitggal.clothesplz.repository.user.UserRepository;
 import com.gitggal.clothesplz.repository.weather.WeatherRepository;
-import com.gitggal.clothesplz.repository.feed.FeedSearchRepository;
 import com.gitggal.clothesplz.service.feed.FeedService;
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
@@ -138,12 +138,7 @@ public class FeedServiceImpl implements FeedService {
 
     eventPublisher.publishEvent(new FeedElasticSearchSyncEvent(
         savedFeed.getId(),
-        savedFeed.getContent(),
-        savedFeed.getAuthor().getId(),
-        savedFeed.getWeather().getSkyStatus(),
-        savedFeed.getWeather().getPrecipitationType(),
-        savedFeed.getLikeCount(),
-        savedFeed.getCreatedAt()
+        savedFeed.getContent()
     ));
 
     log.info("[Service] 피드 생성 요청 완료 - feedId: {}", savedFeed.getId());
@@ -165,12 +160,7 @@ public class FeedServiceImpl implements FeedService {
 
     eventPublisher.publishEvent(new FeedElasticSearchSyncEvent(
         feed.getId(),
-        feed.getContent(),
-        feed.getAuthor().getId(),
-        feed.getWeather().getSkyStatus(),
-        feed.getWeather().getPrecipitationType(),
-        feed.getLikeCount(),
-        feed.getCreatedAt()
+        feed.getContent()
     ));
 
     log.info("[Service] 피드 수정 요청 완료 - feedId: {}", feedId);

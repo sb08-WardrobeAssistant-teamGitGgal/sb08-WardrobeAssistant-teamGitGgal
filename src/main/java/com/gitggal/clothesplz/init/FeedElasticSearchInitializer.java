@@ -76,11 +76,6 @@ public class FeedElasticSearchInitializer implements CommandLineRunner {
             .map(feed -> FeedDocument.builder()
                 .id(feed.getId().toString())
                 .content(feed.getContent())
-                .authorId(feed.getAuthor().getId().toString())
-                .skyStatus(feed.getWeather().getSkyStatus().name())
-                .precipitationType(feed.getWeather().getPrecipitationType().name())
-                .likeCount(feed.getLikeCount())
-                .createdAt(feed.getCreatedAt())
                 .build())
             .toList();
 

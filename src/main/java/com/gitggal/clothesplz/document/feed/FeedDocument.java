@@ -26,19 +26,4 @@ public class FeedDocument {
   // 한국어 형태소 분석해서 검색
   @Field(type = FieldType.Text, analyzer = "nori_custom")
   private String content;
-
-  @Field(type = FieldType.Keyword)
-  private String authorId;
-
-  @Field(type = FieldType.Keyword)
-  private String skyStatus;
-
-  @Field(type = FieldType.Keyword)
-  private String precipitationType;
-
-  @Field(type = FieldType.Long)
-  private Long likeCount;
-
-  @Field(type = FieldType.Date, format = DateFormat.date_time)
-  private Instant createdAt;
 }

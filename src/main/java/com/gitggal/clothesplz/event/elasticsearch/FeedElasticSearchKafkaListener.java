@@ -35,11 +35,6 @@ public class FeedElasticSearchKafkaListener {
       feedSearchRepository.save(FeedDocument.builder()
           .id(event.feedId().toString())
           .content(event.content())
-          .authorId(event.authorId().toString())
-          .skyStatus(event.skyStatus().name())
-          .precipitationType(event.precipitationType().name())
-          .likeCount(event.likeCount())
-          .createdAt(event.createdAt())
           .build());
     } catch (JsonProcessingException e) {
       log.error("[ES Kafka] 역직렬화 실패 - payload={}", payload, e);
