@@ -25,9 +25,10 @@ public class FeedElasticSearchKafkaListener {
   @RetryableTopic(attempts = "5", backoff = @Backoff(delay = 1000, multiplier = 2.0),
       kafkaTemplate = "kafkaTemplate",
       numPartitions = "${spring.kafka.topic.partitions:1}",
-      replicationFactor = "${spring.kafka.topic.replicas:1}")
+      replicationFactor = "${spring.kafka.topic.replicas:1}",
+      exclude = {JsonProcessingException.class})
   @KafkaListener(topics = "feed-es-sync", groupId = "clothesplz-group")
-  public void onSyncHandler(String payload) {
+  public void onSyncHandler(String payload) throws JsonProcessingException {
     try {
       FeedElasticSearchSyncEvent event = objectMapper.readValue(payload, FeedElasticSearchSyncEvent.class);
 
@@ -42,23 +43,24 @@ public class FeedElasticSearchKafkaListener {
           .build());
     } catch (JsonProcessingException e) {
       log.error("[ES Kafka] 역직렬화 실패 - payload={}", payload, e);
-      throw new RuntimeException(e); // @RetryableTopic이 재시도하도록 예외 던짐
+      throw e;
     }
   }
 
   @RetryableTopic(attempts = "5", backoff = @Backoff(delay = 1000, multiplier = 2.0),
       kafkaTemplate = "kafkaTemplate",
       numPartitions = "${spring.kafka.topic.partitions:1}",
-      replicationFactor = "${spring.kafka.topic.replicas:1}")
+      replicationFactor = "${spring.kafka.topic.replicas:1}",
+      exclude = {JsonProcessingException.class})
   @KafkaListener(topics = "feed-es-delete", groupId = "clothesplz-group")
-  public void onDeleteHandler(String payload) {
+  public void onDeleteHandler(String payload) throws JsonProcessingException {
     try {
       FeedElasticSearchDeleteEvent event = objectMapper.readValue(payload, FeedElasticSearchDeleteEvent.class);
 
       feedSearchRepository.deleteById(event.feedId().toString());
     } catch (JsonProcessingException e) {
       log.error("[ES Kafka] 역직렬화 실패 - payload={}", payload, e);
-      throw new RuntimeException(e); // @RetryableTopic이 재시도하도록 예외 던짐
+      throw e;
     }
   }
 
