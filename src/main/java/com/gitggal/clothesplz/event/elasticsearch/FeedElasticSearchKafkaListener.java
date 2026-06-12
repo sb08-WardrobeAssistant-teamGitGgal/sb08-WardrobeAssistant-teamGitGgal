@@ -23,7 +23,9 @@ public class FeedElasticSearchKafkaListener {
   private final ObjectMapper objectMapper;
 
   @RetryableTopic(attempts = "5", backoff = @Backoff(delay = 1000, multiplier = 2.0),
-    kafkaTemplate = "kafkaTemplate")
+      kafkaTemplate = "kafkaTemplate",
+      numPartitions = "${spring.kafka.topic.partitions:1}",
+      replicationFactor = "${spring.kafka.topic.replicas:1}")
   @KafkaListener(topics = "feed-es-sync", groupId = "clothesplz-group")
   public void onSyncHandler(String payload) {
     try {
@@ -45,7 +47,9 @@ public class FeedElasticSearchKafkaListener {
   }
 
   @RetryableTopic(attempts = "5", backoff = @Backoff(delay = 1000, multiplier = 2.0),
-      kafkaTemplate = "kafkaTemplate")
+      kafkaTemplate = "kafkaTemplate",
+      numPartitions = "${spring.kafka.topic.partitions:1}",
+      replicationFactor = "${spring.kafka.topic.replicas:1}")
   @KafkaListener(topics = "feed-es-delete", groupId = "clothesplz-group")
   public void onDeleteHandler(String payload) {
     try {
