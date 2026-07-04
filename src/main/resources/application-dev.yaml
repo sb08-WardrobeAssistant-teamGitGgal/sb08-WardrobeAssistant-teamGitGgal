@@ -44,3 +44,12 @@ logging:
     root: info
     org.hibernate.SQL: debug
     org.hibernate.orm.jdbc.bind: trace
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      esSearch:
+        sliding-window-size: 5
+        minimum-number-of-calls: 3
+        wait-duration-in-open-state: 5s
+        failure-rate-threshold: 40

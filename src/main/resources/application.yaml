@@ -160,3 +160,29 @@ kakao:
 openai:
   api:
     key: ${OPENAI_API_KEY}
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      esSearch:
+        # 최근 호출 10번을 기준으로 실패율을 계산
+        sliding-window-type: count_based
+        sliding-window-size: 10
+        # 최근 호출 10번을 기준으로 50% 이상이면 Circuit Breaker가 open(차단) 상태로 전환
+        failure-rate-threshold: 50
+        # 10초 동안 fallback으로 요청 보냄, 10초 후에 half_open으로 전환
+        wait-duration-in-open-state: 10s
+        # half_open 상태에서 테스트로 실제 호출을 몇 번 허용할지
+        permitted-number-of-calls-in-half-open-state: 3
+        # 실패율 계산 시작하려면 최소 몇 번의 호출이 쌓여야 하는지
+        # 5번이 쌓이기 전에는 실패해도 open으로 전환 x
+        minimum-number-of-calls: 5
+        # 10초가 지나면 다음 호출을 기다리지 않고 알아서 half_open으로 바꿈
+        automatic-transition-from-open-to-half-open-enabled: true
+        # Circuit Breaker가 카운트할 예외 목록
+        record-exceptions:
+          - java.net.ConnectException
+          - java.io.IOException
+        # Circuit Breaker가 카운트에서 제외할 예외 목록
+        ignore-exceptions:
+          - com.gitggal.clothesplz.exception.BusinessException

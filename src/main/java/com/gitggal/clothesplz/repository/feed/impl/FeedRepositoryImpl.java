@@ -79,6 +79,7 @@ public class FeedRepositoryImpl implements FeedRepositoryCustom {
         .join(profile).on(profile.user.eq(user))
         .where(
             idIn(esMatchedIds),
+            contentContains(esMatchedIds, feedPageRequest.keywordLike()),
             skyStatusEqual(feedPageRequest.skyStatusEqual()),
             precipitationTypeEqual(feedPageRequest.precipitationTypeEqual()),
             authorIdEqual(feedPageRequest.authorIdEqual()),
@@ -107,6 +108,7 @@ public class FeedRepositoryImpl implements FeedRepositoryCustom {
         .join(feed.weather, weather)
         .where(
             idIn(esMatchedIds),
+            contentContains(esMatchedIds, feedPageRequest.keywordLike()),
             skyStatusEqual(feedPageRequest.skyStatusEqual()),
             precipitationTypeEqual(feedPageRequest.precipitationTypeEqual()),
             authorIdEqual(feedPageRequest.authorIdEqual()),
@@ -119,6 +121,16 @@ public class FeedRepositoryImpl implements FeedRepositoryCustom {
   // 키워드로 검색
   private BooleanExpression idIn(List<UUID> esMatchedIds) {
     return esMatchedIds != null ? feed.id.in(esMatchedIds) : null;
+  }
+
+  // 키워드로 검색 (ES 장애 시 DB LIKE fallback 수행)
+  private BooleanExpression contentContains(List<UUID> esMatchedIds, String keywordLike) {
+    // es가 정상 작동해서 검색 결과를 받아온 경우
+    if (esMatchedIds != null) return null;
+    // 검색 키워드가 없는 경우
+    if (!StringUtils.hasText(keywordLike)) return null;
+    // 검색 키워드로 검색을 시도했지만 ES가 fallback으로 null을 준 경우 (es 장애)
+    return feed.content.containsIgnoreCase(keywordLike);
   }
 
   // 날씨로 검색

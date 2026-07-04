@@ -1,6 +1,5 @@
 package com.gitggal.clothesplz.service.feed.impl;
 
-import com.gitggal.clothesplz.document.feed.FeedDocument;
 import com.gitggal.clothesplz.dto.clothes.ClothesAttributeWithDefDto;
 import com.gitggal.clothesplz.dto.clothes.OotdDto;
 import com.gitggal.clothesplz.dto.feed.CommentCreateRequest;
@@ -37,10 +36,10 @@ import com.gitggal.clothesplz.repository.clothes.ClothesRepository;
 import com.gitggal.clothesplz.repository.feed.FeedCommentRepository;
 import com.gitggal.clothesplz.repository.feed.FeedLikeRepository;
 import com.gitggal.clothesplz.repository.feed.FeedRepository;
-import com.gitggal.clothesplz.repository.feed.FeedSearchRepository;
 import com.gitggal.clothesplz.repository.follow.FollowRepository;
 import com.gitggal.clothesplz.repository.user.UserRepository;
 import com.gitggal.clothesplz.repository.weather.WeatherRepository;
+import com.gitggal.clothesplz.service.feed.EsSearchService;
 import com.gitggal.clothesplz.service.feed.FeedService;
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
@@ -78,7 +77,7 @@ public class FeedServiceImpl implements FeedService {
   private final ClothesAttributeRepository clothesAttributeRepository;
   private final ApplicationEventPublisher eventPublisher;
   private final FollowRepository followRepository;
-  private final FeedSearchRepository feedSearchRepository;
+  private final EsSearchService esSearchService;
 
   @Override
   @Transactional
@@ -340,11 +339,13 @@ public class FeedServiceImpl implements FeedService {
     // es 검색
     List<UUID> esMatchedIDs = null;
     if (StringUtils.hasText(feedPageRequest.keywordLike())) {
-      List<FeedDocument> documents = feedSearchRepository.searchByContent(
-          feedPageRequest.keywordLike());
+      // 검사 결과와 일치하는 피드들의 id만 추출해서 담기
+      esMatchedIDs = esSearchService.searchMatchedIds(feedPageRequest.keywordLike());
 
       // search 검사 결과 아무것도 없을 경우 빈 페이지 반환
-      if (documents.isEmpty()) {
+      // es에게 검색해봤더니 빈 배열이면 빈 페이지 바로 반환
+      // esMatchedIds가 null일 경우는 검색 결과가 없다는 게 아닌 es에게 못 물어봤다(es 장애로 CB fallback 발동)
+      if (esMatchedIDs != null && esMatchedIDs.isEmpty()) {
         return new FeedDtoCursorResponse(
             List.of(),
             null,
@@ -355,11 +356,6 @@ public class FeedServiceImpl implements FeedService {
             feedPageRequest.sortDirection()
         );
       }
-
-      // 검사 결과와 일치하는 피드들의 id만 추출해서 담기
-      esMatchedIDs = documents.stream()
-          .map(document -> UUID.fromString(document.getId()))
-          .toList();
     }
 
     // 그 후 필터링, 정렬, 커서 페이지네이션 처리 후 반환
