@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.DltHandler;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.annotation.RetryableTopic;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.retry.annotation.Backoff;
@@ -21,6 +22,7 @@ public class FeedElasticSearchKafkaListener {
 
   private final FeedSearchRepository feedSearchRepository;
   private final ObjectMapper objectMapper;
+  private final KafkaTemplate<String, String> kafkaTemplate;
 
   @RetryableTopic(attempts = "5", backoff = @Backoff(delay = 1000, multiplier = 2.0),
       kafkaTemplate = "kafkaTemplate",
@@ -62,5 +64,20 @@ public class FeedElasticSearchKafkaListener {
   @DltHandler
   public void handleDlt(String payload, Exception e, @Header(KafkaHeaders.RECEIVED_TOPIC) String topic) {
     log.error("[ES DLT] topic={}, payload={}", topic, payload, e);
+  }
+
+  @KafkaListener(
+      id = "feedEsDltReplayListener",
+      topics = {"feed-es-sync-dlt", "feed-es-delete-dlt"},
+      groupId = "dlt-replay-group",
+      autoStartup = "false"
+  )
+  public void onDltReplay(
+      String payload,
+      @Header(KafkaHeaders.DLT_ORIGINAL_TOPIC) String originalTopic
+  ) {
+    log.info("[ES DLT Replay] 원본 토픽으로 재발행 - originalTopic={}",
+        originalTopic);
+    kafkaTemplate.send(originalTopic, payload);
   }
 }
