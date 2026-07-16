@@ -7,6 +7,7 @@ import com.gitggal.clothesplz.dto.follow.FollowSummaryDto;
 import com.gitggal.clothesplz.entity.base.BaseEntity;
 import com.gitggal.clothesplz.entity.follow.Follow;
 import com.gitggal.clothesplz.entity.user.User;
+import com.gitggal.clothesplz.event.follow.FollowCancelledEvent;
 import com.gitggal.clothesplz.event.follow.FollowCreatedEvent;
 import com.gitggal.clothesplz.exception.BusinessException;
 import com.gitggal.clothesplz.exception.code.FollowErrorCode;
@@ -89,16 +90,9 @@ public class FollowServiceImpl implements FollowService {
 
     Follow savedFollow = followRepository.save(follow);
 
-    // DB 저장 직후 캐시도 맞춰줌
-
-    // followee 입장: "나를 팔로우하는 사람"이 1명 늘었다
-    followCountCacheService.increaseFollowerCount(followeeId);
-
-    // follower 입장: "내가 팔로우하는 사람"이 1명 늘었다
-    followCountCacheService.increaseFollowingCount(followerId);
-
     // 팔로우 알림 발송
     eventPublisher.publishEvent(new FollowCreatedEvent(
+        followerId,
         followeeId,
         savedFollow.getFollower().getName()
     ));
@@ -133,13 +127,8 @@ public class FollowServiceImpl implements FollowService {
 
     followRepository.delete(follow);
 
-    // DB 삭제 후 캐시도 맞춰줌
-
-    // followee 입장: 팔로워 -1
-    followCountCacheService.decreaseFollowerCount(followeeId);
-
-    // follower 입장: 팔로잉 -1
-    followCountCacheService.decreaseFollowingCount(followerId);
+    // 캐시 갱신은 AFTER_COMMIT 리스너에서 처리
+    eventPublisher.publishEvent(new FollowCancelledEvent(followerId, followeeId));
   }
 
 

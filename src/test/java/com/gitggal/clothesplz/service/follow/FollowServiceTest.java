@@ -54,6 +54,9 @@ public class FollowServiceTest {
   @Mock
   private ApplicationEventPublisher eventPublisher;
 
+  @Mock
+  private FollowCountCacheService followCountCacheService;
+
   @InjectMocks
   private FollowServiceImpl followService;
 
@@ -152,6 +155,13 @@ public class FollowServiceTest {
     // given
     UUID followId = UUID.randomUUID();
     Follow follow = mock(Follow.class);
+
+    User mockFollower = mock(User.class);
+    User mockFollowee = mock(User.class);
+    given(mockFollower.getId()).willReturn(UUID.randomUUID());
+    given(mockFollowee.getId()).willReturn(UUID.randomUUID());
+    given(follow.getFollower()).willReturn(mockFollower);
+    given(follow.getFollowee()).willReturn(mockFollowee);
 
     given(followRepository.findById(followId))
         .willReturn(Optional.of(follow));
