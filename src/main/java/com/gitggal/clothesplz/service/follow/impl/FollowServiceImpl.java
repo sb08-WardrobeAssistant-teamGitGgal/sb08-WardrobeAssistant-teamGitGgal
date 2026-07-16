@@ -15,6 +15,7 @@ import com.gitggal.clothesplz.mapper.follow.FollowMapper;
 import com.gitggal.clothesplz.repository.follow.FollowRepository;
 import com.gitggal.clothesplz.repository.profile.ProfileRepository;
 import com.gitggal.clothesplz.repository.user.UserRepository;
+import com.gitggal.clothesplz.service.follow.FollowCountCacheService;
 import com.gitggal.clothesplz.service.follow.FollowService;
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
@@ -47,6 +48,7 @@ public class FollowServiceImpl implements FollowService {
   private final UserRepository userRepository;
   private final ProfileRepository profileRepository;
   private final ApplicationEventPublisher eventPublisher;
+  private final FollowCountCacheService followCountCacheService;
 
   enum FollowListType {FOLLOWINGS, FOLLOWERS}
 
@@ -87,6 +89,14 @@ public class FollowServiceImpl implements FollowService {
 
     Follow savedFollow = followRepository.save(follow);
 
+    // DB 저장 직후 캐시도 맞춰줌
+
+    // followee 입장: "나를 팔로우하는 사람"이 1명 늘었다
+    followCountCacheService.increaseFollowerCount(followeeId);
+
+    // follower 입장: "내가 팔로우하는 사람"이 1명 늘었다
+    followCountCacheService.increaseFollowingCount(followerId);
+
     // 팔로우 알림 발송
     eventPublisher.publishEvent(new FollowCreatedEvent(
         followeeId,
@@ -116,7 +126,20 @@ public class FollowServiceImpl implements FollowService {
     Follow follow = followRepository.findById(followId)
         .orElseThrow(() -> new BusinessException(FollowErrorCode.FOLLOW_NOT_FOUND));
 
+    // 삭제 전에 두 유저의 ID 미리 뽑아둔다.
+    UUID followerId = follow.getFollower().getId();
+
+    UUID followeeId = follow.getFollowee().getId();
+
     followRepository.delete(follow);
+
+    // DB 삭제 후 캐시도 맞춰줌
+
+    // followee 입장: 팔로워 -1
+    followCountCacheService.decreaseFollowerCount(followeeId);
+
+    // follower 입장: 팔로잉 -1
+    followCountCacheService.decreaseFollowingCount(followerId);
   }
 
 
@@ -188,10 +211,26 @@ public class FollowServiceImpl implements FollowService {
     }
 
     // 나를 팔로우하고 있는 사람 수
-    long followerCount = followRepository.countByFollowee_Id(userId);
+    long followerCount = followCountCacheService.getFollowerCount(userId)
+        .orElseGet(() -> {
+          // 해당 블록은 캐시 없을 때만 실행
+          long count = followRepository.countByFollowee_Id(userId);
+
+          // 위에서 구한 값 Redis에 저장
+          followCountCacheService.saveFollowerCount(userId, count);
+
+          return count;
+        });
 
     // 내가 팔로우한 사람 수
-    long followingCount = followRepository.countByFollower_Id(userId);
+    long followingCount = followCountCacheService.getFollowingCount(userId)
+        .orElseGet(() -> {
+          long count = followRepository.countByFollower_Id(userId);
+
+          followCountCacheService.saveFollowingCount(userId, count);
+
+          return count;
+        });
 
     // 현재 로그인 사용자가 이 사람을 팔로우 하고 있는가
     Optional<Follow> myFollow = followRepository.findByFollower_IdAndFollowee_Id(
